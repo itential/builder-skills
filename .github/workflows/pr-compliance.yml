@@ -1,0 +1,71 @@
+name: PR Compliance
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+    branches: [main]
+
+jobs:
+  branch-naming:
+    name: Branch Naming
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate branch name
+        run: |
+          branch="${{ github.head_ref }}"
+          pattern="^(feature|fix|refactor|docs|chore)/[a-z][a-z0-9-]*$"
+          if [[ ! "$branch" =~ $pattern ]]; then
+            echo "::error::Branch '$branch' does not follow naming conventions."
+            echo ""
+            echo "Required format: <type>/<description>"
+            echo "Valid types:     feature, fix, refactor, docs, chore"
+            echo "Description:     lowercase letters, numbers, and hyphens only"
+            echo "Example:         feature/add-auth-middleware"
+            exit 1
+          fi
+          echo "Branch name '$branch' is valid."
+
+  commit-messages:
+    name: Commit Messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate conventional commits
+        run: |
+          pattern="^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .{1,72}"
+          failed=0
+          count=0
+
+          while IFS= read -r msg; do
+            [[ -z "$msg" ]] && continue
+            count=$((count + 1))
+            if [[ "$msg" =~ ^Merge ]]; then
+              echo "::error::Merge commit found: '$msg'"
+              echo "  Merge commits are not allowed — use squash or rebase instead."
+              failed=1
+            elif [[ ! "$msg" =~ $pattern ]]; then
+              echo "::error::Non-conforming commit: '$msg'"
+              echo "  Expected: <type>[(scope)]: <description>"
+              echo "  Valid types: feat, fix, docs, style, refactor, test, chore, perf"
+              echo "  Example: feat(auth): add JWT token validation"
+              failed=1
+            else
+              echo "  OK: $msg"
+            fi
+          done < <(git log --format="%s" "origin/${{ github.base_ref }}..HEAD")
+
+          if [[ $count -eq 0 ]]; then
+            echo "No new commits found."
+            exit 0
+          fi
+
+          echo ""
+          if [[ $failed -eq 1 ]]; then
+            echo "One or more commits do not follow conventional commit format."
+            echo "See CONTRIBUTING.md for commit message guidelines."
+            exit 1
+          fi
+
+          echo "All $count commit(s) conform to conventional commits."
