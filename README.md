@@ -35,6 +35,9 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 
 ```bash
 /plugin marketplace add itential/builder-skills
+```
+
+```bash
 /plugin install itential-builder@itential-builder
 ```
 
@@ -115,6 +118,15 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 - [`docs/developer-flow.md`](docs/developer-flow.md) — full lifecycle diagram and design principles
 - [`docs/builder-flow.md`](docs/builder-flow.md) — build sequence, asset structure, and import pattern
 - [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, and projects
+  - **Workflow & Project Helpers**: `create-workflow.json`, `create-project.json`, `import-project.json`, `add-components-to-project.json`
+  - **Task Helpers**: `workflow-task-adapter.json`, `workflow-task-application.json`, `workflow-task-childjob.json`
+  - **Template Helpers**: `create-template-jinja2.json`, `create-template-textfsm.json`, `create-command-template.json`, `update-command-template.json`
+  - **Golden Config Helpers**: `create-golden-config-tree.json`, `create-golden-config-node.json`, `update-node-config.json`, `add-devices-to-node.json`
+  - **Compliance Helpers**: `create-compliance-plan.json`, `run-compliance-plan.json`, `run-compliance.json`
+  - **IAG Helpers**: `iag/example-python-service.yaml`, `iag/example-ansible-service.yaml`, `iag/example-opentofu-service.yaml`, `iag/example-multi-service-chain.yaml`
+  - **Reference Workflows**: `reference-adapter-workflow.json`, `reference-child-workflow.json`, `reference-childjob-loop.json`, `reference-parent-workflow.json`, `reference-merge-makedata.json`
+  - **Utility Helpers**: `create-json-form.json`, `create-ops-manager-automation.json`, `update-project-members.json`, `lcm-action-workflow.json`
+  - **Bootstrap Scripts**: `bootstrap.sh`, `oauth-bootstrap.sh`
 
 ---
 
