@@ -26,10 +26,11 @@ BUILD SEQUENCE (build locally, import atomically, test, iterate)
      │    Child workflows             ← may use templates
      │    Parent workflow             ← uses children + templates + MOP
      │
-     │  Phase 3: IMPORT (single atomic call)
+     │  Phase 3: IMPORT + SET MEMBERSHIP
      │    POST /automation-studio/projects/import
      │    All assets created inside the project in one call
      │    childJob refs already correct (pre-wired with @projectId:)
+     │    PATCH membership immediately — resolve spec owners/groups to platform IDs
      │
      │  Phase 4: TEST
      │    Test leaf assets standalone (MOP, Jinja2 render)
@@ -42,7 +43,7 @@ BUILD SEQUENCE (build locally, import atomically, test, iterate)
      │
      │  Phase 6: VERIFY + DELIVER
      │    Run acceptance criteria from solution-design.md
-     │    Grant access
+     │    Verify membership (set in Phase 3)
      │
      ▼
 DELIVERED
@@ -278,6 +279,16 @@ With the assembled payload. Response:
 
 Save the import payload to `{use-case}/project-import.json` for reference.
 
+### Set project membership (immediately after import)
+
+Import sets the OAuth service account as project owner — not the UI user from the spec. PATCH membership immediately to grant the correct owners/editors access.
+
+1. Build a membership lookup table by scanning existing projects (the list endpoint doesn't include usernames — individual GETs are required). See SKILL.md "Resolve membership references from spec" for the full procedure.
+2. Match spec members to platform reference IDs using the lookup table.
+3. PATCH `/automation-studio/projects/{projectId}` with the resolved members array.
+
+If a member can't be resolved, stop and ask — don't guess or skip.
+
 ---
 
 ## Phase 4: TEST
@@ -365,18 +376,13 @@ For each criterion in `solution-design.md` Section F:
 2. Check pass/fail
 3. If fail: fix (Phase 5 cycle), re-test
 
-### Grant access
+### Verify membership (set in Phase 3)
 
+Confirm that membership was correctly applied after import:
 ```
-PATCH /automation-studio/projects/{projectId}
-{
-  "members": [
-    {"type": "account", "role": "owner", "reference": "..."},
-    {"type": "group", "role": "editor", "reference": "..."}
-  ]
-}
+GET /automation-studio/projects/{projectId}
 ```
-Full replacement — include ALL members.
+Check `data.members` — verify the spec's owner and editors are listed, not just the OAuth service account. If membership is missing or wrong, re-run the Phase 3 membership procedure.
 
 ### Deliverables
 

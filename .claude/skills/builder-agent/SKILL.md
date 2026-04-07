@@ -118,10 +118,10 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 6. Build command templates  → MOP pre/post checks with validation rules
 7. Build orchestrator last  → parent wires tested children via childJob
 8. Add assets to project    → move/copy into the project
-8b. Set project ownership   → PATCH members to add engineer as owner
-9. Test                     → jobs/start, check results
-10. Debug                    → check job.error, filesystem-first
-11. Reconcile                → diff built vs designed, update artifacts
+9. Set project membership   → resolve spec members, PATCH immediately after import
+10. Test                    → jobs/start, check results
+11. Debug                   → check job.error, filesystem-first
+12. Reconcile               → diff built vs designed, update artifacts
 ```
 
 ---
@@ -726,7 +726,56 @@ PATCH /automation-studio/projects/{projectId}
 ```
 Include ALL members (existing + new) — this is a full replacement.
 
-**IMPORTANT: Always add the engineer as project owner.** After creating or importing a project, PATCH membership to include the engineer's account as `"role": "owner"`. Without this, only the API service account owns the project — the engineer cannot edit, delete, or manage it in the UI. Look up the engineer's account reference from the platform (e.g., `GET /authentication/accounts?username=<email>`) and add it to the members array. This should be a standard post-import step, not something the engineer has to ask for.
+### Resolve membership references from spec
+
+> **_MANDATORY:_** Import sets the OAuth service account as project owner — not the UI user from the spec. The engineer specified in the spec's Project Membership table will be locked out of the project unless you PATCH membership immediately after import. This runs in **Phase 3 (Import)**, not Phase 6 (Deliver).
+
+There is no user/group lookup API on the Itential platform. The only way to resolve a username (e.g., `joksan.flores@itential.com`) or group name (e.g., `solutions-engineers`) to a platform reference ID is by scanning existing projects' members.
+
+**Step 1: Build a membership lookup table.**
+
+The list endpoint (`GET /automation-studio/projects?limit=50`) does NOT include `username`/`name` on member objects — only individual `GET /automation-studio/projects/{id}` calls do. Scan all projects to build the lookup:
+
+```bash
+# Get all project IDs
+PROJECT_IDS=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "$PLATFORM_URL/automation-studio/projects?limit=100" \
+  | jq -r '.data[]._id')
+
+# Build lookup table from individual GETs
+> {use-case}/membership-lookup.txt
+for pid in $PROJECT_IDS; do
+  curl -s -H "Authorization: Bearer $TOKEN" \
+    "$PLATFORM_URL/automation-studio/projects/$pid" \
+    | jq -r '.data.members[]? | [.type, .reference, (.username // .name), .provenance] | @tsv'
+done | sort -u >> {use-case}/membership-lookup.txt
+```
+
+Output format (TSV): `type  reference  username/name  provenance`
+
+**Step 2: Match spec members to references.**
+
+For each member in the spec's Project Membership table, find their `reference` ID in `membership-lookup.txt`:
+```bash
+grep "joksan.flores@itential.com" {use-case}/membership-lookup.txt
+# → account  699a67bb...  joksan.flores@itential.com  CloudAAA
+```
+
+**Step 3: PATCH membership immediately after import.**
+
+```
+PATCH /automation-studio/projects/{projectId}
+```
+```json
+{
+  "members": [
+    {"type": "account", "role": "owner", "reference": "699a67bb..."},
+    {"type": "group", "role": "editor", "reference": "67c859..."}
+  ]
+}
+```
+
+> **If a username or group cannot be resolved from the lookup table, stop and ask the engineer.** Do not guess reference IDs or skip members.
 
 ---
 
@@ -1776,6 +1825,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 3. **Import format differs from create** — OMIT `encodingVersion` from workflow documents (causes silent failure). Workflow `created_by` has NO `_id` but has `firstname`, `inactive`, `sso`. Project `createdBy` HAS `_id`.
 4. **Component type is `mopCommandTemplate`** not `mop`.
 5. **Members PATCH is full replacement** — include ALL members.
+6. **Import sets the OAuth service account as project owner** — not the UI user. PATCH membership immediately after import (Phase 3, not Phase 6).
 
 ### Workflows
 5. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`.

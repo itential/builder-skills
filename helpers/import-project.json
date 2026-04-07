@@ -1,5 +1,6 @@
 {
   "_comment": "Import a project with all assets atomically. Pre-compute _id so childJob @projectId: refs can be wired before push.",
+  "_membership_warning": "MANDATORY: After import, PATCH membership immediately. Import sets the OAuth service account as owner — not the UI user from the spec. See SKILL.md 'Resolve membership references from spec' for the lookup pattern.",
   "_usage": "POST /automation-studio/projects/import",
   "_id_generation": "python3 -c \"import secrets; print(secrets.token_hex(12))\"",
   "_uuid_generation": "python3 -c \"import uuid; print(uuid.uuid4())\"",
