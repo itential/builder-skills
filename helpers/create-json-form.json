@@ -1,0 +1,117 @@
+{
+  "_comment_overview": "JSON Form scaffold for POST /json-forms/forms. The struct and schema must stay in sync — struct defines the UI rendering, schema defines the data contract. Fields with customKey in struct map to property keys in schema.",
+
+  "name": "",
+  "description": "",
+
+  "_comment_struct": "struct defines the form UI. Each item is a field. type controls the widget: 'string' for text/dropdown, 'number' for numeric, 'boolean' for checkbox. Dropdowns use enum/enumNames arrays. customKey maps the field to the schema property name and becomes the job variable key.",
+  "struct": {
+    "type": "array",
+    "items": [
+      {
+        "_comment": "Text input — required string field",
+        "nodeId": "unique-uuid-per-field-1",
+        "type": "string",
+        "title": "Device Name",
+        "description": "Short hostname of the target device",
+        "placeholder": "Enter device name",
+        "required": true,
+        "customKey": "device_name"
+      },
+      {
+        "_comment": "Dropdown — enum defines values, enumNames defines display labels. Each entry needs an id, label, and value. The schema.properties entry also needs matching enum/enumNames arrays (but as flat string arrays, not objects).",
+        "nodeId": "unique-uuid-per-field-2",
+        "type": "string",
+        "title": "Environment",
+        "description": "Target environment",
+        "placeholder": "Select an environment",
+        "required": true,
+        "enum": [
+          {"id": "e1", "label": "Production", "value": "production"},
+          {"id": "e2", "label": "Staging", "value": "staging"},
+          {"id": "e3", "label": "Development", "value": "development"}
+        ],
+        "enumNames": [
+          {"id": "e1", "label": "Production", "value": "Production"},
+          {"id": "e2", "label": "Staging", "value": "Staging"},
+          {"id": "e3", "label": "Development", "value": "Development"}
+        ],
+        "customKey": "environment"
+      },
+      {
+        "_comment": "Number input — optional with default value",
+        "nodeId": "unique-uuid-per-field-3",
+        "type": "number",
+        "title": "Timeout (seconds)",
+        "description": "Operation timeout",
+        "placeholder": "Enter timeout",
+        "required": false,
+        "default": 300,
+        "customKey": "timeout"
+      },
+      {
+        "_comment": "Text input — optional with default value",
+        "nodeId": "unique-uuid-per-field-4",
+        "type": "string",
+        "title": "Comment",
+        "description": "Free-text note",
+        "placeholder": "Enter comment",
+        "required": false,
+        "default": "",
+        "customKey": "comment"
+      }
+    ]
+  },
+
+  "_comment_schema": "schema defines the data contract for validation. Property keys must match customKey values from struct. required array lists mandatory field keys. enum arrays here are flat strings (not objects like in struct).",
+  "schema": {
+    "title": "Form Title Here",
+    "description": "Form description here",
+    "type": "object",
+    "required": ["device_name", "environment"],
+    "properties": {
+      "device_name": {
+        "type": "string",
+        "title": "Device Name",
+        "_id": "/properties/device_name",
+        "description": "Short hostname of the target device"
+      },
+      "environment": {
+        "type": "string",
+        "title": "Environment",
+        "_id": "/properties/environment",
+        "description": "Target environment",
+        "enum": ["production", "staging", "development"],
+        "enumNames": ["Production", "Staging", "Development"]
+      },
+      "timeout": {
+        "type": "number",
+        "title": "Timeout (seconds)",
+        "_id": "/properties/timeout",
+        "description": "Operation timeout",
+        "default": 300
+      },
+      "comment": {
+        "type": "string",
+        "title": "Comment",
+        "_id": "/properties/comment",
+        "description": "Free-text note"
+      }
+    }
+  },
+
+  "_comment_uiSchema": "Controls UI behavior per field. ui:placeholder sets hint text, ui:disabled disables the field, ui:widget can change the widget type.",
+  "uiSchema": {
+    "device_name": {"ui:placeholder": "Enter device name"},
+    "environment": {"ui:placeholder": "Select an environment"},
+    "timeout": {"ui:placeholder": "Enter timeout"},
+    "comment": {"ui:placeholder": "Enter comment"}
+  },
+
+  "bindingSchema": {},
+  "validationSchema": {},
+  "tags": [],
+  "version": "2020.1",
+
+  "_comment_update": "To UPDATE an existing form: PUT /json-forms/forms/{id} with the body wrapped in {\"options\": { ...all fields above plus created, createdBy, lastUpdated, lastUpdatedBy... }}. It is a full replacement — include ALL fields."
+}

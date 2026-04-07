@@ -73,12 +73,37 @@ This skill covers everything needed to build and test Itential automation assets
 
 **The builder NEVER re-pulls bootstrap or discovery data.** If `tasks.json`, `apps.json`, or `adapters.json` is missing, stop and tell the user — that's an upstream failure, not something to silently fix.
 
+**Exception — `.auth.json` bootstrap:** If `.auth.json` is missing but `.env` exists with `AUTH_METHOD=oauth`, `CLIENT_ID`, and `CLIENT_SECRET`, the builder MUST authenticate and create `.auth.json` before proceeding — do NOT stop and report an upstream failure. See the **Bootstrap Authentication** section below.
+
 **The only API calls the builder makes are:**
+- **Auth bootstrap** — POST /oauth/token when `.auth.json` is missing (see below)
 - **Create** — POST workflows, templates, projects
 - **Update** — PUT to edit assets
 - **Test** — POST jobs/start, GET job status
 - **Schema fetch** — task schemas not yet in `task-schemas.json` (append to file after fetching)
 - **Re-auth** — if token expires, use `.env` to refresh `.auth.json`
+
+### Bootstrap Authentication
+
+When `.auth.json` is missing but `.env` has `AUTH_METHOD=oauth` with `CLIENT_ID` and `CLIENT_SECRET`, authenticate automatically before proceeding.
+
+**The correct Itential SaaS/Cloud OAuth endpoint is:**
+```
+POST {PLATFORM_URL}/oauth/token
+Content-Type: application/x-www-form-urlencoded
+```
+
+**Body (form-encoded, NOT JSON — JSON returns 415):**
+```
+grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}
+```
+
+**Critical:**
+- Content-Type MUST be `application/x-www-form-urlencoded` — NOT `application/json`. Sending JSON returns HTTP 415.
+- The `/login` endpoint does NOT support OAuth client credentials on SaaS instances — always use `/oauth/token`.
+- On success, write `.auth.json` with the token so all subsequent API calls just work.
+
+**Helper script:** `${CLAUDE_PLUGIN_ROOT}/helpers/oauth-bootstrap.sh` — reads `.env`, POSTs to `/oauth/token`, writes `.auth.json`. The builder should run this automatically when `.auth.json` is missing and `.env` has `AUTH_METHOD=oauth`.
 
 ---
 
@@ -93,6 +118,7 @@ This skill covers everything needed to build and test Itential automation assets
 6. Build command templates  → MOP pre/post checks with validation rules
 7. Build orchestrator last  → parent wires tested children via childJob
 8. Add assets to project    → move/copy into the project
+8b. Set project ownership   → PATCH members to add engineer as owner
 9. Test                     → jobs/start, check results
 10. Debug                    → check job.error, filesystem-first
 11. Reconcile                → diff built vs designed, update artifacts
@@ -261,6 +287,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`)
 - [ ] `app` and `locationType` values come from apps.json `.name`, NOT tasks.json and NOT the adapter instance name (e.g., `EmailOpensource` not `email`)
 - [ ] `adapter_id` is the adapter **instance** name (e.g., `email`), NOT the type name
+- [ ] `adapter_id` values come from `adapters.json` `.results[].id` — NEVER from the spec's adapter identity table. The spec is a design document; `adapters.json` is the source of truth for the target environment.
 - [ ] `canvasName` values come from tasks.json `canvasName` field
 - [ ] Every adapter task has `adapter_id` in incoming
 - [ ] Every adapter task has an error transition
@@ -378,6 +405,8 @@ Many adapter schemas show `body: {type: "object"}` with no inner detail — the 
 4. Add fields one at a time until the call succeeds
 
 **Step 5: Inspect the actual response.**
+Adapter task outgoing `result` is always an object (containing `response`, `headers`, `metrics`, etc.) — never a primitive. When the API returns a simple string (like Infoblox's `_ref`), it's at `result.response`, not `result` directly. Always add a `query` task to extract the specific field before passing to downstream tasks. Passing raw `result` to a string context produces `[object Object]`.
+
 Adapter responses are transformed — they **do not match** the native API's structure. Never assume the response shape. After a successful call:
 1. Get the job: `GET /operations-manager/jobs/{jobId}`
 2. Find the adapter task in `data.tasks` by its task ID
@@ -697,6 +726,52 @@ PATCH /automation-studio/projects/{projectId}
 ```
 Include ALL members (existing + new) — this is a full replacement.
 
+**IMPORTANT: Always add the engineer as project owner.** After creating or importing a project, PATCH membership to include the engineer's account as `"role": "owner"`. Without this, only the API service account owns the project — the engineer cannot edit, delete, or manage it in the UI. Look up the engineer's account reference from the platform (e.g., `GET /authentication/accounts?username=<email>`) and add it to the members array. This should be a standard post-import step, not something the engineer has to ask for.
+
+---
+
+## JSON Forms
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/json-forms/forms` | List all JSON forms |
+| POST | `/json-forms/forms` | Create a JSON form |
+| PUT | `/json-forms/forms/{id}` | Update a JSON form (full replacement) |
+
+### Create a JSON Form
+
+```
+POST /json-forms/forms
+```
+
+Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json`
+
+**Update format:** `PUT /json-forms/forms/{id}` — body MUST be wrapped in `{"options": {...}}` and include ALL fields (`created`, `createdBy`, `lastUpdated`, `lastUpdatedBy`, `name`, `description`, `struct`, `schema`, `uiSchema`, `validationSchema`, `bindingSchema`, `version`). This is a full replacement — omitting any field will clear it.
+
+**Dropdown fields** use `enum`/`enumNames` arrays in both `struct.items` and `schema.properties` — these must stay in sync.
+
+---
+
+## Operations Manager (Automations & Triggers)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/operations-manager/automations` | Create an automation |
+| GET | `/operations-manager/automations` | List automations |
+| POST | `/operations-manager/triggers` | Create a trigger |
+| PATCH | `/operations-manager/triggers/{id}` | Update a trigger |
+| GET | `/operations-manager/triggers` | List triggers |
+
+### Create a Manual Trigger with JSON Form
+
+This is a two-step process: create the automation, then create a manual trigger that binds to it.
+
+Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json`
+
+**Critical: `legacyWrapper` must be `false`.** When creating a manual trigger with a JSON form, set `legacyWrapper: false`. The default is `true`, which wraps form field values under `formData`, breaking the mapping to workflow job variables. With `legacyWrapper: false`, form field values map directly to workflow input variables by name.
+
+**Required trigger fields:** `name`, `type` (`"manual"`), `enabled`, `actionType` (`"automations"`), `actionId`, `formId`, `legacyWrapper`
+
 ---
 
 ## Task Discovery
@@ -964,6 +1039,8 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 **Workaround:** Use `merge`, `makeData`, or `query` to build the nested object, then reference the task's output with `$var.taskId.merged_object`.
 
 **Task ID validation:** `$var.taskId.x` only resolves when `taskId` matches `[0-9a-f]{1,4}`. Non-hex IDs silently fail.
+
+**Prefer task-to-task wiring:** When a task's output feeds directly into the next task's input, wire it as `$var.<taskId>.<outVar>` instead of bouncing through `$var.job.x`. Only use job variables when: (a) values cross non-adjacent tasks, (b) values need to be visible in job output, or (c) multiple downstream tasks need the same value. Direct task-to-task wiring reduces clutter and makes data flow easier to trace.
 
 ---
 
@@ -1705,6 +1782,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 6. **Task IDs must be hex `[0-9a-f]{1,4}`** — non-hex causes silent `$var` failure.
 7. **Validation errors = draft workflow** that cannot be started.
 8. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object.
+8b. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — the values are stored as literal strings. The schema shows `stringN` as type "array" of strings, which looks like it should accept `$var` references — but it doesn't resolve them. Use `merge` → `makeData` with `<!var!>` placeholders instead when concatenating multiple resolved variables into a string.
 9. **Every adapter/external task needs an error transition** — without one, jobs get stuck.
 10. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, use an intermediate task.
 
@@ -1735,6 +1813,10 @@ The `revert` transition moves execution back to a previous task, allowing the us
 28. **Adapter `app` must come from `apps.json`** — NOT `tasks.json` (names can differ completely).
 29. **`status: complete` doesn't mean CLI commands succeeded** — check `stdout`.
 30. **Endpoint base paths differ** — tasks at `/workflow_builder/tasks/list`, schemas at `/automation-studio/multipleTaskDetails` (NOT `/workflow_builder/multipleTaskDetails`).
+31. **Adapter task `result` is always an object** — never a primitive. When the upstream API returns a simple string (e.g., Infoblox `_ref`), it's at `result.response`, not `result` directly. Always use a `query` task to extract the specific field. Passing raw `result` in a string context produces `[object Object]`.
+32. **`stringConcat` doesn't resolve `$var` in `stringN` arrays** — use merge → makeData with `<!var!>` placeholders instead.
+33. **`legacyWrapper: false` on Operations Manager manual triggers** — default `true` wraps form values under `formData`, breaking variable mapping.
+34. **Always use a local venv for Python** — run `python3 -m venv .venv && source .venv/bin/activate` instead of using global Python when running any Python scripts during the build process.
 
 ---
 
@@ -1754,6 +1836,8 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-template-textfsm.json` | `POST /automation-studio/templates` |
 | Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
 | Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
+| Create a JSON form | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
+| Create an Ops Manager automation + trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` + `POST /operations-manager/triggers` |
 | Add assets to a project | `${CLAUDE_PLUGIN_ROOT}/helpers/add-components-to-project.json` | `POST /projects/{id}/components/add` |
 | Update project membership | `${CLAUDE_PLUGIN_ROOT}/helpers/update-project-members.json` | `PATCH /projects/{id}` |
 
