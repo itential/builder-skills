@@ -1,0 +1,34 @@
+{
+  "_comment_overview": "Two-step process to create an Operations Manager automation with a manual trigger and JSON form. Step 1: create the automation. Step 2: create the trigger. The trigger binds the form to the automation.",
+
+  "_comment_step1": "POST /operations-manager/automations — creates the automation entry that appears in Operations Manager. componentName is the workflow's full name (with @projectId: prefix if in a project). componentId is the workflow's uuid (NOT _id). componentType is always 'workflows'.",
+  "step1_create_automation": {
+    "name": "My Automation Name",
+    "description": "What this automation does",
+    "componentName": "@projectId: Workflow Name",
+    "componentType": "workflows",
+    "componentId": "workflow-uuid-from-GET-/automation-studio/workflows",
+    "gbac": {"write": [], "read": []}
+  },
+
+  "_comment_step1_response": "Response: {message, data: {_id, name, ...}}. Save data._id — you need it as actionId in step 2.",
+
+  "_comment_step2": "POST /operations-manager/triggers — creates the manual trigger. actionId is the automation _id from step 1. formId is the JSON form _id from GET /json-forms/forms. CRITICAL: set legacyWrapper to false.",
+  "step2_create_trigger": {
+    "name": "Manual",
+    "type": "manual",
+    "enabled": true,
+    "actionType": "automations",
+    "actionId": "automation-_id-from-step-1",
+    "description": "Manual trigger with JSON form",
+    "options": {"chooseTargetAtRuntime": false},
+    "formId": "json-form-id",
+    "legacyWrapper": false
+  },
+
+  "_comment_legacyWrapper": "CRITICAL: legacyWrapper MUST be false. When true (the default), form field values are wrapped under a 'formData' key, breaking the mapping to workflow job variables. With false, each form field maps directly to a job variable by its customKey/property name.",
+
+  "_comment_update_trigger": "To update a trigger: PATCH /operations-manager/triggers/{triggerId} with the fields to change. Partial update — only include changed fields.",
+
+  "_comment_lookup_helpers": "To find the componentId (workflow uuid): GET /automation-studio/workflows?limit=100, then .items[] | select(.name | test('keyword')) | {_id, name, uuid}. Use the uuid as componentId and the name as componentName."
+}
