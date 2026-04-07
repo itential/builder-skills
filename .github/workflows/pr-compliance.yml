@@ -54,7 +54,7 @@ jobs:
             else
               echo "  OK: $msg"
             fi
-          done < <(git log --format="%s" "origin/${{ github.base_ref }}..HEAD")
+          done < <(git log --format="%s" "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}")
 
           if [[ $count -eq 0 ]]; then
             echo "No new commits found."
