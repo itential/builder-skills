@@ -1,0 +1,138 @@
+{
+  "automation": {
+    "name": "Operation with Error Handling",
+    "description": "Performs an operation with error capture, always completes and reports status via taskStatus variable",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 200, "y": 600 }
+      },
+      "a1b2": {
+        "name": "someAdapterCall",
+        "canvasName": "someAdapterCall",
+        "summary": "Execute Operation",
+        "description": "The primary operation that may fail — replace with your adapter call",
+        "location": "Adapter",
+        "locationType": "AdapterType",
+        "app": "AdapterType",
+        "type": "automatic",
+        "displayName": "adapter-instance",
+        "variables": {
+          "incoming": { "adapter_id": "adapter-instance" },
+          "outgoing": { "result": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 500, "y": 600 }
+      },
+      "c3d4": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Set Status: Success",
+        "description": "Records success status for the parent workflow to evaluate",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "taskStatus", "value": "success" },
+          "outgoing": { "value": "$var.job.taskStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 500 }
+      },
+      "e5f6": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Set Status: Error",
+        "description": "Captures error status so the workflow always completes",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "taskStatus", "value": "error" },
+          "outgoing": { "value": "$var.job.taskStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 700 }
+      },
+      "a7b8": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Capture Error Details",
+        "description": "Stores the error message for logging or notification",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "errorMessage", "value": "$var.a1b2.error" },
+          "outgoing": { "value": "$var.job.errorMessage" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 1000, "y": 700 }
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 1200, "y": 600 }
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "a1b2": { "type": "standard", "state": "success" }
+      },
+      "a1b2": {
+        "c3d4": { "type": "standard", "state": "success" },
+        "e5f6": { "type": "standard", "state": "error" }
+      },
+      "c3d4": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "e5f6": {
+        "a7b8": { "type": "standard", "state": "success" }
+      },
+      "a7b8": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "taskStatus": { "title": "taskStatus", "type": "string" },
+        "errorMessage": { "title": "errorMessage", "type": "string" }
+      }
+    }
+  }
+}

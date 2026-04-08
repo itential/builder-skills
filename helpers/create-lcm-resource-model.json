@@ -1,0 +1,48 @@
+{
+  "_comment": "LCM Resource Model — defines the schema and lifecycle actions for a service type. POST /lifecycle-manager/resources. Actions link to workflows via workflowId. Pre/post JSTs transform data before/after the action workflow runs.",
+  "name": "",
+  "description": "",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "title": "Name",
+        "description": "Unique name for this resource instance"
+      },
+      "status": {
+        "type": "string",
+        "title": "Status",
+        "enum": ["provisioned", "deprovisioned", "error"],
+        "description": "Current lifecycle state"
+      }
+    },
+    "required": ["name"]
+  },
+  "actions": [
+    {
+      "name": "Create",
+      "description": "Provision a new instance",
+      "type": "create",
+      "workflowId": "",
+      "preWorkflowJst": "",
+      "postWorkflowJst": ""
+    },
+    {
+      "name": "Delete",
+      "description": "Deprovision and remove an instance",
+      "type": "delete",
+      "workflowId": "",
+      "preWorkflowJst": "",
+      "postWorkflowJst": ""
+    },
+    {
+      "name": "Update",
+      "description": "Modify an existing instance",
+      "type": "update",
+      "workflowId": "",
+      "preWorkflowJst": "",
+      "postWorkflowJst": ""
+    }
+  ]
+}

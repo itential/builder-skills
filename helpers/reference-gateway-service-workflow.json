@@ -1,0 +1,128 @@
+{
+  "automation": {
+    "name": "Run Gateway Service",
+    "description": "Calls an IAG service via GatewayManager with inventory and parameters, then extracts the result",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 200, "y": 600 }
+      },
+      "a1b2": {
+        "name": "runService",
+        "canvasName": "runService",
+        "summary": "Execute IAG Service",
+        "description": "Calls the IAG service with service name, cluster, parameters, and inventory",
+        "location": "Application",
+        "locationType": null,
+        "app": "GatewayManager",
+        "type": "automatic",
+        "displayName": "GatewayManager",
+        "variables": {
+          "incoming": {
+            "serviceName": "",
+            "clusterId": "",
+            "params": {},
+            "inventory": ""
+          },
+          "outgoing": {
+            "result": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 500, "y": 600 }
+      },
+      "c3d4": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract Service Result",
+        "description": "Extracts the relevant output from the IAG service response",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "response",
+            "obj": "$var.a1b2.result"
+          },
+          "outgoing": {
+            "return_data": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 600 }
+      },
+      "ef01": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Set Error Status",
+        "description": "Records error on service failure",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "errorStatus", "value": "error" },
+          "outgoing": { "value": "$var.job.errorStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 500, "y": 800 }
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 1100, "y": 600 }
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "a1b2": { "type": "standard", "state": "success" }
+      },
+      "a1b2": {
+        "c3d4": { "type": "standard", "state": "success" },
+        "ef01": { "type": "standard", "state": "error" }
+      },
+      "c3d4": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "ef01": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "serviceName": { "title": "serviceName", "type": "string" },
+        "params": { "title": "params", "type": "object" },
+        "inventory": { "title": "inventory", "type": "string" }
+      },
+      "required": ["serviceName"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

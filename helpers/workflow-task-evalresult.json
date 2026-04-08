@@ -1,0 +1,39 @@
+{
+  "_comment": "The expression object uses operand_1/operand_2 with nested task+variable refs, not flat operand1/operand2. Check task-schemas.json for the exact shape.",
+  "name": "evaluation",
+  "canvasName": "evaluation",
+  "summary": "",
+  "description": "Evaluate an expression and branch the workflow based on the result",
+  "location": "Application",
+  "locationType": null,
+  "app": "WorkFlowEngine",
+  "type": "operation",
+  "displayName": "WorkFlowEngine",
+  "variables": {
+    "incoming": {
+      "expression": {
+        "operand_1": {
+          "task": "job",
+          "variable": "variableName"
+        },
+        "operator": "==",
+        "operand_2": {
+          "task": "static",
+          "variable": "success"
+        }
+      }
+    },
+    "outgoing": {
+      "result": null
+    },
+    "error": "",
+    "decorators": []
+  },
+  "groups": [],
+  "actor": "Pronghorn",
+  "scheduled": false,
+  "nodeLocation": {
+    "x": 600,
+    "y": 1308
+  }
+}

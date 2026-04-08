@@ -199,19 +199,32 @@ Helper templates are in `helpers/`:
 | `workflow-task-adapter.json` | Adapter task template |
 | `workflow-task-application.json` | Application task template |
 | `workflow-task-childjob.json` | childJob task template (actor: "job") |
+| `workflow-task-query.json` | Query/extract data task (json-query syntax) |
+| `workflow-task-newvariable.json` | Create job variable task |
+| `workflow-task-transformation.json` | JST transformation task (tr_id + variableMap) |
+| `workflow-task-gettime.json` | Get current time task |
+| `workflow-task-evalresult.json` | Evaluation/branching task (operand_1/operand_2) |
 | `create-command-template.json` | Command template with `<!var!>` syntax |
 | `create-template-jinja2.json` | Jinja2 template |
 | `create-template-textfsm.json` | TextFSM template |
+| `create-json-form.json` | JSON form for user input |
+| `update-json-form.json` | Update an existing JSON form (full replacement) |
+| `create-ops-manager-automation.json` | Operations Manager automation |
+| `create-ops-manager-trigger.json` | API endpoint trigger |
+| `create-ops-manager-trigger-manual.json` | Manual/form trigger (legacyWrapper: false) |
+| `create-ops-manager-trigger-schedule.json` | Scheduled/cron trigger |
+| `create-lcm-resource-model.json` | LCM resource model with lifecycle actions |
+| `create-integration.json` | Virtual integration (adapter instance) |
 | `create-project.json` | Project creation |
 | `add-components-to-project.json` | Add assets to project |
+| `import-project.json` | Import a project |
+| `update-project-members.json` | Update project membership |
 | `create-golden-config-tree.json` | Golden config tree |
 | `create-golden-config-node.json` | Child node |
 | `update-node-config.json` | Node template with full syntax |
+| `add-devices-to-node.json` | Assign devices to a golden config node |
 | `create-compliance-plan.json` | Compliance plan |
 | `run-compliance-plan.json` | Run compliance plan |
 | `run-compliance.json` | Run compliance directly |
 | `update-command-template.json` | Update command template (full replacement) |
-| `import-project.json` | Import a project |
-| `update-project-members.json` | Update project membership |
-| `add-devices-to-node.json` | Assign devices to a golden config node |
 | `lcm-action-workflow.json` | LCM action workflow (must output `instance` variable) |

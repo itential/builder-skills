@@ -1,0 +1,16 @@
+{
+  "_comment": "Manual trigger — presents a JSON form before starting the automation. POST /operations-manager/triggers. Set formId to the JSON form _id. CRITICAL: legacyWrapper must be false or form fields get wrapped under 'formData' and break job variable mapping.",
+  "name": "",
+  "type": "manual",
+  "enabled": true,
+  "actionType": "automations",
+  "actionId": "",
+  "description": "",
+  "formId": "",
+  "legacyWrapper": false,
+  "schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "jst": ""
+}

@@ -1,0 +1,135 @@
+{
+  "automation": {
+    "name": "Send Notification",
+    "description": "Builds a notification payload via transformation and sends via Slack, Teams, or Email adapter",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 200, "y": 600 }
+      },
+      "a1b2": {
+        "name": "transformation",
+        "canvasName": "transformation",
+        "summary": "Build Notification Payload",
+        "description": "Transforms job inputs into the notification body format",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "tr_id": "",
+            "variableMap": {
+              "message": "$var.job.message",
+              "channel": "$var.job.channel",
+              "subject": "$var.job.subject"
+            },
+            "options": {
+              "extractOutput": true,
+              "validateIncoming": true,
+              "revertToDefaultValue": true
+            }
+          },
+          "outgoing": {
+            "payload": "$var.job.payload"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 500, "y": 600 }
+      },
+      "c3d4": {
+        "name": "postMessage",
+        "canvasName": "postMessage",
+        "summary": "Send Notification",
+        "description": "Sends the notification via the configured adapter — change app/displayName for your system",
+        "location": "Adapter",
+        "locationType": "Slack",
+        "app": "Slack",
+        "type": "automatic",
+        "displayName": "Slack",
+        "variables": {
+          "incoming": {
+            "channel": "$var.job.channel",
+            "text": "$var.a1b2.payload",
+            "adapter_id": "Slack"
+          },
+          "outgoing": {
+            "result": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 600 }
+      },
+      "ef01": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Set Error Status",
+        "description": "Records error on notification failure",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "errorStatus", "value": "error" },
+          "outgoing": { "value": "$var.job.errorStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 800 }
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 1100, "y": 600 }
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "a1b2": { "type": "standard", "state": "success" }
+      },
+      "a1b2": {
+        "c3d4": { "type": "standard", "state": "success" }
+      },
+      "c3d4": {
+        "workflow_end": { "type": "standard", "state": "success" },
+        "ef01": { "type": "standard", "state": "error" }
+      },
+      "ef01": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "message": { "title": "message", "type": "string" },
+        "channel": { "title": "channel", "type": "string" },
+        "subject": { "title": "subject", "type": "string" }
+      },
+      "required": ["message"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "_comment": "Full replacement — GET the form first, modify fields, then PUT back. PUT /json-forms/forms/{formId}",
+  "name": "",
+  "description": "",
+  "schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "uiSchema": {},
+  "struct": {
+    "type": "array",
+    "items": []
+  },
+  "bindingSchema": {
+    "properties": {}
+  },
+  "validationSchema": {
+    "properties": {}
+  },
+  "tags": [],
+  "version": "2020.1"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "getTime",
+  "canvasName": "getTime",
+  "summary": "Get Current Time",
+  "description": "Returns the current timestamp with optional offset, timezone, and format",
+  "location": "Application",
+  "locationType": null,
+  "app": "WorkFlowEngine",
+  "type": "automatic",
+  "displayName": "Time",
+  "variables": {
+    "incoming": {
+      "timezone": "",
+      "offsetDuration": "",
+      "format": ""
+    },
+    "outgoing": {
+      "time": null
+    },
+    "error": "",
+    "decorators": []
+  },
+  "groups": [],
+  "actor": "Pronghorn",
+  "scheduled": false,
+  "nodeLocation": {
+    "x": 600,
+    "y": 1308
+  }
+}

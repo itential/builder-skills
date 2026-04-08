@@ -1,0 +1,32 @@
+{
+  "_comment": "Wiring guide: Form → Trigger → Automation → Workflow. This is the most common end-to-end pattern — a JSON form collects input, a manual trigger presents the form, the trigger fires an automation, and the automation runs a workflow.",
+  "_wiring": {
+    "step1_create_workflow": {
+      "endpoint": "POST /automation-studio/workflows",
+      "helper": "create-workflow.json",
+      "result": "workflowId (from response._id or response.uuid)"
+    },
+    "step2_create_form": {
+      "endpoint": "POST /json-forms/forms",
+      "helper": "create-json-form.json",
+      "result": "formId (from response.id)"
+    },
+    "step3_create_automation": {
+      "endpoint": "POST /operations-manager/automations",
+      "helper": "create-ops-manager-automation.json",
+      "note": "Set componentId = workflow uuid (not _id), componentName = workflow name",
+      "result": "automationId (from response.data._id)"
+    },
+    "step4_create_trigger": {
+      "endpoint": "POST /operations-manager/triggers",
+      "helper": "create-ops-manager-trigger-manual.json",
+      "note": "Set actionId = automationId, formId = formId, legacyWrapper = false",
+      "result": "triggerId (from response.data._id)"
+    }
+  },
+  "_lookup_helpers": {
+    "workflow_uuid": "GET /automation-studio/workflows?limit=100 → .items[] | {_id, name, uuid} → use uuid as componentId",
+    "form_id": "GET /json-forms/forms → find by name → use .id",
+    "automation_id": "GET /operations-manager/automations → find by name → use ._id"
+  }
+}

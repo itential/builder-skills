@@ -1,0 +1,217 @@
+{
+  "_comment": "Full LCM lifecycle pattern — create and delete workflows that work with an LCM resource model. The create workflow provisions the service, records start time, and builds the instance object (must output to $var.job.instance). The delete workflow deprovisions and cleans up.",
+  "create_workflow": {
+    "automation": {
+      "name": "Service LCM Create",
+      "description": "Provisions the service, records start time, and builds the LCM instance object",
+      "type": "automation",
+      "canvasVersion": 3,
+      "encodingVersion": 1,
+      "font_size": 12,
+      "tasks": {
+        "workflow_start": {
+          "name": "workflow_start",
+          "groups": [],
+          "nodeLocation": { "x": 200, "y": 600 }
+        },
+        "a1b2": {
+          "name": "transformation",
+          "canvasName": "transformation",
+          "summary": "Extract Form Data",
+          "description": "Parse form input into variables for child workflows",
+          "location": "Application",
+          "locationType": null,
+          "app": "WorkFlowEngine",
+          "type": "operation",
+          "displayName": "WorkFlowEngine",
+          "variables": {
+            "incoming": {
+              "tr_id": "",
+              "variableMap": { "formData": "$var.job.formData" },
+              "options": { "extractOutput": true, "validateIncoming": true, "revertToDefaultValue": true }
+            },
+            "outgoing": { "serviceName": null, "duration": null },
+            "error": "",
+            "decorators": []
+          },
+          "groups": [],
+          "actor": "Pronghorn",
+          "scheduled": false,
+          "nodeLocation": { "x": 500, "y": 600 }
+        },
+        "c3d4": {
+          "name": "getTime",
+          "canvasName": "getTime",
+          "summary": "Record Start Time",
+          "description": "Captures provisioning start time for LCM tracking",
+          "location": "Application",
+          "locationType": null,
+          "app": "WorkFlowEngine",
+          "type": "automatic",
+          "displayName": "Time",
+          "variables": {
+            "incoming": { "timezone": "", "offsetDuration": "", "format": "" },
+            "outgoing": { "time": null },
+            "error": "",
+            "decorators": []
+          },
+          "groups": [],
+          "actor": "Pronghorn",
+          "scheduled": false,
+          "nodeLocation": { "x": 750, "y": 600 }
+        },
+        "e5f6": {
+          "name": "childJob",
+          "canvasName": "childJob",
+          "summary": "Provision Service",
+          "description": "Runs the provisioning workflow as a child job",
+          "location": "Application",
+          "locationType": null,
+          "app": "WorkFlowEngine",
+          "type": "operation",
+          "displayName": "WorkFlowEngine",
+          "variables": {
+            "incoming": {
+              "task": "",
+              "workflow": "Service Provision Workflow Name",
+              "variables": {
+                "serviceName": { "task": "a1b2", "value": "serviceName" }
+              },
+              "data_array": "",
+              "transformation": "",
+              "loopType": ""
+            },
+            "outgoing": { "job_details": null },
+            "error": "",
+            "decorators": []
+          },
+          "groups": [],
+          "actor": "job",
+          "scheduled": false,
+          "nodeLocation": { "x": 1000, "y": 600 }
+        },
+        "a7b8": {
+          "name": "transformation",
+          "canvasName": "transformation",
+          "summary": "Build LCM Instance",
+          "description": "Builds the instance object that LCM stores — must output to $var.job.instance",
+          "location": "Application",
+          "locationType": null,
+          "app": "WorkFlowEngine",
+          "type": "operation",
+          "displayName": "WorkFlowEngine",
+          "variables": {
+            "incoming": {
+              "tr_id": "",
+              "variableMap": {
+                "serviceName": "$var.a1b2.serviceName",
+                "startTime": "$var.c3d4.time",
+                "provisionResult": "$var.e5f6.job_details"
+              },
+              "options": { "extractOutput": true, "validateIncoming": true, "revertToDefaultValue": true }
+            },
+            "outgoing": { "instance": "$var.job.instance" },
+            "error": "",
+            "decorators": []
+          },
+          "groups": [],
+          "actor": "Pronghorn",
+          "scheduled": false,
+          "nodeLocation": { "x": 1250, "y": 600 }
+        },
+        "workflow_end": {
+          "name": "workflow_end",
+          "groups": [],
+          "nodeLocation": { "x": 1500, "y": 600 }
+        }
+      },
+      "transitions": {
+        "workflow_start": { "a1b2": { "type": "standard", "state": "success" } },
+        "a1b2": { "c3d4": { "type": "standard", "state": "success" } },
+        "c3d4": { "e5f6": { "type": "standard", "state": "success" } },
+        "e5f6": { "a7b8": { "type": "standard", "state": "success" } },
+        "a7b8": { "workflow_end": { "type": "standard", "state": "success" } },
+        "workflow_end": {}
+      },
+      "groups": [],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "formData": { "title": "formData", "type": "object" }
+        },
+        "required": ["formData"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "instance": { "title": "instance", "type": "object" }
+        }
+      }
+    }
+  },
+  "delete_workflow": {
+    "automation": {
+      "name": "Service LCM Delete",
+      "description": "Deprovisions the service and clears the instance",
+      "type": "automation",
+      "canvasVersion": 3,
+      "encodingVersion": 1,
+      "font_size": 12,
+      "tasks": {
+        "workflow_start": {
+          "name": "workflow_start",
+          "groups": [],
+          "nodeLocation": { "x": 200, "y": 600 }
+        },
+        "a1b2": {
+          "name": "childJob",
+          "canvasName": "childJob",
+          "summary": "Deprovision Service",
+          "description": "Runs the cleanup/deprovisioning workflow",
+          "location": "Application",
+          "locationType": null,
+          "app": "WorkFlowEngine",
+          "type": "operation",
+          "displayName": "WorkFlowEngine",
+          "variables": {
+            "incoming": {
+              "task": "",
+              "workflow": "Service Deprovision Workflow Name",
+              "variables": {},
+              "data_array": "",
+              "transformation": "",
+              "loopType": ""
+            },
+            "outgoing": { "job_details": null },
+            "error": "",
+            "decorators": []
+          },
+          "groups": [],
+          "actor": "job",
+          "scheduled": false,
+          "nodeLocation": { "x": 500, "y": 600 }
+        },
+        "workflow_end": {
+          "name": "workflow_end",
+          "groups": [],
+          "nodeLocation": { "x": 800, "y": 600 }
+        }
+      },
+      "transitions": {
+        "workflow_start": { "a1b2": { "type": "standard", "state": "success" } },
+        "a1b2": { "workflow_end": { "type": "standard", "state": "success" } },
+        "workflow_end": {}
+      },
+      "groups": [],
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  }
+}

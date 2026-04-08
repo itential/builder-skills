@@ -1,0 +1,30 @@
+{
+  "name": "query",
+  "canvasName": "query",
+  "summary": "",
+  "description": "Query data using a dot/bracket notation string",
+  "location": "Application",
+  "locationType": null,
+  "app": "WorkFlowEngine",
+  "type": "operation",
+  "displayName": "WorkFlowEngine",
+  "variables": {
+    "incoming": {
+      "pass_on_null": false,
+      "query": "",
+      "obj": ""
+    },
+    "outgoing": {
+      "return_data": null
+    },
+    "error": "",
+    "decorators": []
+  },
+  "groups": [],
+  "actor": "Pronghorn",
+  "scheduled": false,
+  "nodeLocation": {
+    "x": 600,
+    "y": 1308
+  }
+}

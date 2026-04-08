@@ -1,0 +1,40 @@
+{
+  "_comment": "Virtual integration (adapter instance) — connects the platform to an external system via REST. POST /integrations. The model field must match an adapter model from the catalog. Authentication, server, and TLS settings go under properties.properties.",
+  "data": {
+    "name": "",
+    "model": "",
+    "type": "Adapter",
+    "properties": {
+      "id": "",
+      "type": "",
+      "brokers": [],
+      "groups": [],
+      "properties": {
+        "authentication": {
+          "bearerAuth": ""
+        },
+        "server": {
+          "protocol": "https",
+          "host": "",
+          "base_path": ""
+        },
+        "tls": {
+          "enabled": false,
+          "rejectUnauthorized": true
+        },
+        "variables": {},
+        "version": ""
+      }
+    },
+    "isEncrypted": false,
+    "loggerProps": {
+      "log_max_files": 100,
+      "log_max_file_size": 1048576,
+      "log_level": "info",
+      "log_directory": "/var/log/itential/platform",
+      "log_filename": "platform.log",
+      "console_level": "warn"
+    },
+    "virtual": true
+  }
+}

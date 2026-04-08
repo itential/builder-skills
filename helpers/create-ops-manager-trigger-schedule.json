@@ -1,0 +1,18 @@
+{
+  "_comment": "Scheduled trigger — runs the automation on a cron schedule. POST /operations-manager/triggers. Standard cron syntax with timezone.",
+  "name": "",
+  "type": "schedule",
+  "enabled": true,
+  "actionType": "automations",
+  "actionId": "",
+  "description": "",
+  "schedule": {
+    "cron": "0 9 * * 1-5",
+    "timezone": "America/New_York"
+  },
+  "schema": {
+    "type": "object",
+    "properties": {}
+  },
+  "jst": ""
+}

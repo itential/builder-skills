@@ -1,0 +1,17 @@
+{
+  "_comment": "API endpoint trigger — creates a REST endpoint that starts the automation. POST /operations-manager/triggers. routeName becomes the URL path segment.",
+  "name": "",
+  "type": "endpoint",
+  "enabled": true,
+  "actionType": "automations",
+  "actionId": "",
+  "description": "",
+  "verb": "POST",
+  "routeName": "",
+  "schema": {
+    "type": "object",
+    "properties": {},
+    "required": []
+  },
+  "jst": ""
+}
