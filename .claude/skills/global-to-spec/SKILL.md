@@ -1,20 +1,14 @@
 ---
 name: global-to-spec
-description: Document individual Itential platform assets (workflows, forms, transformations, templates, command templates, operations manager automations) that are NOT part of a project. Discovers relationships between standalone assets, groups them into use cases, and produces customer-spec.md + solution-design.md per use case plus a master README. Use when documenting global/standalone assets without existing documentation. NEVER use on project files — use /project-to-spec for those.
+description: Document individual Itential platform assets (workflows, forms, transformations, templates, command templates MOP, analytic templates, operations manager automations) that are NOT part of a project. Discovers relationships between standalone assets, groups them into use cases, and produces customer-spec.md + solution-design.md per use case plus a master README. Use when documenting global/standalone assets without existing documentation. NEVER use on project files — use /project-to-spec for those.
 argument-hint: "[directory-path or 'platform']"
 ---
 
 # Global Assets to Spec
 
 **Purpose:** Read individual/global Itential assets → discover relationships → group into use cases → produce documentation
+**Output:** `customer-spec.md` (inferred HLD per use case) + `solution-design.md` (as-built LLD per use case) + `README.md` (master readme for the generated reports)
 **Feeds into:** Can be handed to `/spec-agent` for refinement or `/solution-arch-agent` for redesign
-
-## ABSOLUTE RULES
-
-1. **NEVER use the Agent tool.** Do ALL work directly in the main conversation using Read, Glob, Grep, and Write tools. No sub-agents — they get stuck on large file sets. This is how `/project-to-spec` works and it never stalls.
-2. **Use parallel tool calls for speed.** Instead of agents, issue multiple Read tool calls in a single message (up to 20 at a time). This gives you parallelism without the risk of stuck agents.
-3. **Parse in priority order.** Phases 1-2 only need workflows and OM automations for grouping. Do NOT parse templates, transformations, or command templates until Phase 4 when writing the LLD for a specific group — and only parse the ones referenced by that group's workflows.
-4. **Write reports as you go.** After the engineer approves groupings (Phase 3), write each use case's customer-spec.md and solution-design.md immediately before moving to the next use case. Do not accumulate all analysis and then write all reports at the end.
 
 ## CRITICAL: Output Requirements
 
@@ -43,7 +37,7 @@ Takes a collection of undocumented, standalone Itential assets — workflows, JS
 **This is NOT for projects.** If the user has a project file (`.project.json` or project ID), redirect them to `/project-to-spec`.
 
 ```
-Individual Assets (workflows, forms, templates, transformations, command templates, OM automations)
+Individual Assets (workflows, forms, templates, transformations, command templates, analytic templates, MOP, OM automations)
       |
       ├── Phase 1: Collect + classify assets (in-memory only)
       ├── Phase 2: Discover relationships + group into use cases (in-memory only)
@@ -55,22 +49,7 @@ Individual Assets (workflows, forms, templates, transformations, command templat
 
 ---
 
-## Efficiency Rules
-
-**This skill must operate efficiently.** Follow these rules strictly:
-
-1. **NEVER use the Agent tool.** Use direct Read/Write/Glob/Grep tool calls only — the same way `/project-to-spec` works. Agents get stuck on large file sets.
-2. **Parallelize with multiple tool calls, not agents.** Issue up to 20 Read calls in a single message to read files in parallel. This is fast and never stalls.
-3. **Read filenames first, parse selectively.** For large directories (100+ files), list the directory first. Parse workflow and OM automation files for relationship discovery. Do NOT parse templates, transformations, or command templates until Phase 4 when writing the LLD for a specific group — and only parse the ones referenced by that group's workflows.
-4. **Keep analysis in-memory.** Do NOT write intermediate JSON files. Hold the asset index and relationship graph in your working memory.
-5. **Write reports one use case at a time.** Once the engineer approves groupings, pick the first use case, parse its specific assets, write its customer-spec.md and solution-design.md, then move to the next.
-6. **Skip deep parsing for test/standalone assets.** For the test/standalone category, a brief catalog table is sufficient — do not produce full HLD/LLD.
-7. **For workflow analysis, focus on:** task names, app fields, childJob references, adapter usage, inputSchema, description. Skip deep variable tracing.
-8. **Priority order for parsing:** (a) directory listings, (b) workflow JSON for grouping, (c) OM automation JSON for grouping, (d) per-group: templates, transformations, command templates, forms only when writing that group's LLD.
-
----
-
-## Phase 1: Collect and Classify Assets
+## Step 1: Collect and Classify Assets
 
 Ask the engineer for the asset source. Two modes:
 
@@ -119,7 +98,7 @@ GET /mop/templates
 
 ---
 
-## Phase 2: Discover Relationships and Group
+## Step 2: Discover Relationships and Group
 
 ### Relationship Discovery
 
@@ -155,15 +134,52 @@ Build a relationship graph in-memory connecting all assets:
 
 6. **Remaining Ungrouped:** Group by functional similarity or list as individual entries in master README.
 
+### Analyze the Components
+
+Work through the components to reconstruct intent and structure.
+
+#### Identify the orchestrator
+
+Find the parent workflow — usually the one that:
+- Has no `childJob` references pointing to it from other workflows
+- References other workflows via `childJob` tasks
+- Has the most complex transition graph
+
+#### Map the data flow
+
+For the orchestrator and each child:
+1. What are the **inputs**? (inputSchema properties)
+2. What adapters are called? (location: "Adapter" tasks)
+3. What utility tasks are used? (merge, query, evaluation, childJob, makeData)
+4. What are the **outputs**? (outputSchema properties, $var.job.x assignments)
+5. What external systems are touched? (adapter names → infer ServiceNow, Route53, etc.)
+
+#### Infer the phases
+
+Each major section of the orchestrator maps to a phase:
+- A `childJob` to a child workflow = one phase
+- An `evaluation` branch = a decision point
+- An adapter call cluster = an integration phase
+- A `ViewData` = an approval gate
+- Error handling branches = rollback/recovery phases
+
+#### Reconstruct acceptance criteria
+
+From the workflow structure, infer what "done" looks like:
+- What does the final outgoing variable represent?
+- What adapters were called? → "ServiceNow ticket created and updated"
+- What verifications exist? → `evaluation` tasks checking status
+- What is the `outputSchema`? → these are the observable outcomes
+
 ---
 
-## Phase 3: Present Groupings to Engineer
+## Step 3: Present Groupings to Engineer
 
 **Stop and present the proposed groupings before writing any reports.** Ask:
 
 1. "Here are the use case groups I identified — does this look right?"
-2. "These assets are ungrouped — should any be added to an existing group?"
-3. "These appear to be test/dev workflows — should I catalog or skip them?"
+2. "These assets are ungrouped — should any be added to an existing group?" - default no
+3. "These appear to be test/dev workflows — should I catalog or skip them?" - default skip
 
 Show each group with: name, category (Core/Specialized/Shared/Reference), approximate workflow count, and 1-line description.
 
@@ -171,138 +187,124 @@ Show each group with: name, category (Core/Specialized/Shared/Reference), approx
 
 ---
 
-## Phase 4: Write Per-Use-Case Reports
+## Step 4: Write Per-Use-Case Reports
 
 For each approved use case group, create a directory with two markdown files.
 
-### customer-spec.md Format
+### Produce `customer-spec.md`
 
 Write professional, narrative documentation — not mechanical spec sheets. The HLD should read like a business-facing document with rich prose, detailed tables, and domain-specific context.
 
 ````markdown
 # {Use Case Name} - High-Level Design (HLD)
 
-**Customer:** {Customer Name}
 **Use Case:** {One-Line Description}
 **Version:** {Version or build identifier, if discoverable from naming or descriptions}
-**Status:** As-Built (inferred from deployed assets)
+
+> **Note:** This spec was produced by reading global assets `{numberOfAssets} {typeOfAssets}`.
+> Review and correct any inferences before using as a delivery baseline.
 
 ---
 
-## 1. Executive Summary
+## 1. Problem Statement
+{Write 1-2 RICH PARAGRAPHS of narrative prose. This is NOT a bullet list.
 
-{Write 2-3 RICH PARAGRAPHS of narrative prose. This is NOT a bullet list.
+Paragraph 1: Describe the overall purpose and business context — what this automation does, why it exists, what business problem it solves.
 
-Paragraph 1: Describe the overall purpose and business context — what this automation
-does, why it exists, what business problem it solves.
+Paragraph 2: Describe the major functional areas or modes of operation — what systems are integrated, what types of automation are covered, how they connect. Also describe the operator experience — how users interact with the system, what entry points exist, what the operational model looks like.
 
-Paragraph 2: Describe the major functional areas or modes of operation — what systems
-are integrated, what types of automation are covered, how they connect.
+Infer from workflow descriptions, adapter usage, task summaries, OM trigger configurations, and naming patterns.}
 
-Paragraph 3: Describe the operator experience — how users interact with the system,
-what entry points exist, what the operational model looks like.
+## 2. High-Level Flow
+{Inferred from orchestrator transition graph}
 
-Infer from workflow descriptions, adapter usage, task summaries, OM trigger
-configurations, and naming patterns.}
+## 3. Phases
+{One section per major workflow / childJob cluster}
 
-## 2. Business Objectives
+## 4. Key Design Decisions
+{Inferred from adapter choices, error handling patterns, approval gates}
 
-1. **{Objective title}** -- {Detailed explanation of the business goal. Use double-dash
-   to separate the bold title from the explanation. Each item should be 1-2 sentences.}
-2. **{Objective title}** -- {explanation}
-3. ...
+## 5. Scope
+**In scope (as built):** {list components that exist}
+**Not observed:** {common patterns not present — rollback, notifications,audit trail, etc.}
 
-## 3. Scope
+## 6. Risks & Mitigations
+{Inferred from error transitions, evaluation branches}
 
-### 3.1 In Scope
+## 7. Requirements
 
-| Capability | Description |
-|---|---|
-| {Capability name} | {Multi-sentence description of what this capability does, how it works, and what systems it touches. Each row should be detailed, not a single phrase.} |
-| {Capability name} | {Multi-sentence description} |
+### Capabilities
+{Derived from apps and tasks used}
 
-### 3.2 Out of Scope
+### Integrations
+{Derived from adapter names and instance IDs}
 
-- {Common patterns NOT observed — e.g., rollback, notifications, audit trail}
-- {Explicitly excluded capabilities based on adapter and task analysis}
+## 8. Batch Strategy
+{Inferred from childJob loopType usage}
 
-## 4. User Interaction Model
+## 9. User Interaction Model
 
-### 4.1 Entry Points
+### 9.1 Entry Points
 
 | Entry Point | Trigger | Description |
 |---|---|---|
 | {Entry point name} | {Manual launch / Scheduled / Endpoint trigger / etc.} | {How this entry point works and what it initiates} |
 
-### 4.2 Operator Workflow (Manual Path)
+### 9.2 Operator Workflow (Manual Path)
 
-1. **{Action name}** -- {Detailed description of what happens at this step, what the
-   operator sees, what choices are available.}
+1. **{Action name}** -- {Detailed description of what happens at this step, what the operator sees, what choices are available.}
 2. **{Action name}** -- {description}
 3. ...
 
-### 4.3 Automated Path
+### 9.3 Automated Path
 
 1. {Step description — what triggers, what runs, what the system checks}
 2. {Step description}
 3. ...
 
-## 5. Integration Points
+## 10. Integration Points
 
 | System | Direction | Purpose |
 |---|---|---|
 | **{System name}** | {Bi-directional / Inbound / Outbound} | {What data flows and why, including specific operations} |
 
-## 6-N. {Domain-Specific Sections}
-
-{Include sections specific to the use case domain. Examples:
-- For Change Management: "ServiceNow Change Types" table, "State Machine" diagram
-- For Compliance: "Compliance Categories" table, "Remediation Patterns"
-- For Config Management: "Configuration Platforms" table, "Template Library"
-- For Device Build: "Device Types and Build Stages"
-
-These sections go between Integration Points and Acceptance Criteria. Number them
-sequentially. Use tables, ASCII diagrams, and numbered lists as appropriate.}
-
-## N-1. Acceptance Criteria
-
-1. {Criterion — specific, measurable, derived from workflow behavior}
-2. {Criterion}
-3. ...
-
-## N. Identified Gaps and Risks
-
-| ID | Category | Description | Severity |
-|---|---|---|---|
-| G-1 | {Gap/Risk/Observation} | {Detailed description of what is missing or risky} | Low/Medium/High |
-````
-
-**For OM automation / catalog use cases**, adapt Sections 4-6 to focus on trigger inventory and scheduling patterns rather than operator workflows.
+## 11. Acceptance Criteria
+{Inferred from outputSchema and evaluation checks}
+```
 
 **For test/standalone use cases**, use a simplified catalog format — workflow table with Purpose and Adapters columns only. No full HLD needed.
 
-### solution-design.md Format
+### Produce `solution-design.md`
 
-Write detailed, factual technical documentation. Each component should have multi-sentence descriptions. The LLD should be comprehensive enough that an engineer could understand the full system without reading the source JSON.
+Write the as-built LLD — this is factual, not inferred. Each component should have at least a sentence description, so an engineer could understand the full system without reading the source JSON.
 
 ````markdown
 # {Use Case Name} - Solution Design (LLD)
 
-**Customer:** {Customer Name}
 **Use Case:** {One-Line Description}
 **Version:** {Version if discoverable}
-**Document Type:** As-Built Low-Level Design
+
+> **As-Built** — produced by reading global assets `{numberOfAssets} {typeOfAssets}`.
+> Review and correct any inferences before using as a delivery baseline.
 
 ---
 
-## 1. Solution Architecture Overview
+## A. Environment Summary
+{Platform, adapters found, apps used}
 
-{Narrative paragraph describing the architecture pattern — hierarchical orchestrator,
-master-dispatcher, hub-and-spoke, etc. Describe the layers: operator console,
-orchestration, utility. Mention total counts of workflows, transformations, templates,
-and OM automations in this use case.}
+## B. Component Inventory
+| # | Component | Type | Workflow/Template Name | Purpose | ID | 
+|---|-----------|------|----------------------|-----------| -----|
+| 1 | {name} | {workflow/template/mop} | {actual name} | {A sentence or two purpose description. Describe what this item does, what systems it touches, and its role in the overall flow.} | {id} |
+...
 
-### 1.1 Workflow Hierarchy
+## C. Adapter Mappings
+| Adapter | app name | adapter_id | Tasks Used |
+|---------|----------|-----------|------------|
+| ServiceNow | Servicenow | ServiceNow | createChangeRequest, updateChangeRequest |
+...
+
+## D. Workflow Hierarchy
 
 ```
 {Detailed ASCII tree showing the FULL call chain. Start with OM triggers at top,
@@ -322,102 +324,18 @@ Manual Entry Points:
   |           |-- {Grandchild Workflow}
 ```
 
-## 2. Component Inventory
+## E. Workflow Structure
+For each workflow: inputs, task sequence, outputs, error handling pattern.
 
-### 2.1 Workflows ({N} total)
+## F. Data Flow
+Key variables and how they move between tasks and workflows.
 
-| Workflow | Tasks | Type | Purpose |
-|---|---|---|---|
-| {workflow name} | {task count} | {Entry Point / Master Orchestrator / Dispatcher / Child / Utility / Interactive / Backup} | {Multi-sentence purpose description. Describe what this workflow does, what systems it touches, and its role in the overall flow.} |
-
-### 2.2 Transformations ({N} total)
-
-| Transformation | Purpose | Key I/O |
-|---|---|---|
-| {name} | {what it does} | In: {key input fields}. Out: {key output fields} |
-
-### 2.3 Templates ({N} total, if applicable)
-
-| Template | Type | Purpose |
-|---|---|---|
-| {name} | {jinja2/textfsm/command} | {inferred from content and usage context} |
-
-### 2.4 Command Templates (if applicable)
-
-| Template | OS | Commands | Purpose |
-|---|---|---|---|
-| {name} | {os} | {count} | {compliance/validation purpose} |
-
-### 2.5 JSON Forms (if applicable)
-
-| Form | Fields | Purpose |
-|---|---|---|
-| {name} | {count} | {inferred from field names and workflow context} |
-
-### 2.6 Operations Manager Automations (if applicable)
-
-| Automation | Trigger Type | Schedule | Target Workflow |
-|---|---|---|---|
-| {name} | {schedule/endpoint/manual} | {frequency or "on-demand"} | {componentName} |
-
-## 3. Detailed Flow Descriptions
-
-{For each major workflow (entry points, orchestrators, dispatchers), describe the
-flow using numbered narrative steps. Focus on what happens, not task IDs.}
-
-### 3.1 {Workflow Name}
-
-**Entry:** {How this workflow is triggered}
-
-**Flow:**
-1. {Step description — what happens, what adapter is called, what data is processed}
-2. {Step description}
-3. **Dispatch/Branch:** {Describe evaluation branches and routing logic}
-4. ...
-
-### 3.2 {Next Major Workflow}
-...
-
-## 4. Adapter Mappings
-
-| Adapter Type | Instance ID | Purpose | Key Methods Used |
-|---|---|---|---|
-| {app name} | {adapter_id} | {what it does} | {list of methods} |
-
-## 5. Data Model
-
-### 5.1 {Key Data Structure}
-
-```json
-{
-  "field": "<description>"
-}
-```
-
-## 6. Error Handling Patterns
-
-| Pattern | Implementation | Workflows |
-|---|---|---|
-| {error pattern} | {how it's handled} | {which workflows use it} |
-
-## 7. External Workflow Dependencies
-
-{List workflows from OTHER use case groups that this group calls or is called by.}
-
-| Workflow | Direction | Purpose |
-|---|---|---|
-| {external workflow} | {Calls / Called by} | {why} |
-
-## 8. Operational Notes (if OM automations present)
-
-- {Enabled/disabled status, schedule frequencies, webhook configs}
-- {Environment-specific configuration notes}
-
-## 9. Identified Technical Observations
-
-1. **{Observation title}**: {Detailed description — dual adapter versions, large workflow
-   complexity, migration patterns, naming inconsistencies, etc.}
-2. ...
+## G. Known Gaps
+Patterns not present that are typically expected:
+- No rollback logic observed
+- No notifications (email/Teams)
+- No audit trail
+etc.
 ````
 
 ---
@@ -427,7 +345,7 @@ flow using numbered narrative steps. Focus on what happens, not task IDs.}
 Create `README.md` at the root of the reports directory.
 
 ```markdown
-# {Customer/Platform Name} - Asset Documentation
+# Assets Documentation
 
 > Generated {YYYY-MM-DD} by analyzing {N} workflows, {N} templates,
 > {N} transformations, {N} JSON forms, {N} command templates,
@@ -506,6 +424,7 @@ Show a summary:
 2. **Use case groups** — count and names
 3. **Reports produced** — list of directories with customer-spec.md + solution-design.md
 4. **Excluded assets** — what was skipped
+5. **Gaps** — "I don't see rollback logic or notifications."
 
 Ask the engineer to review the reports. Next steps:
 - **Accept** — use the reports as-is
@@ -526,6 +445,10 @@ Ask the engineer to review the reports. Next steps:
 - **Large TextFSM libraries:** Group under Shared Utilities, not individual use cases.
 - **Command template rules:** Each rule encodes a compliance check — valuable for HLD requirements.
 - **Workflow descriptions and task summaries are the best source of business intent.**
+**Non-hex task IDs:** If you encounter task IDs like `apush` or `myTask`, note them — these are a known bug pattern ($var references silently fail on these).
+**Static values as indicators:** Hard-coded strings in merge tasks or newVariable tasks often reveal business rules (e.g., `"value": "production"` → production-only path).
+**Missing error transitions:** Note any adapter tasks without error transitions — this is a quality gap in the existing implementation.
+
 
 ---
 
@@ -533,8 +456,8 @@ Ask the engineer to review the reports. Next steps:
 
 - **NEVER use this on project files.** Redirect to `/project-to-spec`.
 - **NEVER produce JSON files as output.** Only markdown reports.
-- **Process in batches for large sets.** Read filenames first, then parse selectively.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.
 - **OM automations can have multiple triggers.** Document all of them.
 - **Not every asset connects.** Don't force them into groups — catalog in Shared Utilities or Reference.
+- Task descriptions and summaries are the best source of intent — use them heavily
