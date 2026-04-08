@@ -102,6 +102,8 @@ spec-files/spec-*.md              Generic library spec (never modified)
         │  /solution-arch-agent: design
         ▼
 {use-case}/solution-design.md     Solution Design / LLD — approved
+        │                         (includes ## Sequence Diagram)
+{use-case}/diagrams/              Architecture diagram — optional draw.io
         │
         │  /builder-agent: build
         ▼
@@ -129,6 +131,68 @@ On rebuild: start from the reconciled artifacts — amended spec and as-built de
 | `applications.json` | same | same |
 | `devices.json` | `/solution-arch-agent` | During Feasibility (if spec involves devices) |
 | `workflows.json` | `/solution-arch-agent` | During Feasibility (if reuse is possible) |
+
+---
+
+## Solution Design — Required Diagrams
+
+The solution design stage produces two diagrams alongside `solution-design.md`. Both are required before the engineer approves the design and build begins.
+
+### Sequence Diagram (Mermaid — embedded in `solution-design.md`)
+
+A Mermaid sequence diagram is embedded directly in `solution-design.md` under a `## Sequence Diagram` heading. It shows the runtime flow: what triggers the automation, which workflows are called, which adapter tasks execute, what data is passed, and how errors are handled.
+
+**Minimum elements to include:**
+- Trigger (API call, schedule, UI form submission)
+- Parent workflow and any child workflows (childJob tasks)
+- Each adapter task with the target system it calls
+- Key data passed between steps (job variables, task outputs)
+- Error paths and terminal states
+
+**Example structure:**
+
+```mermaid
+sequenceDiagram
+    actor Engineer
+    participant Workflow as Parent Workflow
+    participant ChildWF as Child Workflow
+    participant Adapter as Adapter (e.g. Netconf)
+    participant Device as Target Device
+
+    Engineer->>Workflow: Trigger (formData input)
+    Workflow->>ChildWF: childJob (variables)
+    ChildWF->>Adapter: adapter task (config payload)
+    Adapter->>Device: push configuration
+    Device-->>Adapter: response
+    Adapter-->>ChildWF: result
+    ChildWF-->>Workflow: job output
+    Workflow-->>Engineer: complete
+```
+
+### Architecture Diagram (draw.io — optional)
+
+A draw.io file at `{use-case}/diagrams/solution-architecture.drawio` provides a visual topology of the solution: platform components, adapter connections, and target systems. This is optional but recommended for complex solutions with multiple adapters or integrations.
+
+Reference it in `solution-design.md` under a `## Architecture Diagram` heading:
+
+```markdown
+## Architecture Diagram
+
+See [diagrams/solution-architecture.drawio](diagrams/solution-architecture.drawio).
+```
+
+### Artifact Placement
+
+```
+{use-case}/
+  customer-spec.md
+  feasibility.md
+  solution-design.md        ← includes ## Sequence Diagram (Mermaid)
+  diagrams/
+    solution-architecture.drawio   ← optional
+  assets/
+  as-built.md
+```
 
 ---
 
