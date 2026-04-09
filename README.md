@@ -45,32 +45,47 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 | Itential Platform | 6.x | |
 | IAG | 5.x | Required only for the `/iag` skill |
 | Claude Code | Latest | [Install guide](https://claude.ai/code) |
-| Git | Any | Must be configured to clone over HTTPS — see [Troubleshooting](docs/troubleshooting.md) |
 
 ---
 
 ## Getting Started
 
-**Official** (once approved on the Claude marketplace):
+**Install the plugin:**
 
 ```bash
 /plugin install itential-builder@claude-plugins-official
 ```
 
-**Early access** (available now):
+**First-time setup:**
+
+Create a folder for your use case and add a `.env` file with your platform credentials:
 
 ```bash
-/plugin marketplace add itential/builder-skills
+mkdir my-use-case && cd my-use-case
 ```
 
+**Cloud / OAuth:**
 ```bash
-/plugin install itential-builder@itential-builder
+# my-use-case/.env
+PLATFORM_URL=https://your-instance.itential.io
+AUTH_METHOD=oauth
+CLIENT_ID=your-client-id
+CLIENT_SECRET=your-client-secret
 ```
 
-Copy an environment template and point at your platform:
-
+**Local / Password:**
 ```bash
-cp environments/cloud-lab.env my-use-case/.env   # edit with your credentials
+# my-use-case/.env
+PLATFORM_URL=http://localhost:4000
+AUTH_METHOD=password
+USERNAME=admin
+PASSWORD=admin
+```
+
+Then start your first delivery from inside that folder:
+
+```
+/itential-builder:spec-agent
 ```
 
 See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first delivery walkthrough.
