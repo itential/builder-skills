@@ -1,6 +1,6 @@
 ---
 name: documentation
-description: Document any Itential platform asset — workflows, forms, transformations, templates, command templates, analytic templates, OM automations, golden configuration trees/compliance plans, LCM resource models, or all global assets at once. Accepts specific asset names/IDs or processes all globals. Discovers relationships, groups into use cases, produces customer-spec.md + solution-design.md per use case and a master README only when multiple use cases exist. Delegates project documentation to /project-to-spec automatically.
+description: Document any Itential platform asset — workflows, forms, transformations, templates, command templates, analytic templates, OM automations, golden configuration trees/compliance plans, LCM resource models, projects, or all global assets at once. Accepts specific asset names/IDs, project names/IDs, or processes all globals. Discovers relationships, groups into use cases, produces customer-spec.md + solution-design.md per use case and a master README only when multiple use cases exist.
 argument-hint: "[asset-name(s) | 'all' | 'platform' | directory-path]"
 ---
 
@@ -32,9 +32,7 @@ argument-hint: "[asset-name(s) | 'all' | 'platform' | directory-path]"
 
 ## What This Does
 
-Takes undocumented Itential assets — workflows, JSON forms, transformations, templates, command templates, analytic templates, Operations Manager automations, golden configuration trees and compliance plans, and LCM resource models — that are NOT grouped into projects. Accepts specific asset names/IDs or the full global asset catalog. Discovers how they relate to each other, groups them into logical use cases, and produces documentation for each group plus a master index when there are multiple use cases.
-
-**This is NOT for projects.** If the user has a project file (`.project.json` or project ID), redirect them to `/project-to-spec`.
+Takes undocumented Itential assets — workflows, JSON forms, transformations, templates, command templates, analytic templates, Operations Manager automations, golden configuration trees and compliance plans, LCM resource models, and projects. Accepts specific asset names/IDs, project names/IDs, or the full global asset catalog. Discovers how they relate to each other, groups them into logical use cases, and produces documentation for each group plus a master index when there are multiple use cases.
 
 ---
 
@@ -44,7 +42,7 @@ Takes undocumented Itential assets — workflows, JSON forms, transformations, t
 User invokes /documentation [asset(s) | 'all' | 'platform' | directory]
       |
       ├── Step 0: Determine Scope
-      |     ├── Project named? → delegate to /project-to-spec and stop
+      |     ├── Project named? → fetch project components → proceed as scoped asset set
       |     ├── Specific assets named? → resolve + discover relationships → ask grouping preference
       |     └── 'all' / platform / directory? → full collection + grouping flow
       |
@@ -64,11 +62,27 @@ Before collecting assets, determine what the user wants to document.
 
 ### Pattern 1 — Project named
 
-If the user names a project or provides a project ID (or a `.project.json` file is present), **do not proceed**. Tell the user:
+If the user names a project or provides a project ID (or a `.project.json` file is present), fetch the project and its components directly:
 
-> "This looks like a project. Use `/project-to-spec` to document it — that skill is specifically designed for project components."
+1. **Fetch the project:**
+   ```
+   GET /automation-studio/projects/{projectId}
+   ```
+   Or search by name:
+   ```
+   GET /automation-studio/projects?contains=name:{projectName}
+   ```
+   Response shape: `{message, data: {_id, name, components: [...], members: [...]}}`
 
-Invoke `/project-to-spec` and stop.
+2. **Fetch each component** from `data.components`:
+   - Workflows: `GET /automation-studio/workflows/detailed/{urlEncodedName}`
+   - Templates: `GET /automation-studio/templates/{id}`
+   - MOP Command Templates: `GET /mop/listATemplate/{name}`
+   - JSON Forms: `GET /automation-studio/json-forms/{id}`
+
+3. **Strip `@projectId:` prefixes** from all workflow names before processing.
+
+4. **Continue to Step 1** treating these fetched components as the asset set. This follows the same path as Pattern 2 (specific assets named) — present the discovered cluster, ask how to group it, then proceed through Steps 2–6.
 
 ### Pattern 2 — Specific asset(s) named
 
@@ -116,11 +130,11 @@ directory/
 
 If the directory is flat (all JSON at root), classify by JSON structure signatures below.
 
-**Skip project files.** If a `projects/` subfolder exists, ignore it entirely.
+If a `projects/` subfolder exists, scan it too. Project manifest files (containing `name` + `components[]`) identify which assets belong to a project — use that grouping when building the relationship graph. Strip `@projectId:` prefixes from any workflow names found inside.
 
 ### Mode B — Platform API
 
-Authenticate using `.auth.json` (see AGENTS.md auth reuse pattern). Fetch global assets:
+Authenticate using `.auth.json` (see AGENTS.md auth reuse pattern). Fetch global assets (ensure you fetch pagination if there are a lot of assets):
 
 ```
 GET /automation-studio/workflows?exclude-project-members=true&limit=500
@@ -131,6 +145,7 @@ GET /mop/templates
 GET /golden-config/trees
 GET /golden-config/plans
 GET /lifecycle-manager/model
+GET /automation-studio/projects?limit=500
 ```
 
 ### Classification Signatures
@@ -325,7 +340,6 @@ Ask the engineer to review the reports. Next steps:
 
 ## Gotchas
 
-- **NEVER use this on project files.** Redirect to `/project-to-spec`.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.
