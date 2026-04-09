@@ -104,24 +104,24 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:spec-agent` | Requirements — refine use case, produce approved HLD |
-| `/itential-builder:solution-arch-agent` | Feasibility + Design — assess platform, produce solution design |
-| `/itential-builder:builder-agent` | Build + As-Built — implement design, test, deliver, document |
-| `/itential-builder:flowagent-to-spec` | Read a FlowAgent → produce deterministic workflow spec |
-| `/itential-builder:project-to-spec` | Read an existing project → produce spec + design docs |
-| `/itential-builder:explore` | Auth, discover platform, browse freely |
+| `/itential-builder:spec-agent` | Refines a use case into an approved requirements spec (HLD). Picks from 22 built-in specs or starts from scratch. Produces `customer-spec.md` — the input to every downstream stage. |
+| `/itential-builder:solution-arch-agent` | Connects to your platform, assesses what it can support, and produces a feasibility decision and a concrete implementation plan. Outputs `feasibility.md` and `solution-design.md`. |
+| `/itential-builder:builder-agent` | Implements the approved solution design end-to-end — workflows, templates, configs, projects. Tests each component, verifies acceptance criteria, and produces `as-built.md`. |
+| `/itential-builder:flowagent-to-spec` | Reads a FlowAgent's config and mission history, reconstructs what it actually did, and produces a `customer-spec.md` for the deterministic equivalent. Turns agentic exploration into a governed delivery path. |
+| `/itential-builder:project-to-spec` | Reads an existing Itential project — workflows, templates, MOP — and reverse-engineers a `customer-spec.md` and `solution-design.md`. Use to document undocumented automation or create a baseline for a rebuild. |
+| `/itential-builder:explore` | Authenticates to a platform, pulls live data, and lets you browse capabilities freely. Use for ad-hoc investigation before starting a delivery or when you need to work outside the lifecycle. |
 
 **Platform**
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:flowagent` | Create and run AI agents (LLM providers, tools, missions) |
-| `/itential-builder:iag` | IAG services — Python, Ansible, OpenTofu via iagctl |
-| `/itential-builder:itential-mop` | Command templates with validation rules |
-| `/itential-builder:itential-devices` | Devices, backups, diffs, device groups |
-| `/itential-builder:itential-golden-config` | Golden config, compliance, grading, remediation |
-| `/itential-builder:itential-inventory` | Device inventories, nodes, actions, tags |
-| `/itential-builder:itential-lcm` | Resource models, instances, lifecycle actions |
+| `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers, registers tools (adapters, workflows, IAG services), and runs missions. Use when building or operating Flow AI agents. |
+| `/itential-builder:iag` | Builds and runs IAG 5 services — Python scripts, Ansible playbooks, OpenTofu plans. Manages YAML service definitions, imports via `iagctl`, and calls services from Itential workflows via GatewayManager. |
+| `/itential-builder:itential-mop` | Builds Method of Procedure command templates with variable substitution and validation rules. Runs CLI pre-checks and post-checks against devices, and uses analytic templates for before/after config comparison. |
+| `/itential-builder:itential-devices` | Manages network devices in Itential Configuration Manager — onboard devices, take config backups, diff configurations, organize device groups, and apply device templates. |
+| `/itential-builder:itential-golden-config` | Builds golden config trees and node-level config specs that define the expected configuration standard for your devices. Runs compliance plans, grades results, and generates remediation configs for violations. |
+| `/itential-builder:itential-inventory` | Builds and manages device inventories in Itential Inventory Manager. Populates nodes in bulk, assigns tags, runs actions against inventory devices, and manages inventory-level access and grouping. |
+| `/itential-builder:itential-lcm` | Defines reusable service resource models in Itential Lifecycle Manager, creates and manages resource instances, runs lifecycle actions, and tracks execution history. Use for service models that have create, update, and delete lifecycle phases. |
 
 ---
 
