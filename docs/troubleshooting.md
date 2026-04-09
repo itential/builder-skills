@@ -2,25 +2,41 @@
 
 ## Installation
 
-### Plugin install fails with "Permission denied (publickey)"
+### Plugin not found or fails to install
 
-**Symptom:**
-
-```
-Error: Failed to install: Failed to clone repository
-git@github.com: Permission denied (publickey).
-fatal: Could not read from remote repository.
-```
-
-**Cause:** Git is configured to redirect HTTPS to SSH. The plugin clones over HTTPS but git rewrites the URL to SSH, which fails without a GitHub SSH key configured.
-
-**Fix:**
+**Fix:** Make sure you are on the latest version of Claude Code, then retry:
 
 ```bash
-git config --global url."https://github.com/".insteadOf "git@github.com:"
+/plugin install itential-builder@claude-plugins-official
 ```
 
-Then retry the install.
+---
+
+## Environment Setup
+
+### Skills can't connect to the platform
+
+**Symptom:** Agent errors on first run, authentication failures, or "platform not reachable."
+
+**Fix:** Verify your `.env` file exists in the folder where you are running the skill and contains the correct values for your platform:
+
+```bash
+# Cloud / OAuth
+PLATFORM_URL=https://your-instance.itential.io
+AUTH_METHOD=oauth
+CLIENT_ID=your-client-id
+CLIENT_SECRET=your-client-secret
+```
+
+```bash
+# Local / Password
+PLATFORM_URL=http://localhost:4000
+AUTH_METHOD=password
+USERNAME=admin
+PASSWORD=admin
+```
+
+The `.env` file must be in your use-case directory, not the plugin directory.
 
 ---
 
