@@ -56,6 +56,12 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 /plugin install itential-builder@claude-plugins-official
 ```
 
+**Already installed? Update to the latest version:**
+
+```bash
+/plugin update itential-builder@claude-plugins-official
+```
+
 **First-time setup:**
 
 Create a folder for your use case and add a `.env` file with your platform credentials:
