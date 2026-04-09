@@ -4,6 +4,21 @@
 
 Spec-driven infrastructure automation and orchestration — delivered by AI agents on Itential.
 
+---
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [How to Use It](#how-to-use-it)
+- [Skills](#skills)
+- [Spec Library](#spec-library)
+- [Docs](#docs)
+- [Contributing](#contributing)
+- [Support](#support)
+
+---
+
 Most infrastructure automation is built without a delivery model. No consistent stages, no traceability, no repeatable process — just ad hoc builds that are hard to maintain, document, or hand off.
 
 This repository introduces **Spec-Driven Development** for infrastructure automation. Every delivery follows five structured stages, with AI agents executing each stage and engineers approving the artifacts that gate the next one.
@@ -20,6 +35,17 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 ```
 
 The result is infrastructure automation that is traceable, repeatable, and delivered faster.
+
+---
+
+## Prerequisites
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Itential Platform | 6.x | |
+| IAG | 5.x | Required only for the `/iag` skill |
+| Claude Code | Latest | [Install guide](https://claude.ai/code) |
+| Git | Any | Must be configured to clone over HTTPS — see [Troubleshooting](docs/troubleshooting.md) |
 
 ---
 
@@ -117,6 +143,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 - [`docs/quickstart.md`](docs/quickstart.md) — install, setup, and first delivery walkthrough
 - [`docs/developer-flow.md`](docs/developer-flow.md) — full lifecycle diagram and design principles
 - [`docs/builder-flow.md`](docs/builder-flow.md) — build sequence, asset structure, and import pattern
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) — common issues and fixes
 - [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, and projects
   - **Workflow & Project Helpers**: `create-workflow.json`, `create-project.json`, `import-project.json`, `add-components-to-project.json`
   - **Task Helpers**: `workflow-task-adapter.json`, `workflow-task-application.json`, `workflow-task-childjob.json`, `workflow-task-query.json`, `workflow-task-newvariable.json`, `workflow-task-transformation.json`, `workflow-task-gettime.json`, `workflow-task-evalresult.json`
