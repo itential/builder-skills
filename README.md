@@ -13,6 +13,7 @@ Spec-driven infrastructure automation and orchestration — delivered by AI agen
 - [How to Use It](#how-to-use-it)
 - [Skills](#skills)
 - [Spec Library](#spec-library)
+- [Demo Specs](#demo-specs)
 - [Docs](#docs)
 - [Contributing](#contributing)
 - [Support](#support)
@@ -110,6 +111,9 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 "I have an existing project with no documentation"
 → /itential-builder:project-to-spec
 
+"Document all my global workflows and group them by use case"
+→ /itential-builder:documentation
+
 "I want to explore what's available on my platform"
 → /itential-builder:explore
 
@@ -130,6 +134,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 | `/itential-builder:builder-agent` | Implements the approved solution design end-to-end — workflows, templates, configs, projects. Tests each component, verifies acceptance criteria, and produces `as-built.md`. |
 | `/itential-builder:flowagent-to-spec` | Reads a FlowAgent's config and mission history, reconstructs what it actually did, and produces a `customer-spec.md` for the deterministic equivalent. Turns agentic exploration into a governed delivery path. |
 | `/itential-builder:project-to-spec` | Reads an existing Itential project — workflows, templates, MOP — and reverse-engineers a `customer-spec.md` and `solution-design.md`. Use to document undocumented automation or create a baseline for a rebuild. |
+| `/itential-builder:documentation` | Documents any platform asset or the entire global asset catalog. Accepts specific asset names, project names, or runs across all globals. Discovers relationships between assets, groups them into use cases, and produces `customer-spec.md` + `solution-design.md` per use case. Delegates projects to `/project-to-spec`. |
 | `/itential-builder:explore` | Authenticates to a platform, pulls live data, and lets you browse capabilities freely. Use for ad-hoc investigation before starting a delivery or when you need to work outside the lifecycle. |
 
 **Platform**
@@ -156,6 +161,19 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 | **Operations** | [Software Upgrade](spec-files/spec-software-upgrade.md) · [Config Backup & Compliance](spec-files/spec-config-backup-compliance.md) · [Network Health Check](spec-files/spec-network-health-check.md) · [Device Onboarding](spec-files/spec-device-onboarding.md) · [Device Decommissioning](spec-files/spec-device-decommissioning.md) · [Change Management](spec-files/spec-change-management.md) · [Incident Auto-Remediation](spec-files/spec-incident-auto-remediation.md) |
 | **Security** | [Firewall Rule Lifecycle](spec-files/spec-firewall-rule-lifecycle.md) · [Cloud Security Groups](spec-files/spec-cloud-security-groups.md) · [SSL Certificate Lifecycle](spec-files/spec-ssl-certificate-lifecycle.md) |
 | **Infrastructure** | [DNS Record Management](spec-files/spec-dns-record-management.md) · [IPAM Lifecycle](spec-files/spec-ipam-lifecycle.md) · [Load Balancer VIP](spec-files/spec-load-balancer-vip.md) · [Config Drift Remediation](spec-files/spec-config-drift-remediation.md) · [Network Compliance Audit](spec-files/spec-network-compliance-audit.md) · [AWS Webserver Deploy](spec-files/spec-aws-webserver-deploy.md) |
+
+---
+
+## Demo Specs
+
+Ready-to-run specs in [`spec-files/demo/`](spec-files/demo/) for walkthroughs and demonstrations.
+
+| Spec | Description |
+|------|-------------|
+| [Device Health Troubleshooting Agent](spec-files/demo/device-health-agent.md) | FlowAI agent spec for device health triage — runs diagnostics and surfaces findings |
+| [Linux Diagnostics Agent](spec-files/demo/linux-diagnostics-agent.md) | FlowAI agent spec for Linux system diagnostics |
+| [DNS A Record Provisioning — Simple](spec-files/demo/spec-dns-a-record-infoblox-simple.md) | Simplified DNS A record provisioning via Infoblox |
+| [DNS A Record Provisioning](spec-files/demo/spec-dns-a-record-provisioning.md) | Full DNS A record provisioning lifecycle |
 
 ---
 

@@ -1,0 +1,171 @@
+{
+  "skill_name": "builder-agent",
+  "description": "Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like \"solution design is approved\", \"go ahead and build\", \"implement the design\", \"create the workflows\", \"build everything per the design\", \"start the build\", \"the design is locked \u2014 implement it\", or \"write the as-built documentation\". Also trigger it when a build is failing mid-way and needs debugging. This skill implements the approved solution-design.md end-to-end \u2014 creating all workflows, templates, projects, and configs, testing each component, and producing as-built.md. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill.",
+  "results": [
+    {
+      "query": "we just approved the solution design for firewall rule lifecycle. build it out on the platform and document what was actually delivered",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "build the BGP peer provisioning workflows per the approved design. platform creds are in bgp-peer/.env",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i have an approved solution-design.md for VLAN provisioning. start the build \u2014 child workflows first, then the parent orchestrator",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "solution design is approved \u2014 go ahead and build everything. workflows, templates, the project, all of it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "the design is locked. implement it and test each component before moving to the next",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "solution-design.md is in my-usecase/ \u2014 build everything in it and produce an as-built record",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "implement the approved design. create the project, build the child workflows, then the parent. run the acceptance tests when done",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "the build failed halfway through \u2014 the childJob in the parent workflow is stuck. check the job error and fix it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "write up the as-built documentation for the VLAN provisioning delivery \u2014 what was actually built vs what was designed, any deviations",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "design approved. create all the jinja2 templates, command templates, and workflows and package them into a project",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i have a customer-spec \u2014 assess whether the platform can support it and design the solution",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "help me write the requirements for a port turn-up use case. haven't started the design yet",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "document all the workflows in my platform and produce a README",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "connect to my platform and tell me what workflows already exist that we could reuse",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "my flowagent has been doing software upgrades in prod \u2014 turn it into a deterministic workflow spec",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i have a golden config tree for my core routers but the compliance rules keep false-positiving \u2014 fix the rules",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i have an existing project DNS_Management \u2014 extract a spec and design from it",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "we haven't approved the design yet. still iterating on the solution-design.md",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "run the spec agent on the device onboarding use case \u2014 help me nail down the requirements",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "build a python IAG service that checks BGP neighbors and returns a health report",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "passed": 10,
+    "failed": 10
+  }
+}

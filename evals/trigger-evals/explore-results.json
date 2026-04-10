@@ -1,0 +1,171 @@
+{
+  "skill_name": "explore",
+  "description": "Use this skill whenever someone wants to connect to an Itential platform and browse, inspect, or discover what's there \u2014 without starting a formal delivery. Trigger it for phrases like \"connect to my platform\", \"show me what adapters are running\", \"authenticate and pull platform data\", \"I want to poke around before starting\", \"what workflows exist?\", \"give me an inventory of the platform\", \"browse capabilities freely\", \"check if adapter X is running\", or \"I just set up a new environment \u2014 show me what's there\". Also use it for ad-hoc freestyle work where the user wants to build something directly without going through the full spec\u2192design\u2192build lifecycle.",
+  "results": [
+    {
+      "query": "connect to my platform and show me what adapters are running, what workflows exist, and what projects are available",
+      "should_trigger": true,
+      "trigger_rate": 0.5,
+      "triggers": 1,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "browse my platform freely \u2014 i want to understand what tasks, adapters, and existing workflows are available before i commit to a design",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "log into my platform and pull all the available tasks for the ServiceNow adapter so i can see what we can use",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i want to poke around my platform before starting any delivery \u2014 authenticate and show me what's there",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "can you authenticate to https://myplatform.itential.io and give me a summary of what's installed and running",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "check if the infoblox adapter is running and what tasks it exposes",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i just spun up a new itential environment and want to know what i'm working with. connect and give me an inventory",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i want to try a quick automation without writing a full spec. connect to my platform and let's just build it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "pull the list of all workflows on my platform and tell me which ones look like they're related to device onboarding",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "freestyle exploration \u2014 connect to the platform and help me build something without going through the full delivery lifecycle",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "help me write requirements for a new VLAN provisioning use case. we have cisco switches and infoblox",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "solution design is approved \u2014 build all the components and run the tests",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "document all the global workflows on my platform and group them by use case",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i have a project called Firewall_Rule_Lifecycle with no docs \u2014 reverse engineer it into a spec",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "the customer-spec.md is done. connect to the platform and check feasibility",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "my flowagent has been doing software upgrades in prod. convert it to a deterministic workflow",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "create a golden config tree for our cisco core routers with ISIS and BGP compliance rules",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "write the as-built documentation for the VLAN provisioning delivery",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "run the full delivery lifecycle for BGP peer provisioning \u2014 start with requirements",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "build an IAG python service that checks device reachability and returns pass/fail",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "passed": 11,
+    "failed": 9
+  }
+}

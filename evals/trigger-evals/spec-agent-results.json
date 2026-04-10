@@ -1,0 +1,171 @@
+{
+  "skill_name": "spec-agent",
+  "description": "Use this skill to start any new automation delivery \u2014 when someone wants to automate something, build a new use case, figure out requirements, write up an HLD, or kick off a project on the Itential Platform. Trigger it for phrases like \"I want to automate X\", \"help me build a workflow for Y\", \"we're starting a new automation project\", \"I need to define requirements for Z\", \"kick off a delivery\", or \"let's start with requirements\". This is the entry point for the spec-driven delivery lifecycle. It picks from 22 built-in use case specs or starts from scratch, refines requirements with the engineer, and produces an approved customer-spec.md. Use it whenever someone is at the beginning of building something new and hasn't yet defined what they're building.",
+  "results": [
+    {
+      "query": "starting a new automation project for firewall rule lifecycle management. pan-os and servicenow involved. can you help me nail down the scope and acceptance criteria before we get into design?",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "we have 22 use case specs \u2014 pick the DNS record management one and help me refine it for our environment. we use infoblox and our naming convention is <hostname>.<site>.corp",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i want to automate VLAN provisioning on our network \u2014 cisco switches, infoblox for ipam, servicenow for change tickets. where do i start?",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "need a proper HLD for a device onboarding automation. stakeholders want to sign off before any build work starts. can you run through the requirements with me?",
+      "should_trigger": true,
+      "trigger_rate": 0.5,
+      "triggers": 1,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "kick off a delivery for BGP peer provisioning \u2014 let's start with requirements",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "we're planning an EVPN provisioning project and i need to document what we're building before the team starts. help me structure the use case",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "the spec for our circuit provisioning use case needs updating \u2014 add requirements for rollback handling and a constraint around maintenance windows",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "start a new delivery \u2014 use case is config drift detection and remediation, target devices are juniper MX routers",
+      "should_trigger": true,
+      "trigger_rate": 0.5,
+      "triggers": 1,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "the customer-spec.md is done and the customer signed off. go ahead and start building the workflows",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "my feasibility.md is approved. now i need to design the solution \u2014 what components do i need and how should they be structured?",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i've got a rough idea for an incident auto-remediation workflow. nothing designed yet. help me turn this into a proper requirements doc we can take into design review",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "connect to my platform and show me what adapters are running and what workflows already exist",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "we have an existing project called DNS_Management \u2014 extract a spec from it so we can use it as a starting point",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "document all the workflows on the platform and group them by use case so we know what we have",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "we need to build a software upgrade workflow for our fleet. help me write up the requirements \u2014 what questions should we be asking before we design anything?",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "my flowagent has been running the certificate rotation use case in prod for 2 months. convert it to a deterministic workflow",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "build the VLAN provisioning workflow per the approved solution design. start with the child workflows first",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i want to explore what adapters and tasks are available on my platform before committing to a design",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "can you check what's in the helpers folder and explain what the workflow-task-adapter.json template is for",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "the solution design for port turn-up is approved. run the build",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "passed": 12,
+    "failed": 8
+  }
+}

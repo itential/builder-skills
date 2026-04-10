@@ -1,7 +1,6 @@
 ---
 name: explore
-description: Explore an Itential Platform — authenticate, pull platform data, and browse capabilities freely. Use for ad-hoc investigation, freestyle building, or understanding what's available before starting a delivery. Not part of the delivery lifecycle.
-argument-hint: "[use-case-name or environment]"
+description: Use this skill whenever someone wants to connect to an Itential platform and browse, inspect, or discover what's there — without starting a formal delivery. Trigger it for phrases like "connect to my platform", "show me what adapters are running", "authenticate and pull platform data", "I want to poke around before starting", "what workflows exist?", "give me an inventory of the platform", "browse capabilities freely", "check if adapter X is running", or "I just set up a new environment — show me what's there". Also use it for ad-hoc freestyle work where the user wants to build something directly without going through the full spec→design→build lifecycle.
 ---
 
 # Explore

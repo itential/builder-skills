@@ -1,7 +1,6 @@
 ---
 name: documentation
-description: Document any Itential platform asset — workflows, forms, transformations, templates, command templates, analytic templates, OM automations, golden configuration trees/compliance plans, LCM resource models, projects, or all global assets at once. Accepts specific asset names/IDs, project names/IDs, or processes all globals. Discovers relationships, groups into use cases, produces customer-spec.md + solution-design.md per use case and a master README only when multiple use cases exist.
-argument-hint: "[asset-name(s) | 'all' | 'platform' | directory-path]"
+description: Use this skill to survey and catalog an Itential platform — when someone wants to know what's on their platform, document global assets (workflows, templates, LCM models, golden config, OM automations) that are NOT inside a named project, group them into logical use cases, and produce a master catalog or README. Trigger it for phrases like "document everything on the platform", "what use cases do we have?", "catalog all our global workflows", "I inherited this platform and have no idea what's there", "group our automations by use case", or "produce a platform README". The output is a structured catalog: customer-spec.md + solution-design.md per use case + master README. NOT for documenting a specific named project — use /project-to-spec for that. NOT for building new automation.
 ---
 
 # Documentation
@@ -32,21 +31,23 @@ argument-hint: "[asset-name(s) | 'all' | 'platform' | directory-path]"
 
 ## What This Does
 
-Takes undocumented Itential assets — workflows, JSON forms, transformations, templates, command templates, analytic templates, Operations Manager automations, golden configuration trees and compliance plans, LCM resource models, and projects. Accepts specific asset names/IDs, project names/IDs, or the full global asset catalog. Discovers how they relate to each other, groups them into logical use cases, and produces documentation for each group plus a master index when there are multiple use cases.
+Surveys **global** Itential assets — workflows, JSON forms, transformations, templates, command templates, analytic templates, Operations Manager automations, golden configuration trees and compliance plans, and LCM resource models that live outside named projects. Accepts `all`, `platform`, a directory path, or a list of specific global asset names. Discovers how they relate to each other, groups them into logical use cases, and produces documentation for each group plus a master index when there are multiple use cases.
+
+> **For a named project:** Use `/project-to-spec` instead — it reads a single project's components and produces customer-spec.md + solution-design.md tailored to that project.
 
 ---
 
 ## Flow
 
 ```
-User invokes /documentation [asset(s) | 'all' | 'platform' | directory]
+User invokes /documentation ['all' | 'platform' | directory | specific global asset names]
       |
       ├── Step 0: Determine Scope
-      |     ├── Project named? → fetch project components → proceed as scoped asset set
-      |     ├── Specific assets named? → resolve + discover relationships → ask grouping preference
+      |     ├── Project named? → redirect to /project-to-spec
+      |     ├── Specific global assets named? → resolve + discover relationships → ask grouping preference
       |     └── 'all' / platform / directory? → full collection + grouping flow
       |
-      ├── Step 1: Collect + classify assets (in-memory)
+      ├── Step 1: Collect + classify global assets (in-memory)
       ├── Step 2: Discover relationships + group into use cases (in-memory)
       ├── Step 3: Present proposed groupings to engineer for approval
       ├── Step 4: Write per-use-case reports (customer-spec.md + solution-design.md)
@@ -62,29 +63,11 @@ Before collecting assets, determine what the user wants to document.
 
 ### Pattern 1 — Project named
 
-If the user names a project or provides a project ID (or a `.project.json` file is present), fetch the project and its components directly:
+If the user names a specific project, **redirect them to `/project-to-spec`** — that skill is purpose-built for single-project documentation and produces a more thorough analysis.
 
-1. **Fetch the project:**
-   ```
-   GET /automation-studio/projects/{projectId}
-   ```
-   Or search by name:
-   ```
-   GET /automation-studio/projects?contains=name:{projectName}
-   ```
-   Response shape: `{message, data: {_id, name, components: [...], members: [...]}}`
+> "It looks like you want to document a specific project — use `/project-to-spec` for that. It reads the project's components directly and produces a more thorough customer-spec.md and solution-design.md for it."
 
-2. **Fetch each component** from `data.components`:
-   - Workflows: `GET /automation-studio/workflows/detailed/{urlEncodedName}`
-   - Templates: `GET /automation-studio/templates/{id}`
-   - MOP Command Templates: `GET /mop/listATemplate/{name}`
-   - JSON Forms: `GET /automation-studio/json-forms/{id}`
-
-3. **Strip `@projectId:` prefixes** from all workflow names before processing.
-
-4. **Continue to Step 1** treating these fetched components as the asset set. This follows the same path as Pattern 2 (specific assets named) — present the discovered cluster, ask how to group it, then proceed through Steps 2–6.
-
-### Pattern 2 — Specific asset(s) named
+### Pattern 2 — Specific global asset(s) named
 
 If the user provides one or more asset names or IDs:
 

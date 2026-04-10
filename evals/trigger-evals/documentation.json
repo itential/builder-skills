@@ -1,0 +1,82 @@
+[
+  {
+    "query": "I need to document everything on our platform — we have like 80+ workflows and nobody knows what half of them do anymore. Can you go through all the global assets and group them into use cases so we can actually understand what we have?",
+    "should_trigger": true
+  },
+  {
+    "query": "there's a workflow called 'VLAN_Provision_Parent' and like 4 child workflows that go with it. can you write up what it does, what the inputs are, and how it all fits together? we need something the ops team can actually read",
+    "should_trigger": true
+  },
+  {
+    "query": "our platform has golden config trees, compliance plans, and a bunch of jinja templates but zero documentation. i need a proper HLD and LLD for each use case so we can hand this off to support",
+    "should_trigger": true
+  },
+  {
+    "query": "document the LCM resource model called 'BGP_Peer_Service' — i need to know what lifecycle actions it has, what the input schema looks like, and how it relates to the workflows that trigger it",
+    "should_trigger": true
+  },
+  {
+    "query": "I just inherited this platform from someone who left the company. there are 40+ workflows and i have no idea whats connected to what. can you reverse engineer the whole thing and produce documentation?",
+    "should_trigger": true
+  },
+  {
+    "query": "we need to document our OM automations and the forms that feed into them — specifically the ones under the 'Network Changes' folder. produce a spec and a design doc for each one",
+    "should_trigger": true
+  },
+  {
+    "query": "can you look at the 'DNS_Management' project and document it — what it does, what systems it touches, and how the workflows are connected",
+    "should_trigger": true
+  },
+  {
+    "query": "i need to produce a customer-facing HLD for our device onboarding automation. the workflows and templates already exist on the platform, just need the docs",
+    "should_trigger": true
+  },
+  {
+    "query": "document all the command templates and analytic templates we have — group them by what they're used for and produce a solution design for each group",
+    "should_trigger": true
+  },
+  {
+    "query": "run documentation across the whole platform and generate a master README with all use cases listed",
+    "should_trigger": true
+  },
+  {
+    "query": "i want to automate VLAN provisioning on our platform. we have cisco switches, infoblox for ipam, and servicenow for tickets. can you help me build this out?",
+    "should_trigger": false
+  },
+  {
+    "query": "the 'Software_Upgrade_Parent' workflow is failing — it gets stuck after the pre-check stage and never moves to the upgrade step. job id is 68a3bc2f. what's wrong?",
+    "should_trigger": false
+  },
+  {
+    "query": "i have an existing project called 'Firewall_Rule_Lifecycle' that does palo alto rule management. can you extract a spec and solution design from it so i can use it as a baseline for rebuilding?",
+    "should_trigger": false
+  },
+  {
+    "query": "my flowagent has been running in production for 3 months doing BGP neighbor checks. i want to productionize it as a deterministic workflow — can you convert it?",
+    "should_trigger": false
+  },
+  {
+    "query": "connect to my platform and show me what adapters are running, what workflows exist, and what projects are available",
+    "should_trigger": false
+  },
+  {
+    "query": "we approved the solution design for the port turn-up use case. go ahead and build all the components — workflows, templates, and the project",
+    "should_trigger": false
+  },
+  {
+    "query": "i need to write up the requirements for a new certificate rotation automation. we use infoblox, servicenow, and a bunch of f5 load balancers",
+    "should_trigger": false
+  },
+  {
+    "query": "build me an iag python service that queries netbox and returns a list of devices by site. needs to handle pagination and output clean json",
+    "should_trigger": false
+  },
+  {
+    "query": "we have a golden config tree for our core routers but the compliance plan keeps flagging false positives on the ISIS metric rules. can you look at it and fix the rules?",
+    "should_trigger": false
+  },
+  {
+    "query": "i want to create a new flowagent that can troubleshoot BGP issues — it should be able to run show commands, check neighbors, and open a servicenow ticket if something looks wrong",
+    "should_trigger": false
+  }
+]

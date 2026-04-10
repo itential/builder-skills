@@ -1,7 +1,6 @@
 ---
 name: solution-arch-agent
-description: Solution Architecture Agent — owns Feasibility and Design. Assesses platform fit against the approved requirements spec, then produces the solution design. Invoke after /spec-agent produces an approved customer-spec.md. Can be re-run in design-only mode when requirements are stable but the implementation plan needs to change.
-argument-hint: "[use-case or design-only]"
+description: Use this skill when someone has approved requirements (a customer-spec.md) and needs to assess platform feasibility or produce a solution design. Trigger it for phrases like "requirements are approved", "my spec is done", "check if the platform supports this", "run feasibility", "connect to the platform and design the solution", "I have a customer-spec — now what?", or "produce a solution-design.md". This skill connects to the live platform, checks what adapters and capabilities are available, and produces feasibility.md and solution-design.md. Also trigger it in design-only mode when the implementation plan needs to change but requirements are stable.
 ---
 
 # Solution Architecture Agent

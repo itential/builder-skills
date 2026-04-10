@@ -1,0 +1,82 @@
+[
+  {
+    "query": "i want to automate VLAN provisioning on our network — cisco switches, infoblox for ipam, servicenow for change tickets. where do i start?",
+    "should_trigger": true
+  },
+  {
+    "query": "we need to build a software upgrade workflow for our fleet. help me write up the requirements — what questions should we be asking before we design anything?",
+    "should_trigger": true
+  },
+  {
+    "query": "starting a new automation project for firewall rule lifecycle management. pan-os and servicenow involved. can you help me nail down the scope and acceptance criteria before we get into design?",
+    "should_trigger": true
+  },
+  {
+    "query": "we have 22 use case specs — pick the DNS record management one and help me refine it for our environment. we use infoblox and our naming convention is <hostname>.<site>.corp",
+    "should_trigger": true
+  },
+  {
+    "query": "need a proper HLD for a device onboarding automation. stakeholders want to sign off before any build work starts. can you run through the requirements with me?",
+    "should_trigger": true
+  },
+  {
+    "query": "kick off a delivery for BGP peer provisioning — let's start with requirements",
+    "should_trigger": true
+  },
+  {
+    "query": "we're planning an EVPN provisioning project and i need to document what we're building before the team starts. help me structure the use case",
+    "should_trigger": true
+  },
+  {
+    "query": "the spec for our circuit provisioning use case needs updating — add requirements for rollback handling and a constraint around maintenance windows",
+    "should_trigger": true
+  },
+  {
+    "query": "i've got a rough idea for an incident auto-remediation workflow. nothing designed yet. help me turn this into a proper requirements doc we can take into design review",
+    "should_trigger": true
+  },
+  {
+    "query": "start a new delivery — use case is config drift detection and remediation, target devices are juniper MX routers",
+    "should_trigger": true
+  },
+  {
+    "query": "my feasibility.md is approved. now i need to design the solution — what components do i need and how should they be structured?",
+    "should_trigger": false
+  },
+  {
+    "query": "the customer-spec.md is done and the customer signed off. go ahead and start building the workflows",
+    "should_trigger": false
+  },
+  {
+    "query": "connect to my platform and show me what adapters are running and what workflows already exist",
+    "should_trigger": false
+  },
+  {
+    "query": "document all the workflows on the platform and group them by use case so we know what we have",
+    "should_trigger": false
+  },
+  {
+    "query": "we have an existing project called DNS_Management — extract a spec from it so we can use it as a starting point",
+    "should_trigger": false
+  },
+  {
+    "query": "build the VLAN provisioning workflow per the approved solution design. start with the child workflows first",
+    "should_trigger": false
+  },
+  {
+    "query": "my flowagent has been running the certificate rotation use case in prod for 2 months. convert it to a deterministic workflow",
+    "should_trigger": false
+  },
+  {
+    "query": "i want to explore what adapters and tasks are available on my platform before committing to a design",
+    "should_trigger": false
+  },
+  {
+    "query": "the solution design for port turn-up is approved. run the build",
+    "should_trigger": false
+  },
+  {
+    "query": "can you check what's in the helpers folder and explain what the workflow-task-adapter.json template is for",
+    "should_trigger": false
+  }
+]

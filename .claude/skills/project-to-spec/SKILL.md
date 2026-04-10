@@ -1,6 +1,6 @@
 ---
 name: project-to-spec
-description: Document an existing Itential project into a requirements spec and solution design. Reads project components (workflows, templates, MOP), analyzes what was built, and produces customer-spec.md and solution-design.md. Use when documenting existing automation or creating a baseline for a rebuild.
+description: Use this skill when a user names a specific existing Itential project and wants it documented — reverse-engineered into a requirements spec and solution design. Trigger it for phrases like "document the DNS_Management project", "create a spec from the Firewall_Rule_Lifecycle project", "reverse-engineer project X into a spec", "I have a project with no docs — produce a customer-spec and solution design for it", or "use this project as a baseline for a rebuild". Reads the project's workflows, templates, and MOP components, infers business purpose and design decisions, and produces customer-spec.md + solution-design.md. For documenting global/unprojectized assets across the whole platform, use /documentation instead.
 argument-hint: "[project-name or project-id]"
 ---
 

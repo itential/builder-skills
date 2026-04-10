@@ -1,0 +1,171 @@
+{
+  "skill_name": "solution-arch-agent",
+  "description": "Use this skill when someone has approved requirements (a customer-spec.md) and needs to assess platform feasibility or produce a solution design. Trigger it for phrases like \"requirements are approved\", \"my spec is done\", \"check if the platform supports this\", \"run feasibility\", \"connect to the platform and design the solution\", \"I have a customer-spec \u2014 now what?\", or \"produce a solution-design.md\". This skill connects to the live platform, checks what adapters and capabilities are available, and produces feasibility.md and solution-design.md. Also trigger it in design-only mode when the implementation plan needs to change but requirements are stable.",
+  "results": [
+    {
+      "query": "the customer-spec.md for VLAN provisioning is approved. connect to my platform and tell me if it's actually feasible \u2014 we have infoblox, servicenow, and cisco IOS devices",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i have an approved spec. run feasibility \u2014 platform is at https://myplatform.itential.io, oauth creds are in my-usecase/.env",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "requirements are locked for the BGP peer provisioning use case. now i need to know what the platform can support and design the solution",
+      "should_trigger": true,
+      "trigger_rate": 0.5,
+      "triggers": 1,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "we need a solution design for the software upgrade use case. spec is approved, feasibility was done last week. just redo the design \u2014 platform hasn't changed",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "my customer-spec is done and the stakeholders signed off. what adapters do we have, what can we reuse, and how should we structure the build?",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "the requirements for firewall rule lifecycle are approved. assess whether our platform can support it and produce a solution design",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "requirements done. now check if the platform supports this and design how we'll build it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "design-only mode \u2014 the requirements haven't changed but we need to redesign the implementation because we're switching from NSO to native IOS adapters",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "i want to automate VLAN provisioning. we haven't written any requirements yet \u2014 help me figure out what we need to build",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "solution design is approved. go ahead and build all the components",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i have a customer-spec.md. produce a feasibility.md and solution-design.md for it",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "connect to my platform and browse around \u2014 show me what workflows and adapters are available",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "run the feasibility stage for port turn-up. we have infoblox, servicenow, and netbox on the platform",
+      "should_trigger": true,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": false
+    },
+    {
+      "query": "document all the workflows on the platform. group them by use case",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "the VLAN provisioning build is done. write up the as-built documentation",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "i have a project called DNS_Management with no documentation. reverse engineer it into a spec and design",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "my flowagent has been doing certificate rotation for months \u2014 convert it to a deterministic workflow spec",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "help me write requirements for a config backup and compliance use case",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "check if adapter infoblox is running on my platform",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    },
+    {
+      "query": "build an IAG python service that queries netbox and returns device lists by site",
+      "should_trigger": false,
+      "trigger_rate": 0.0,
+      "triggers": 0,
+      "runs": 2,
+      "pass": true
+    }
+  ],
+  "summary": {
+    "total": 20,
+    "passed": 11,
+    "failed": 9
+  }
+}

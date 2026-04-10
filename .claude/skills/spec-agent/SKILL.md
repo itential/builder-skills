@@ -1,7 +1,6 @@
 ---
 name: spec-agent
-description: Spec Agent — owns the Requirements stage. Picks a use case spec, refines it with the engineer, and produces an approved HLD (customer-spec.md). Use when starting a delivery from a spec. For ad-hoc platform exploration, use /explore instead.
-argument-hint: "[use-case-name]"
+description: Use this skill to start any new automation delivery — when someone wants to automate something, build a new use case, figure out requirements, write up an HLD, or kick off a project on the Itential Platform. Trigger it for phrases like "I want to automate X", "help me build a workflow for Y", "we're starting a new automation project", "I need to define requirements for Z", "kick off a delivery", or "let's start with requirements". This is the entry point for the spec-driven delivery lifecycle. It picks from 22 built-in use case specs or starts from scratch, refines requirements with the engineer, and produces an approved customer-spec.md. Use it whenever someone is at the beginning of building something new and hasn't yet defined what they're building.
 ---
 
 # Spec Agent
