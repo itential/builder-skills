@@ -6,12 +6,11 @@
   "location": "Adapter",
   "locationType": "",
   "app": "",
+  "adapter_id": "",
   "type": "automatic",
   "displayName": "",
   "variables": {
-    "incoming": {
-      "adapter_id": ""
-    },
+    "incoming": {},
     "outgoing": {},
     "error": "",
     "decorators": []
