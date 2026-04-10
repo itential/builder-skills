@@ -122,23 +122,104 @@ Do not use workflow names or technical task names — describe what happens, not
 
 ## D. Execution Flow
 
-{Trace the full use case execution across ALL assets in this group. This is not a single-workflow diagram — it spans entry points, orchestrators, child workflows, forms, templates, adapters, and external systems. Actors are real participants: human operators, OM triggers, LCM actions, each distinct workflow, and each external system (one actor per system, not per adapter call). Use `->>` for calls and `-->>` for responses. Add `alt error path` blocks only where the transition graph shows a meaningful branch to an error handler — not on every adapter call. Cap actors at 8; collapse minor utility workflows into one if needed.
+**Draw.io Architecture Diagram**
 
-For single standalone assets: `actor User ->> Asset ->> External System -->> Asset -->> User`.}
+Generate one file in the same directory as `solution-design.md`:
+- `solution-design.drawio` — editable mxGraph XML diagram
 
-\`\`\`mermaid
-sequenceDiagram
-  actor {Entry Point — e.g. Operator, Scheduled Trigger, LCM Action}
-  {Entry Point}->>{Orchestrator Workflow}: {trigger or launch description}
-  {Orchestrator Workflow}->>{External System}: {operation, e.g. Create ticket}
-  {External System}-->>{Orchestrator Workflow}: {result, e.g. ticket_id}
-  {Orchestrator Workflow}->>{Child Workflow}: childJob
-  {Child Workflow}->>{External System}: {operation, e.g. Push config}
-  alt error path
-    {External System}-->>{Child Workflow}: failure
-    {Child Workflow}-->>{Orchestrator Workflow}: error status
-  end
-  {Orchestrator Workflow}->>{Entry Point}: complete
+**What to show:**
+- Entry points (operators, OM triggers, LCM actions) at the top
+- The orchestrator workflow below entry points
+- Each child workflow in execution order, top to bottom
+- External systems (adapters/integrations) called by each workflow, to the RIGHT of the calling workflow on the same horizontal band
+- Arrow labels describing the operation (e.g., "childJob", "Create ticket", "Get device")
+
+**What to exclude:**
+- Workflows or connections marked as "not wired", inactive, or not yet implemented
+- Alternative / optional execution paths — describe those in prose in Section E instead
+- Return arrows from child workflows back to the parent
+
+**Grouping rule — eliminates horizontal sprawl:**
+When 3 or more parallel child workflows follow the same pattern (e.g., multiple tool-removal workflows), represent them as ONE box with bullet lines listing the members. Use `&#xa;` for line breaks in the `value=` attribute. Label the arrow `childJob (×N)`. List the external systems those child workflows collectively reach once each, to the right of the group box.
+
+**Layout rules — follow exactly:**
+1. Workflow chain runs in a single vertical column on the LEFT (x=40 to x=380)
+2. External systems sit in a column on the RIGHT (x=470 to x=680), at the same y-band as the workflow that calls them
+3. Workflow → next workflow: vertical arrow going straight down
+4. Workflow → external system: horizontal arrow going straight right
+5. No diagonal arrows. No long arrows crossing the canvas.
+6. Canvas width: ≤ 700px. Canvas height: grow as needed (100px per row).
+
+**Shape guide:**
+- Entry points: `style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;"` — Size: 180×50
+- Workflows (orchestrator, child, grouped): `style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;"` — Size: 280×55 (taller for grouped bullet lists)
+- forEach / loop: `style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;"` — Size: 280×55
+- External systems: `style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d0893c;fontStyle=1;fontSize=11;"` — Size: 180×45
+- JSON Forms (user input): `style="rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;"` — Size: 160×60
+- All arrows: `style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;"`
+
+**`solution-design.drawio` scaffold** — generic pattern to follow; replace all `{...}` placeholders with real names from the use case:
+
+\`\`\`xml
+<mxfile>
+  <diagram name="{Use Case Name} - Solution Design">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Entry points (y=30) — one ellipse per entry point, spaced at x=40, x=240, x=440... -->
+        <mxCell id="ep1" value="{Entry Point, e.g. Operator}" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="180" height="50" as="geometry"/>
+        </mxCell>
+        <!-- Repeat for each additional entry point -->
+
+        <!-- Orchestrator workflow (y=130) -->
+        <mxCell id="mw" value="{Orchestrator Workflow Name}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="130" width="280" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_ep1_mw" value="{trigger, e.g. launch}" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="ep1" target="mw" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Child workflow (y=240) — with external systems to the right -->
+        <mxCell id="cw1" value="{Child Workflow Name}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="280" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_mw_cw1" value="childJob" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="mw" target="cw1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- External system at the same y-band, to the right -->
+        <mxCell id="ext1" value="{External System Name}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d0893c;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="248" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cw1_ext1" value="{operation}" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="cw1" target="ext1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Add more external systems at y+55 each for additional systems called by the same workflow -->
+
+        <!-- Grouped child workflows — use when 3+ parallel children follow the same pattern (y=350) -->
+        <mxCell id="grp1" value="{Group Label, e.g. Tool Removal Workflows (×N)}&#xa;• {Child Workflow 1}&#xa;• {Child Workflow 2}&#xa;• {Child Workflow 3}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="280" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_cw1_grp1" value="childJob (×N)" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="cw1" target="grp1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- External systems the group collectively reaches — one box per distinct system, stacked at y=350, y=405, y=460... -->
+        <mxCell id="ext2" value="{External System A}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3cd;strokeColor=#d0893c;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="350" width="180" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="e_grp1_ext2" value="{operation}" style="edgeStyle=orthogonalEdgeStyle;html=1;fontSize=10;" edge="1" source="grp1" target="ext2" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <!-- Continue for each additional external system at y+55 -->
+
+        <!-- Continue adding child workflows/loops below (y += 100+ per row) -->
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
 \`\`\`
 
 ## E. Workflow Structure
