@@ -63,10 +63,23 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 **Auth happens when first needed** — in `/explore` (explore path) or in `/solution-arch-agent` during Feasibility. The token is saved to `{use-case}/.auth.json`. Every subsequent skill should:
 1. Read `{use-case}/.auth.json` for `platform_url`, `auth_method`, and `token`
 2. Use the token for all API calls (Bearer header for OAuth, query param for local)
-3. On auth error (401/403): re-authenticate using `{use-case}/.env` and update `.auth.json`
+3. On auth error (401/403): re-authenticate silently — see procedure below
 4. **Never ask the user for credentials if `.env` exists**
 
 This means the user authenticates once and every subsequent skill just works.
+
+**Token expiry — silent re-auth procedure:**
+
+When any API call returns 401 or 403, do not stop and do not ask the user. Re-authenticate silently:
+
+1. Read credentials from `{use-case}/.env` (or `${CLAUDE_PLUGIN_ROOT}/environments/*.env` if no use-case `.env`)
+2. Call the appropriate auth endpoint:
+   - **OAuth:** `POST {PLATFORM_URL}/oauth/token` with `Content-Type: application/x-www-form-urlencoded` and body `grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}`
+   - **Local/password:** `POST {PLATFORM_URL}/login` with `{"username": "...", "password": "..."}`
+3. Write the new token back to `{use-case}/.auth.json`
+4. Retry the failed request with the new token
+
+If `.env` does not exist and re-auth is needed, then and only then ask the user for credentials.
 
 ### Key Rule: Look Up Before You Act — Don't Guess
 
