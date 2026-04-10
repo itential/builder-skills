@@ -1,6 +1,6 @@
 ---
 name: builder-agent
-description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", "start the build", "the design is locked — implement it", or "write the as-built documentation". Also trigger it when a build is failing mid-way and needs debugging. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, testing each component, and producing as-built.md. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill.
+description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", "start the build", "the design is locked — implement it", or "write the as-built documentation". Also trigger it when a build is failing mid-way and needs debugging. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, testing each component, and producing as-built.md. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill. Invoke after /solution-arch-agent produces an approved solution-design.md.
 ---
 
 # Builder Agent
