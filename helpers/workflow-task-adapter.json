@@ -9,7 +9,9 @@
   "type": "automatic",
   "displayName": "",
   "variables": {
-    "incoming": {},
+    "incoming": {
+      "adapter_id": ""
+    },
     "outgoing": {},
     "error": "",
     "decorators": []
