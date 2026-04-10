@@ -32,7 +32,11 @@ Infer from workflow descriptions, adapter usage, task summaries, OM trigger conf
 LCM action names, golden config structure, and naming patterns.}
 
 ## 2. High-Level Flow
-{Inferred from orchestrator transition graph}
+
+{Write 1-3 sentences describing the end-to-end execution from trigger to completion, using
+business language. Cover: the entry point (who or what starts this), the major phases in
+order, which external systems are touched and why, and what the final outcome is.
+Do not use workflow names or technical task names — describe what happens, not what it's called.}
 
 ## 3. Phases
 {One section per major workflow / childJob cluster / LCM action / golden config check stage}
@@ -116,28 +120,25 @@ LCM action names, golden config structure, and naming patterns.}
 |---------|----------|-----------|------------|
 | ServiceNow | Servicenow | ServiceNow | createChangeRequest, updateChangeRequest |
 
-## D. Workflow Hierarchy
+## D. Execution Flow
 
-\`\`\`
-{Detailed ASCII tree showing the FULL call chain. Usually but not always start with OM triggers at top, then manual entry points, then show the complete parent-child workflow graph.}
+{Trace the full use case execution across ALL assets in this group. This is not a single-workflow diagram — it spans entry points, orchestrators, child workflows, forms, templates, adapters, and external systems. Actors are real participants: human operators, OM triggers, LCM actions, each distinct workflow, and each external system (one actor per system, not per adapter call). Use `->>` for calls and `-->>` for responses. Add `alt error path` blocks only where the transition graph shows a meaningful branch to an error handler — not on every adapter call. Cap actors at 8; collapse minor utility workflows into one if needed.
 
-Operations Manager Triggers
-  |
-  |-- {OM Trigger Name} ({schedule type})
-  |     |-- {Target Workflow}
-  |           |-- {Child Workflow}
-  |           |-- {Child Workflow}
-  |
-LCM Entry Points:
-  |
-  |-- {LCM Resource Model} → {Action Name}
-  |     |-- {Action Workflow}
-  |
-Manual Entry Points:
-  |
-  |-- {Entry Workflow} (master orchestrator)
-  |     |-- {Child Workflow} (per-item lifecycle)
-  |           |-- {Grandchild Workflow}
+For single standalone assets: `actor User ->> Asset ->> External System -->> Asset -->> User`.}
+
+\`\`\`mermaid
+sequenceDiagram
+  actor {Entry Point — e.g. Operator, Scheduled Trigger, LCM Action}
+  {Entry Point}->>{Orchestrator Workflow}: {trigger or launch description}
+  {Orchestrator Workflow}->>{External System}: {operation, e.g. Create ticket}
+  {External System}-->>{Orchestrator Workflow}: {result, e.g. ticket_id}
+  {Orchestrator Workflow}->>{Child Workflow}: childJob
+  {Child Workflow}->>{External System}: {operation, e.g. Push config}
+  alt error path
+    {External System}-->>{Child Workflow}: failure
+    {Child Workflow}-->>{Orchestrator Workflow}: error status
+  end
+  {Orchestrator Workflow}->>{Entry Point}: complete
 \`\`\`
 
 ## E. Workflow Structure
@@ -227,9 +228,6 @@ For each command template referenced in this use case, document its commands and
 | `{cli command}` | {Rule: `{pattern}` — Eval: `{contains/regex/etc}`, Flags: `{flags if any}`, Severity: `{error/warn/info}`} |
 
 _(Multiple rules for one command go in the same cell as a list. Multiple commands each get their own row.)_
-
-## G. Data Flow
-Key variables and how they move between tasks and workflows.
 
 ## H. Known Gaps
 Patterns not present that are typically expected:

@@ -289,6 +289,12 @@ Write the as-built LLD — this is factual, not inferred. Each component should 
 
 → See template in `helpers/documentation-output-templates.md` — **"solution-design.md Template"**
 
+#### Generating Section D: Execution Flow
+
+The guidance and example are in the Section D placeholder in `helpers/documentation-output-templates.md`.
+
+Do not add a sequence diagram to the HLD (`customer-spec.md`). Section 2 of the HLD is a narrative paragraph only.
+
 ---
 
 ## Step 5: Write Master README
