@@ -304,6 +304,19 @@ Ask the engineer to review the reports. Next steps:
 - **Accept** — use the reports as-is
 - **Refine** — hand specific use case specs to `/spec-agent`
 - **Redesign** — hand to `/solution-arch-agent`
+- **Organize into projects** — proceed to Step 7
+
+---
+
+## Step 7: Organize Global Assets into Projects (Optional)
+
+After the engineer accepts the use case groupings and reviews the reports, ask:
+
+> "Would you like me to create a project for each use case and move the assets in? Moving assets into a project renames them with an `@projectId:` prefix — anything currently referencing those assets by name will need updating. Shared utility assets will stay global. Should I proceed?"
+
+If yes, use `/builder-agent` to handle the project creation and asset moves — it has the full patterns for `POST /automation-studio/projects` and `POST /automation-studio/projects/{id}/components/add`.
+
+If no, the documentation stands as-is and the engineer can organize manually or revisit later.
 
 ---
 
