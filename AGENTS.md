@@ -11,7 +11,7 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 | `/explore` | — | Explore a platform freely — auth, discover, browse, build freestyle. |
 | `/spec-agent` | **Spec Agent** | Start a delivery from a spec. Owns Requirements stage. |
 | `/project-to-spec` | — | Read an existing project → produce customer-spec.md + solution-design.md. |
-| `/documentation` | — | Document any asset (workflows, golden config, LCM, all globals, etc.) → accept specific names/IDs or all globals, discover relationships, group by use case, produce HLD+LLD per use case. Delegates projects to `/project-to-spec`. |
+| `/documentation` | — | Survey global platform assets → discover relationships → group by use case → produce HLD+LLD per use case → optionally create projects and move assets in. For a specific named project, redirect to `/project-to-spec`. |
 | `/flowagent-to-spec` | — | Read a FlowAgent → produce customer-spec.md as a deterministic workflow spec. |
 | `/solution-arch-agent` | **Solution Architecture Agent** | Feasibility assessment + solution design. Runs after Requirements. |
 | `/builder-agent` | **Builder Agent** | Build all assets, run tests, produce as-built record. |
