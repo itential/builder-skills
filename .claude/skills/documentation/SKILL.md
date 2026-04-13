@@ -314,9 +314,66 @@ After the engineer accepts the use case groupings and reviews the reports, ask:
 
 > "Would you like me to create a project for each use case and move the assets in? Moving assets into a project renames them with an `@projectId:` prefix — anything currently referencing those assets by name will need updating. Shared utility assets will stay global. Should I proceed?"
 
-If yes, use `/builder-agent` to handle the project creation and asset moves — it has the full patterns for `POST /automation-studio/projects` and `POST /automation-studio/projects/{id}/components/add`.
+If no, stop here. The documentation stands as-is.
 
-If no, the documentation stands as-is and the engineer can organize manually or revisit later.
+If yes, for each approved use case group (skip "Shared Utilities"):
+
+**1. Create the project:**
+```
+POST /automation-studio/projects
+{"name": "{use-case-name}", "description": "{one-line from customer-spec.md}", "thumbnail": "", "backgroundColor": "#FFFFFF"}
+```
+Save `data._id` as `projectId`.
+
+**2. Add components:**
+```
+POST /automation-studio/projects/{projectId}/components/add
+{
+  "components": [
+    {"type": "workflow", "reference": "{workflow-id}", "folder": "/"},
+    {"type": "template", "reference": "{template-id}", "folder": "/"},
+    {"type": "mopCommandTemplate", "reference": "{mop-name}", "folder": "/"}
+  ],
+  "mode": "move"
+}
+```
+
+Component type values: `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
+
+**3. Build a reference impact report before moving anything:**
+
+Before executing any moves, scan all global workflows, OM automations, and LCM models to find references that will break. For each asset being moved, find:
+
+- **Workflows** with a `childJob` task where `variables.incoming.workflow` matches the asset's current name
+- **OM automations** where `componentName` matches the asset's current name
+- **LCM models** where any `actions[].actionWorkflow` matches the asset's current name
+
+Produce a table:
+
+| Asset being moved | Referenced by | Field | New name after move |
+|------------------|--------------|-------|-------------------|
+| `VLAN_Provision_Parent` | `Monthly_Audit` (workflow) | childJob.workflow | `@abc123: VLAN_Provision_Parent` |
+| `DNS_Create` | `DNS Automation` (OM automation) | componentName | `@abc123: DNS_Create` |
+
+Show this to the engineer **before** proceeding:
+> "Moving these assets will break the following references. I won't fix them automatically — you'll need to update these manually after the move. Here's what needs changing:"
+
+**4. Execute the moves** (after engineer confirms they've noted the impact):
+
+For each group, run the `POST .../components/add` calls as above.
+
+**5. After all groups are processed, show a final summary:**
+
+| Use Case | Project ID | Assets Moved | Broken References to Fix |
+|----------|------------|-------------|--------------------------|
+| {name} | {id} | {count} | {count} — see impact report above |
+
+Flag anything that couldn't be moved (already in a project, API error) for manual follow-up.
+
+**Warnings to keep in mind:**
+- Shared Utilities stay global — do not move them
+- Assets already in a project cannot be moved again — skip and report
+- Cross-project references (workflow in one project referencing a workflow in another) must use the full `@{otherProjectId}: {name}` format
 
 ---
 
