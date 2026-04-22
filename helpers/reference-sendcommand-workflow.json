@@ -1,0 +1,611 @@
+{
+  "_comment": "Reference: per-device sendCommand scan with inventory filter, response guard, and error classification. Teaches the newVariable+push array-build pattern, the constant-holder pattern for evaluation operands, and the response-contains-result guard. Adapt task IDs, commands, and match patterns to your use case.",
+  "automation": {
+    "name": "Reference - sendCommand Per-Device Scan",
+    "description": "Filters an inventory by tag, iterates devices, runs a show command via GatewayManager.sendCommand, evaluates the output against a pattern, and classifies results into matched/errored/skipped lists.",
+    "type": "automation",
+    "canvasVersion": 3,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 200, "y": 600 }
+      },
+
+      "k_result": {
+        "_comment": "Constant-holder: stores the string 'result' so evaluation operand_2 resolves via taskRef rather than a literal. Avoids incomingRefs cache staleness after API PUT.",
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Constant: 'result'",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "k_result_val", "value": "result" },
+          "outgoing": { "value": "$var.job.k_result_val" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 500, "y": 600 }
+      },
+
+      "i01": {
+        "_comment": "Initialize accumulator lists for matched, errored, and skipped devices.",
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init matched list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "matched", "value": [] },
+          "outgoing": { "value": "$var.job.matched" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 600 }
+      },
+
+      "i02": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init errored list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "errored", "value": [] },
+          "outgoing": { "value": "$var.job.errored" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 732 }
+      },
+
+      "i03": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init skipped list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "skipped", "value": [] },
+          "outgoing": { "value": "$var.job.skipped" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 800, "y": 864 }
+      },
+
+      "f01": {
+        "_comment": "Filter inventory by tag server-side. Output is [{inventory, nodeNames}] — same shape sendCommand expects for its inventory field.",
+        "name": "buildInventoryFilter",
+        "canvasName": "buildInventoryFilter",
+        "summary": "Filter inventory by tag",
+        "location": "Application",
+        "locationType": null,
+        "app": "InventoryManager",
+        "type": "operation",
+        "displayName": "InventoryManager",
+        "variables": {
+          "incoming": {
+            "inventoryIdentifiers": "$var.job.inventory_names",
+            "tagIdentifiers": "$var.job.tag_filter",
+            "tagMatchType": "any",
+            "outputFormat": "compact"
+          },
+          "outgoing": { "filter_result": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 1100, "y": 600 }
+      },
+
+      "q01": {
+        "_comment": "Extract the nodeNames array from the first filter result item.",
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract node names",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "query": "[0].nodeNames",
+            "obj": "$var.job.filter_result",
+            "pass_on_null": false
+          },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 1400, "y": 600 }
+      },
+
+      "n01": {
+        "_comment": "forEach over the filtered node list. current_item is each node name.",
+        "name": "forEach",
+        "canvasName": "forEach",
+        "summary": "Iterate nodes",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "data_array": "$var.job.node_names" },
+          "outgoing": { "current_item": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 1700, "y": 600 }
+      },
+
+      "b01": {
+        "_comment": "Build command_array: newVariable + push because sendCommand requires an array even for a single command. Inline array literals do not resolve $var at runtime.",
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init command array",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "command_array", "value": [] },
+          "outgoing": { "value": "$var.job.command_array" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 2000, "y": 600 }
+      },
+
+      "b02": {
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push command string",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "value": "$var.job.show_command",
+            "array": "command_array"
+          },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 2300, "y": 600 }
+      },
+
+      "b03": {
+        "_comment": "Build node_name_array for this iteration. sendCommand.inventory[].nodeNames must be an array.",
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init node name array",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "node_name_array", "value": [] },
+          "outgoing": { "value": "$var.job.node_name_array" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 2600, "y": 600 }
+      },
+
+      "b04": {
+        "_comment": "Use $var.job.current_node_name (the job variable bound by forEach) — NOT $var.n01.current_item (taskId ref doesn't resolve inside loop body).",
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push current node name",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "value": "$var.job.current_node_name",
+            "array": "node_name_array"
+          },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 2900, "y": 600 }
+      },
+
+      "b05": {
+        "_comment": "Build the inventory entry object: {inventory, nodeNames}. merge requires 2+ items — pad with a semantically meaningful second field.",
+        "name": "merge",
+        "canvasName": "merge",
+        "summary": "Build inventory entry",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_to_merge": [
+              { "inventory": { "task": "job", "variable": "inventory_name" } },
+              { "nodeNames": { "task": "job", "variable": "node_name_array" } }
+            ]
+          },
+          "outgoing": { "merged_object": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 3200, "y": 600 }
+      },
+
+      "b06": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Init inventory array",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "inv_array", "value": [] },
+          "outgoing": { "value": "$var.job.inv_array" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 3500, "y": 600 }
+      },
+
+      "b07": {
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push inventory entry",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "value": "$var.b05.merged_object",
+            "array": "inv_array"
+          },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 3800, "y": 600 }
+      },
+
+      "s01": {
+        "_comment": "sendCommand: per-device call. Must have error transition or job hangs if IAG cluster is unreachable.",
+        "name": "sendCommand",
+        "canvasName": "sendCommand",
+        "summary": "Run show command on device",
+        "location": "Application",
+        "locationType": null,
+        "app": "GatewayManager",
+        "type": "operation",
+        "displayName": "GatewayManager",
+        "variables": {
+          "incoming": {
+            "clusterId": "$var.job.cluster_id",
+            "commands": "$var.job.command_array",
+            "inventory": "$var.job.inv_array"
+          },
+          "outgoing": { "result": null, "status": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 4100, "y": 600 }
+      },
+
+      "e01": {
+        "_comment": "Guard: does the response contain a 'result' key? If not, device was unreachable (IAG 'failed to parse start_time' error — offline device, NOT a workflow bug). operand_2 references constant-holder k_result to avoid incomingRefs cache issues.",
+        "name": "evaluation",
+        "canvasName": "evaluation",
+        "summary": "Response contains result?",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "all_true_flag": true,
+            "evaluation_groups": [{
+              "all_true_flag": true,
+              "evaluations": [{
+                "operand_1": { "task": "s01", "variable": "result" },
+                "operator": "contains",
+                "operand_2": { "task": "k_result", "variable": "value" }
+              }]
+            }]
+          },
+          "outgoing": { "return_value": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 4400, "y": 600 }
+      },
+
+      "q02": {
+        "_comment": "Extract stdout from the first command result.",
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract stdout",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "query": "result.results[0].output",
+            "obj": "$var.job.gw_result",
+            "pass_on_null": false
+          },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 4700, "y": 600 }
+      },
+
+      "e02": {
+        "_comment": "Match: does stdout contain the target pattern? 'contains' uses regex — escape metacharacters in match_pattern (e.g., '9\\.2\\(4\\)' not '9.2(4)'). Test with POST /workflow_engine/runEvaluationGroups before wiring.",
+        "name": "evaluation",
+        "canvasName": "evaluation",
+        "summary": "Stdout matches pattern?",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "all_true_flag": true,
+            "evaluation_groups": [{
+              "all_true_flag": true,
+              "evaluations": [{
+                "operand_1": { "task": "job", "variable": "stdout" },
+                "operator": "contains",
+                "operand_2": { "task": "job", "variable": "match_pattern" }
+              }]
+            }]
+          },
+          "outgoing": { "return_value": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 5000, "y": 600 }
+      },
+
+      "p_matched": {
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push to matched list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "value": "$var.job.current_node_name", "array": "matched" },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 5300, "y": 468 }
+      },
+
+      "p_skipped": {
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push to skipped list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "value": "$var.job.current_node_name", "array": "skipped" },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 5300, "y": 600 }
+      },
+
+      "p_errored": {
+        "_comment": "Error path: sendCommand failed (IAG task error) or response had no result key (device unreachable).",
+        "name": "push",
+        "canvasName": "push",
+        "summary": "Push to errored list",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "value": "$var.job.current_node_name", "array": "errored" },
+          "outgoing": { "return_data": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 4400, "y": 732 }
+      },
+
+      "loop_end": {
+        "_comment": "All body paths converge here. Transition is empty {} — do NOT connect back to forEach.",
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Loop body end marker",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "_loop_end", "value": true },
+          "outgoing": { "value": null },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 5600, "y": 600 }
+      },
+
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 5900, "y": 600 }
+      }
+    },
+
+    "transitions": {
+      "workflow_start": { "k_result": { "type": "standard", "state": "success" } },
+      "k_result": { "i01": { "type": "standard", "state": "success" } },
+      "i01": { "i02": { "type": "standard", "state": "success" } },
+      "i02": { "i03": { "type": "standard", "state": "success" } },
+      "i03": { "f01": { "type": "standard", "state": "success" } },
+      "f01": { "q01": { "type": "standard", "state": "success" } },
+      "q01": { "n01": { "type": "standard", "state": "success" } },
+      "n01": {
+        "b01": { "type": "standard", "state": "loop" },
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "b01": { "b02": { "type": "standard", "state": "success" } },
+      "b02": { "b03": { "type": "standard", "state": "success" } },
+      "b03": { "b04": { "type": "standard", "state": "success" } },
+      "b04": { "b05": { "type": "standard", "state": "success" } },
+      "b05": { "b06": { "type": "standard", "state": "success" } },
+      "b06": { "b07": { "type": "standard", "state": "success" } },
+      "b07": { "s01": { "type": "standard", "state": "success" } },
+      "s01": {
+        "e01": { "type": "standard", "state": "success" },
+        "p_errored": { "type": "standard", "state": "error" }
+      },
+      "e01": {
+        "q02": { "type": "standard", "state": "success" },
+        "p_errored": { "type": "standard", "state": "failure" }
+      },
+      "q02": { "e02": { "type": "standard", "state": "success" } },
+      "e02": {
+        "p_matched": { "type": "standard", "state": "success" },
+        "p_skipped": { "type": "standard", "state": "failure" }
+      },
+      "p_matched": { "loop_end": { "type": "standard", "state": "success" } },
+      "p_skipped": { "loop_end": { "type": "standard", "state": "success" } },
+      "p_errored": { "loop_end": { "type": "standard", "state": "success" } },
+      "loop_end": {}
+    },
+
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "inventory_name": { "title": "inventory_name", "type": "string", "description": "Inventory to scan (e.g. 'my-inventory')", "default": "" },
+        "inventory_names": { "title": "inventory_names", "type": "array", "description": "Array wrapper for inventory_name, passed to buildInventoryFilter", "default": [] },
+        "tag_filter": { "title": "tag_filter", "type": "array", "description": "Tag names to filter devices by (e.g. ['cisco_ios'])", "default": [] },
+        "cluster_id": { "title": "cluster_id", "type": "string", "description": "IAG cluster brokering device connections", "default": "" },
+        "show_command": { "title": "show_command", "type": "string", "description": "CLI command to run on each device (e.g. 'show version')", "default": "" },
+        "match_pattern": { "title": "match_pattern", "type": "string", "description": "Regex pattern to match against command stdout. Escape metacharacters: use '9\\.2\\(4\\)' not '9.2(4)'", "default": "" }
+      },
+      "required": ["inventory_name", "inventory_names", "tag_filter", "cluster_id", "show_command", "match_pattern"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "matched": { "title": "matched", "type": "array", "description": "Devices where stdout matched the pattern" },
+        "errored": { "title": "errored", "type": "array", "description": "Devices that returned errors or were unreachable" },
+        "skipped": { "title": "skipped", "type": "array", "description": "Devices where stdout did not match the pattern" }
+      }
+    }
+  }
+}

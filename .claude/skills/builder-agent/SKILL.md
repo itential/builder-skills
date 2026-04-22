@@ -291,6 +291,9 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Every adapter task has `adapter_id` in incoming
 - [ ] Every adapter task has an error transition
 - [ ] `evaluation` tasks have both success AND failure transitions
+- [ ] `evaluation` operators are from the closed enum (`contains, !contains, <, <=, >, >=, ==, !=`) — no others exist
+- [ ] `evaluation` `operand_2` literal values containing regex metacharacters (`.`, `(`, `)`, `[`, `]`, `?`, `+`, `*`, `|`) are properly escaped, OR stored in a `newVariable` constant-holder task to avoid `incomingRefs` cache issues after API PUT
+- [ ] No `$var.<taskId>.<out>` references inside nested forEach bodies — use `$var.job.<varName>` instead
 - [ ] Incoming variable types match task schema exactly (arrays for `to`/`cc`/`bcc`, numbers for `page`/`pageSize`, etc.)
 - [ ] No `$var` references inside nested objects (use merge/makeData)
 - [ ] merge uses `"variable"`, childJob uses `"value"`
@@ -1194,6 +1197,25 @@ Conditional branching. **MUST have BOTH success AND failure transitions.**
 **Outgoing:** `return_value` (boolean)
 **Transitions:** `success` (true), `failure` (false)
 
+**Operator enum — closed set. Only these 8 are valid:**
+```
+contains, !contains, <, <=, >, >=, ==, !=
+```
+`regex`, `match`, `matches`, `contains_key`, `in`, `startsWith` — **do not exist**. An invalid operator silently returns `false` with empty outgoing and `finish_state: failure`. No error message. Always validate against this list before wiring. Source of truth: `openapi.json` at `components/schemas/workflow_engine_wfEngineCommon_evaluationItem/properties/operator/enum`.
+
+**`contains` is regex-based, not substring.** `operand_2` is interpreted as a regex pattern. A literal like `9.2(4)` is parsed as regex — `.` matches any char, `(4)` becomes a capture group — and may match unintended strings or fail to match the intended one. Escape regex metacharacters in literal patterns: `9\.2\(4\)` not `9.2(4)`.
+
+**`contains` also works for object-key presence** — it is the universal "does X contain Y" operator. On a string operand it does regex matching; on an object operand it tests key presence. There is no separate `contains_key` operator.
+
+**Direct evaluation test (no workflow needed):**
+```
+POST /workflow_engine/runEvaluationGroups
+{"evaluation_groups":[{"operator":"AND","evaluations":[{"operand_1":"<test input>","operator":"contains","operand_2":"<pattern>"}]}]}
+```
+Returns `true`/`false`. Invalid operators silently return `false`. Use this to validate operators and escape patterns before wiring them into a workflow.
+
+**`incomingRefs` cache — API PUT does not regenerate it.** Evaluation operand resolution is cached in `incomingRefs` per task. `PUT /automation-studio/automations/{uid}` persists the JSON but **does NOT regenerate `incomingRefs`**. After a PUT, evaluation operands that reference literal values or changed taskRefs may resolve to `null` at runtime. Signs of a stale cache: evaluation returns `false` despite correct-looking JSON; `GET /operations-manager/tasks/{iterationUUID}` shows `incomingRefs[n].taskId: null` or `taskPointer: "/variables/outgoing/undefined"`. Fix: open the workflow in the UI and save to force regeneration. **API-only workaround:** store all `operand_2` constants in a dedicated `newVariable` task (e.g., `k_result`) and reference via `{"task": "k_result", "variable": "value"}` — taskRef resolution is not affected by the cache.
+
 **Operand reference format (uses `"variable"`, same as merge):**
 - `{"task": "job", "variable": "varName"}`
 - `{"task": "static", "variable": "literalValue"}`
@@ -1280,6 +1302,8 @@ forEach --state:loop--> firstBodyTask -> ... -> lastBodyTask --(empty {})
 forEach --state:success--> nextTaskAfterLoop
 ```
 The last task in the loop body has an **empty transition `{}`**. Do NOT connect it back to forEach.
+
+**Nested forEach — `$var.<taskId>.<output>` does NOT resolve inside nested loop bodies.** String references like `$var.n01.current_item` silently resolve to `null` when used inside an inner forEach body. Use `$var.job.<varName>` (the forEach's outgoing job variable binding) instead. This applies to all reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body. Always bind forEach outputs to job variables and reference those inside nested bodies.
 
 ### newVariable
 
@@ -1866,6 +1890,15 @@ The `revert` transition moves execution back to a previous task, allowing the us
 32. **`stringConcat` doesn't resolve `$var` in `stringN` arrays** — use merge → makeData with `<!var!>` placeholders instead.
 33. **`legacyWrapper: false` on Operations Manager manual triggers** — default `true` wraps form values under `formData`, breaking variable mapping.
 34. **Always use a local venv for Python** — run `python3 -m venv .venv && source .venv/bin/activate` instead of using global Python when running any Python scripts during the build process.
+35. **`evaluation` operator is a closed enum** — only `contains, !contains, <, <=, >, >=, ==, !=` exist. Any other operator silently returns `false` with empty outgoing. See the `evaluation` task section for the full enum and testing endpoint.
+36. **`contains` operator uses regex, not substring matching** — escape metacharacters (`(`, `)`, `.`, `[`, `]`, `?`, `+`, `*`, `|`) in literal `operand_2` values. Test patterns with `POST /workflow_engine/runEvaluationGroups` before wiring.
+37. **API PUT does not regenerate `incomingRefs`** — evaluation operand literals left stale after PUT silently resolve to `null`. Always verify evals work after an API-only deploy; if they silently fail, open the workflow in the UI and save. See `evaluation` task section for the API-only constant-holder workaround.
+38. **`$var.<taskId>.<out>` does not resolve inside nested forEach bodies** — use `$var.job.<varName>` for any variable referenced inside a nested loop body.
+39. **Search `tasks.json` before designing any sub-workflow** — grep for keywords matching the intent (e.g., `filter`, `inventory`, `tag`) before building client-side logic. A platform task may already exist that does the work server-side more efficiently.
+40. **Prefer server-side filtering over client-side when available** — fetching the full collection and filtering in the workflow adds unnecessary iterations and complexity. Check whether the target application exposes a filtered-fetch task before designing a forEach + evaluation filter pattern.
+41. **Propose decomposition when a workflow exceeds ~20 tasks** — large flat workflows are hard to test and debug in isolation. If the design calls for more than ~20 tasks, offer a decomposed alternative: extract the inner iteration body into a reusable child workflow and call it via childJob.
+42. **DRY check on sibling workflows** — if building multiple similarly-named workflows, compare their task graphs before generating. If the task graphs are identical, flag it and propose a single generic workflow; don't silently generate N identical clones.
+43. **GatewayManager `"failed to parse start_time"` = device unreachable** — this IAG error (`"failed to parse start_time for command 0: failed to parse timestamp string ''"`) means the device is offline, unreachable, or authentication failed. The timestamp complaint is misleading — the session never opened. It is NOT a workflow bug or command syntax error. Guard with an `evaluation` checking whether the response contains a `result` key; if not, route to a skip handler and continue.
 
 ---
 
@@ -1911,3 +1944,4 @@ These are complete, tested workflows. Read them to understand how tasks connect,
 | childJob with evaluation (parent orchestrator) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-parent-workflow.json` | childJob → query → evaluation pattern for checking child success/failure |
 | merge → makeData pattern | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-merge-makedata.json` | Building template variables with merge, then string substitution with makeData |
 | Child with makeData/query/merge | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-child-workflow.json` | Data transformation patterns inside a child workflow |
+| Per-device sendCommand scan | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-sendcommand-workflow.json` | buildInventoryFilter → forEach → newVariable+push array build → sendCommand → response guard → pattern match → matched/errored/skipped classification. Demonstrates constant-holder pattern for evaluation operands and `$var.job.*` usage inside loop body. |
