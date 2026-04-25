@@ -54,6 +54,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 **Install the plugin:**
 
 ```bash
+/plugin marketplace add itential/builder-skills
 /plugin install itential-builder@itential-builder
 ```
 
