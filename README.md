@@ -54,13 +54,13 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 **Install the plugin:**
 
 ```bash
-/plugin install itential-builder@claude-plugins-official
+/plugin install itential-builder@itential-builder
 ```
 
 **Already installed? Update to the latest version:**
 
 ```bash
-/plugin update itential-builder@claude-plugins-official
+/plugin update itential-builder@itential-builder
 ```
 
 **First-time setup:**
