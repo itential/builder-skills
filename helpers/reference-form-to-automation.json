@@ -2,9 +2,9 @@
   "_comment": "Wiring guide: Form → Trigger → Automation → Workflow. This is the most common end-to-end pattern — a JSON form collects input, a manual trigger presents the form, the trigger fires an automation, and the automation runs a workflow.",
   "_wiring": {
     "step1_create_workflow": {
-      "endpoint": "POST /automation-studio/workflows",
+      "endpoint": "POST /automation-studio/automations",
       "helper": "create-workflow.json",
-      "result": "workflowId (from response._id or response.uuid)"
+      "result": "workflowId (from response.created._id), workflowUuid (from response.created.uuid)"
     },
     "step2_create_form": {
       "endpoint": "POST /json-forms/forms",

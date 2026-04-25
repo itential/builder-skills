@@ -1,9 +1,8 @@
 {
-  "_comment": "The expression object uses operand_1/operand_2 with nested task+variable refs, not flat operand1/operand2. Check task-schemas.json for the exact shape.",
   "name": "evaluation",
   "canvasName": "evaluation",
   "summary": "",
-  "description": "Evaluate an expression and branch the workflow based on the result",
+  "description": "Evaluate an expression and branch the workflow. Uses operand_1/operand_2 with nested task+variable refs — not flat operand1/operand2. Must have BOTH success AND failure transitions. Check task-schemas.json for exact shape.",
   "location": "Application",
   "locationType": null,
   "app": "WorkFlowEngine",
