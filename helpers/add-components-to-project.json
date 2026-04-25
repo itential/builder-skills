@@ -2,17 +2,32 @@
   "components": [
     {
       "type": "workflow",
-      "reference": "",
+      "reference": "REPLACE_WORKFLOW_UUID",
       "folder": "/"
     },
     {
       "type": "template",
-      "reference": "",
+      "reference": "REPLACE_TEMPLATE_UUID",
+      "folder": "/"
+    },
+    {
+      "type": "transformation",
+      "reference": "REPLACE_TRANSFORMATION_UUID",
+      "folder": "/"
+    },
+    {
+      "type": "jsonForm",
+      "reference": "REPLACE_FORM_ID",
       "folder": "/"
     },
     {
       "type": "mopCommandTemplate",
-      "reference": "",
+      "reference": "@REPLACE_PROJECT_ID: REPLACE_TEMPLATE_NAME",
+      "folder": "/"
+    },
+    {
+      "type": "mopAnalyticTemplate",
+      "reference": "@REPLACE_PROJECT_ID: REPLACE_ANALYTIC_TEMPLATE_NAME",
       "folder": "/"
     }
   ],

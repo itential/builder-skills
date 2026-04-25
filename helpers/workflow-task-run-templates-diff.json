@@ -1,0 +1,27 @@
+{
+  "name": "runTemplatesDiff",
+  "canvasName": "runTemplatesDiff",
+  "summary": "Compare Pre vs Post Check",
+  "description": "Manual task — displays a side-by-side diff of pre-check and post-check MOP results to the operator. pre and post are both mop_template_results objects from RunCommandTemplate. Place after the post-check, wire pre from the pre-check childJob output and post from the post-check childJob output.",
+  "location": "Application",
+  "locationType": null,
+  "app": "MOP",
+  "type": "manual",
+  "displayName": "MOP",
+  "variables": {
+    "incoming": {
+      "pre": "$var.job.preCheckResults",
+      "post": "$var.job.postCheckResults"
+    },
+    "outgoing": {},
+    "error": "",
+    "decorators": []
+  },
+  "groups": [],
+  "actor": "Pronghorn",
+  "scheduled": false,
+  "nodeLocation": {
+    "x": 600,
+    "y": 1308
+  }
+}

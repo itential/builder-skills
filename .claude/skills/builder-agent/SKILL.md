@@ -1468,6 +1468,17 @@ POST /template_builder/templates/{name}/renderJinja
 
 MOP manages command templates for running CLI commands with validation rules. **MOP is read-only validation only — never use it to push config.**
 
+**To push config to a device, use `itential_cli` via AGManager** — not MOP. The standard pattern for any config push delivery is:
+
+```
+Pre-Check (RunCommandTemplate child)
+  → Push Configuration to Device (renderJinjaTemplate → dry run approval → itential_cli → commit approval → itential_cli)
+  → Post-Check (RunCommandTemplate child)
+  → runTemplatesDiff (compare pre vs post)
+```
+
+Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference-push-config-workflow.json` and `${CLAUDE_PLUGIN_ROOT}/helpers/reference-command-template-runner.json` before building any config push delivery.
+
 ### Create a Command Template
 
 ```
@@ -1880,7 +1891,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 24. **Eval types are case-sensitive** — `"RegEx"` not `"regex"`.
 25. **Empty rules = auto-pass** — add at least one rule for validation.
 26. **MOP update is full replacement** — include ALL fields.
-27. **MOP is read-only** — never use it to push config.
+27. **MOP is read-only** — never use it to push config. Use `itential_cli` via AGManager for config push.
 
 ### General
 28. **Adapter `app` must come from `apps.json`** — NOT `tasks.json` (names can differ completely).
@@ -1919,7 +1930,10 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
 | Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
 | Create a JSON form | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
-| Create an Ops Manager automation + trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` + `POST /operations-manager/triggers` |
+| Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
+| Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
+| Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
+| Import a project (atomic) | `${CLAUDE_PLUGIN_ROOT}/helpers/import-project.json` | `POST /automation-studio/projects/import` |
 | Add assets to a project | `${CLAUDE_PLUGIN_ROOT}/helpers/add-components-to-project.json` | `POST /projects/{id}/components/add` |
 | Update project membership | `${CLAUDE_PLUGIN_ROOT}/helpers/update-project-members.json` | `PATCH /projects/{id}` |
 
@@ -1932,6 +1946,16 @@ When adding a task to a workflow, read the matching template and fill in the fie
 | Application task (WorkFlowEngine, TemplateBuilder, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-application.json` | `app`, `name`, `canvasName`, incoming/outgoing from schema |
 | Adapter task (ServiceNow, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-adapter.json` | `app`/`locationType` from apps.json, add `adapter_id`, add error transition |
 | childJob task | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json` | `actor: "job"`, `task: ""`, variables use `{"task","value"}` syntax |
+| evaluation / branching | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-evalresult.json` | `operand_1`, `operator`, `operand_2` — both success AND failure transitions required |
+| newVariable | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-newvariable.json` | `name`, `value` — use for error handlers and status flags |
+| query / extract data | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-query.json` | `query` (dot-path), `obj` ($var ref), `pass_on_null` |
+| transformation (JST) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-transformation.json` | `tr_id`, `variableMap`, `options` |
+| getTime | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-gettime.json` | `timezone`, `format` |
+| itential_cli (config push via IAG) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-itential-cli.json` | `_hosts` (device array), `command` (CLI command array), app: `AGManager` |
+| RunCommandTemplate (MOP pre/post check) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-run-command-template.json` | `template`, `variables`, `devices` |
+| viewTemplateResults (MOP review) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-view-template-results.json` | `mop_template_results` — manual task, pauses for operator |
+| reattempt (MOP retry) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-reattempt.json` | `job_id`, `attemptID`, `minutes`, `attempts` |
+| runTemplatesDiff (MOP pre vs post) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-run-templates-diff.json` | `pre`, `post` — manual task, shows diff to operator |
 
 ### Reference workflows — study these patterns
 
@@ -1944,4 +1968,11 @@ These are complete, tested workflows. Read them to understand how tasks connect,
 | childJob with evaluation (parent orchestrator) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-parent-workflow.json` | childJob → query → evaluation pattern for checking child success/failure |
 | merge → makeData pattern | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-merge-makedata.json` | Building template variables with merge, then string substitution with makeData |
 | Child with makeData/query/merge | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-child-workflow.json` | Data transformation patterns inside a child workflow |
+| Config push to device (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-push-config-workflow.json` | renderJinjaTemplate → dry run ViewData → itential_cli (dry) → commit ViewData → itential_cli (commit) |
+| Pre/post check with reattempt (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-command-template-runner.json` | RunCommandTemplate → viewTemplateResults → evaluation → reattempt loop — use as child for pre-check and post-check |
+| Error handling patterns | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-error-handling-workflow.json` | Try-catch, error flags, escalation paths |
+| Form → OM automation trigger wiring | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-form-to-automation.json` | JSON form → automation → manual trigger end-to-end wiring |
+| IAG gateway service call | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-gateway-service-workflow.json` | Calling IAG services from a workflow via GatewayManager |
+| LCM lifecycle (create + delete) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-lcm-lifecycle.json` | LCM create/delete workflow pattern, instance object output |
+| Notification workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-notification-workflow.json` | Email/notification patterns |
 | Per-device sendCommand scan | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-sendcommand-workflow.json` | buildInventoryFilter → forEach → newVariable+push array build → sendCommand → response guard → pattern match → matched/errored/skipped classification. Demonstrates constant-holder pattern for evaluation operands and `$var.job.*` usage inside loop body. |

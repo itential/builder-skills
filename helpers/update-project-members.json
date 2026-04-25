@@ -1,5 +1,14 @@
 {
   "members": [
-    { "type": "account", "role": "owner", "reference": "" }
+    {
+      "type": "account",
+      "role": "editor",
+      "reference": "REPLACE_USER_ACCOUNT_ID"
+    },
+    {
+      "type": "group",
+      "role": "editor",
+      "reference": "REPLACE_GROUP_ID"
+    }
   ]
 }

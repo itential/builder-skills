@@ -1,5 +1,4 @@
 {
-  "_comment": "Full LCM lifecycle pattern — create and delete workflows that work with an LCM resource model. The create workflow provisions the service, records start time, and builds the instance object (must output to $var.job.instance). The delete workflow deprovisions and cleans up.",
   "create_workflow": {
     "automation": {
       "name": "Service LCM Create",
@@ -12,7 +11,10 @@
         "workflow_start": {
           "name": "workflow_start",
           "groups": [],
-          "nodeLocation": { "x": 200, "y": 600 }
+          "nodeLocation": {
+            "x": 200,
+            "y": 600
+          }
         },
         "a1b2": {
           "name": "transformation",
@@ -27,17 +29,29 @@
           "variables": {
             "incoming": {
               "tr_id": "",
-              "variableMap": { "formData": "$var.job.formData" },
-              "options": { "extractOutput": true, "validateIncoming": true, "revertToDefaultValue": true }
+              "variableMap": {
+                "formData": "$var.job.formData"
+              },
+              "options": {
+                "extractOutput": true,
+                "validateIncoming": true,
+                "revertToDefaultValue": true
+              }
             },
-            "outgoing": { "serviceName": null, "duration": null },
+            "outgoing": {
+              "serviceName": null,
+              "duration": null
+            },
             "error": "",
             "decorators": []
           },
           "groups": [],
           "actor": "Pronghorn",
           "scheduled": false,
-          "nodeLocation": { "x": 500, "y": 600 }
+          "nodeLocation": {
+            "x": 500,
+            "y": 600
+          }
         },
         "c3d4": {
           "name": "getTime",
@@ -50,15 +64,24 @@
           "type": "automatic",
           "displayName": "Time",
           "variables": {
-            "incoming": { "timezone": "", "offsetDuration": "", "format": "" },
-            "outgoing": { "time": null },
+            "incoming": {
+              "timezone": "",
+              "offsetDuration": "",
+              "format": ""
+            },
+            "outgoing": {
+              "time": null
+            },
             "error": "",
             "decorators": []
           },
           "groups": [],
           "actor": "Pronghorn",
           "scheduled": false,
-          "nodeLocation": { "x": 750, "y": 600 }
+          "nodeLocation": {
+            "x": 750,
+            "y": 600
+          }
         },
         "e5f6": {
           "name": "childJob",
@@ -75,26 +98,34 @@
               "task": "",
               "workflow": "Service Provision Workflow Name",
               "variables": {
-                "serviceName": { "task": "a1b2", "value": "serviceName" }
+                "serviceName": {
+                  "task": "a1b2",
+                  "value": "serviceName"
+                }
               },
               "data_array": "",
               "transformation": "",
               "loopType": ""
             },
-            "outgoing": { "job_details": null },
+            "outgoing": {
+              "job_details": null
+            },
             "error": "",
             "decorators": []
           },
           "groups": [],
           "actor": "job",
           "scheduled": false,
-          "nodeLocation": { "x": 1000, "y": 600 }
+          "nodeLocation": {
+            "x": 1000,
+            "y": 600
+          }
         },
         "a7b8": {
           "name": "transformation",
           "canvasName": "transformation",
           "summary": "Build LCM Instance",
-          "description": "Builds the instance object that LCM stores — must output to $var.job.instance",
+          "description": "Builds the instance object that LCM stores \u2014 must output to $var.job.instance",
           "location": "Application",
           "locationType": null,
           "app": "WorkFlowEngine",
@@ -108,43 +139,88 @@
                 "startTime": "$var.c3d4.time",
                 "provisionResult": "$var.e5f6.job_details"
               },
-              "options": { "extractOutput": true, "validateIncoming": true, "revertToDefaultValue": true }
+              "options": {
+                "extractOutput": true,
+                "validateIncoming": true,
+                "revertToDefaultValue": true
+              }
             },
-            "outgoing": { "instance": "$var.job.instance" },
+            "outgoing": {
+              "instance": null
+            },
             "error": "",
             "decorators": []
           },
           "groups": [],
           "actor": "Pronghorn",
           "scheduled": false,
-          "nodeLocation": { "x": 1250, "y": 600 }
+          "nodeLocation": {
+            "x": 1250,
+            "y": 600
+          }
         },
         "workflow_end": {
           "name": "workflow_end",
           "groups": [],
-          "nodeLocation": { "x": 1500, "y": 600 }
+          "nodeLocation": {
+            "x": 1500,
+            "y": 600
+          }
         }
       },
       "transitions": {
-        "workflow_start": { "a1b2": { "type": "standard", "state": "success" } },
-        "a1b2": { "c3d4": { "type": "standard", "state": "success" } },
-        "c3d4": { "e5f6": { "type": "standard", "state": "success" } },
-        "e5f6": { "a7b8": { "type": "standard", "state": "success" } },
-        "a7b8": { "workflow_end": { "type": "standard", "state": "success" } },
+        "workflow_start": {
+          "a1b2": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
+        "a1b2": {
+          "c3d4": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
+        "c3d4": {
+          "e5f6": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
+        "e5f6": {
+          "a7b8": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
+        "a7b8": {
+          "workflow_end": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
         "workflow_end": {}
       },
       "groups": [],
       "inputSchema": {
         "type": "object",
         "properties": {
-          "formData": { "title": "formData", "type": "object" }
+          "formData": {
+            "title": "formData",
+            "type": "object"
+          }
         },
-        "required": ["formData"]
+        "required": [
+          "formData"
+        ]
       },
       "outputSchema": {
         "type": "object",
         "properties": {
-          "instance": { "title": "instance", "type": "object" }
+          "instance": {
+            "title": "instance",
+            "type": "object"
+          }
         }
       }
     }
@@ -161,7 +237,10 @@
         "workflow_start": {
           "name": "workflow_start",
           "groups": [],
-          "nodeLocation": { "x": 200, "y": 600 }
+          "nodeLocation": {
+            "x": 200,
+            "y": 600
+          }
         },
         "a1b2": {
           "name": "childJob",
@@ -182,24 +261,42 @@
               "transformation": "",
               "loopType": ""
             },
-            "outgoing": { "job_details": null },
+            "outgoing": {
+              "job_details": null
+            },
             "error": "",
             "decorators": []
           },
           "groups": [],
           "actor": "job",
           "scheduled": false,
-          "nodeLocation": { "x": 500, "y": 600 }
+          "nodeLocation": {
+            "x": 500,
+            "y": 600
+          }
         },
         "workflow_end": {
           "name": "workflow_end",
           "groups": [],
-          "nodeLocation": { "x": 800, "y": 600 }
+          "nodeLocation": {
+            "x": 800,
+            "y": 600
+          }
         }
       },
       "transitions": {
-        "workflow_start": { "a1b2": { "type": "standard", "state": "success" } },
-        "a1b2": { "workflow_end": { "type": "standard", "state": "success" } },
+        "workflow_start": {
+          "a1b2": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
+        "a1b2": {
+          "workflow_end": {
+            "type": "standard",
+            "state": "success"
+          }
+        },
         "workflow_end": {}
       },
       "groups": [],

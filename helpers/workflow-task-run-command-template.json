@@ -1,0 +1,30 @@
+{
+  "name": "RunCommandTemplate",
+  "canvasName": "RunCommandTemplate",
+  "summary": "Run Pre/Post Check",
+  "description": "Runs a MOP command template against devices and returns pass/fail results per rule. template is the MOP template name, variables is an object of template variable values, devices is an array of device names. mop_template_results feeds into viewTemplateResults and runTemplatesDiff.",
+  "location": "Application",
+  "locationType": null,
+  "app": "MOP",
+  "type": "automatic",
+  "displayName": "MOP",
+  "variables": {
+    "incoming": {
+      "template": "$var.job.templateName",
+      "variables": "$var.job.templateVariables",
+      "devices": "$var.job.devices"
+    },
+    "outgoing": {
+      "mop_template_results": "$var.job.mopResults"
+    },
+    "error": "",
+    "decorators": []
+  },
+  "groups": [],
+  "actor": "Pronghorn",
+  "scheduled": false,
+  "nodeLocation": {
+    "x": 600,
+    "y": 1308
+  }
+}
