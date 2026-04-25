@@ -160,37 +160,51 @@ EOF
 
 ### Pull Platform Data
 
-Always needed regardless of spec scope. Run in parallel:
+Run the bootstrap script — it pulls all platform data in parallel and writes a compact `platform-summary.json` with only what's needed for feasibility:
 
 ```bash
-curl -s "{BASE}/help/openapi?url={ENCODED_BASE}&token=TOKEN" > {use-case}/openapi.json
-curl -s "{BASE}/workflow_builder/tasks/list?token=TOKEN" > {use-case}/tasks.json
-curl -s "{BASE}/automation-studio/apps/list?token=TOKEN" > {use-case}/apps.json
-curl -s "{BASE}/health/adapters?token=TOKEN" > {use-case}/adapters.json
-curl -s "{BASE}/health/applications?token=TOKEN" > {use-case}/applications.json
+python3 ${CLAUDE_PLUGIN_ROOT}/.claude/skills/solution-arch-agent/pull-platform-data.py {use-case}
 ```
 
-### Pull Spec-Contingent Data
+**What gets written:**
 
-**Only pull what the approved spec requires.** Check the spec's capabilities and integrations to decide:
+| File | Use for | Load into context? |
+|------|---------|-------------------|
+| `platform-summary.json` | Feasibility — running adapters, apps, type names, projects | ✅ Yes — compact |
+| `openapi.json` | API reference — search locally with `jq` | ❌ No — too large |
+| `tasks.json` | Task catalog — search locally with `jq` | ❌ No — too large |
+| `apps.json` | Adapter type names — search locally with `jq` | ❌ No |
+| `adapters.json` | Adapter instances — search locally with `jq` | ❌ No |
+| `applications.json` | App health — search locally with `jq` | ❌ No |
+| `workflows.json` | Existing workflows — search locally with `jq` | ❌ No |
+| `projects.json` | Existing projects — search locally with `jq` | ❌ No |
+| `devices.json` | Device inventory — search locally with `jq` | ❌ No |
+| `device-groups.json` | Device groups — search locally with `jq` | ❌ No |
 
-| Data | Pull if spec involves... | API |
-|------|--------------------------|-----|
-| `devices.json` | Device operations, CLI commands, config changes | `POST /configuration_manager/devices` with `{"options":{"start":0,"limit":1000,"sort":[{"name":1}],"order":"ascending"}}` |
-| `workflows.json` | Any phases that might have existing workflows to reuse | `GET /automation-studio/workflows?limit=500` |
-| `device-groups.json` | Device group operations, batch by group | `GET /configuration_manager/deviceGroups` |
+**After running, read `platform-summary.json` for feasibility. Search raw files locally when you need specifics — never load them into context.**
 
-Response shapes:
-- `devices.json` → `{"list": [...]}`
-- `workflows.json` → `{"items": [...]}`
+### File Shapes and jq Queries
 
-Run spec-contingent pulls in parallel after bootstrap succeeds.
+Every file has a specific shape. Use these queries — don't guess.
+
+| File | Shape | Example query |
+|------|-------|---------------|
+| `platform-summary.json` | `{adapters, applications, adapter_type_names, projects, workflow_count, device_count}` | `jq '.adapters[] | select(.connection == "ONLINE")' platform-summary.json` |
+| `tasks.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,app,type,location}' tasks.json` |
+| `apps.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,type}' apps.json` |
+| `adapters.json` | `{"results":[...], "total":N}` | `jq '.results[] | select(.id | test("X";"i")) | {id,state,package_id}' adapters.json` |
+| `applications.json` | `{"results":[...], "total":N}` | `jq '.results[] | select(.state=="RUNNING") | {id,package_id}' applications.json` |
+| `workflows.json` | `{"items":[...], "count":N}` | `jq '.items[] | select(.name | test("X";"i")) | {name,_id}' workflows.json` |
+| `projects.json` | `{"data":[...]}` | `jq '.data[] | select(.name | test("X";"i")) | {name,_id}' projects.json` |
+| `devices.json` | `{"list":[...]}` | `jq '.list[] | select(.name | test("X";"i")) | {name,os}' devices.json` |
+| `device-groups.json` | varies by platform | `jq 'type' device-groups.json` first to check shape |
+| `openapi.json` | `{"paths":{...}}` | `jq '.paths["/the/endpoint"]' openapi.json` |
 
 **Handling failures:** Before parsing any saved file, check if it contains valid JSON:
 ```bash
-jq type {use-case}/devices.json 2>/dev/null || echo "empty"
+python3 -c "import json,sys; json.load(open(sys.argv[1])); print('ok')" {use-case}/devices.json 2>/dev/null || echo "empty"
 ```
-If invalid, treat as "no data available" — don't block the flow. Not every use case needs every data type.
+If invalid, treat as "no data available" — don't block the flow.
 
 ### Resolve Capabilities
 
