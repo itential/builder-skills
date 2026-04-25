@@ -715,18 +715,28 @@ POST /automation-studio/projects/{projectId}/components/add
 
 ### Update membership (full replacement)
 
+**Before patching, always ask the engineer:** *"Who else should have access to this project? (usernames or group names)"*
+
+Do not auto-discover or assume groups. Wait for the answer, resolve each name to a reference ID by scanning existing projects, then PATCH.
+
 ```
 PATCH /automation-studio/projects/{projectId}
 ```
-```json
-{
-  "members": [
-    {"type": "account", "role": "owner", "reference": "699a67bb..."},
-    {"type": "group", "role": "editor", "reference": "67c859..."}
-  ]
-}
+
+Use the helper: `${CLAUDE_PLUGIN_ROOT}/helpers/update-project-members.json`
+
+Include ALL members in every PATCH — this is a full replacement. Omitting an existing member removes them.
+
+**To resolve a username or group name to a reference ID**, scan existing projects:
+```bash
+for pid in $(curl -s "$BASE/automation-studio/projects?limit=100" \
+  -H "Authorization: Bearer $TOKEN" | jq -r '.data[]._id'); do
+  curl -s "$BASE/automation-studio/projects/$pid" \
+    -H "Authorization: Bearer $TOKEN" \
+    | jq -r '.data.members[]? | [.type, .reference, (.username // .name)] | @tsv'
+done | sort -u
 ```
-Include ALL members (existing + new) — this is a full replacement.
+If a name cannot be resolved, ask the engineer for the reference ID — do not guess.
 
 ### Resolve membership references from spec
 
