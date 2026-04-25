@@ -1939,7 +1939,7 @@ Read these first. They have the correct wrapper, required fields, and structure.
 
 ### Task templates — embed these in your workflow
 
-When adding a task to a workflow, read the matching template and fill in the fields using the mapping rules from Guide 1 Step 4.
+For every task you add to a workflow — whether building new or modifying existing — read the matching template first and fill in the fields. Do not write task JSON from scratch.
 
 | Task type | Read this helper | Key fields to set |
 |-----------|------------------|-------------------|
