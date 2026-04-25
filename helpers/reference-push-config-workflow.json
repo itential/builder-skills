@@ -1,0 +1,513 @@
+{
+  "tasks": {
+    "workflow_start": {
+      "name": "workflow_start",
+      "groups": [],
+      "nodeLocation": {
+        "x": -1344,
+        "y": 912
+      }
+    },
+    "workflow_end": {
+      "name": "workflow_end",
+      "groups": [],
+      "nodeLocation": {
+        "x": 1008,
+        "y": 912
+      }
+    },
+    "ca47": {
+      "name": "itential_cli",
+      "canvasName": "itential_cli",
+      "summary": "Ansible Role itential_cli",
+      "description": "Ansible Role itential_cli",
+      "location": "Application",
+      "locationType": null,
+      "app": "AGManager",
+      "type": "automatic",
+      "displayName": "AG Manager",
+      "variables": {
+        "incoming": {
+          "_hosts": "$var.21ac.pushedArray",
+          "_groups": "",
+          "command": "$var.6c30.pushedArray"
+        },
+        "outgoing": {
+          "stdout": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {
+        "x": 456,
+        "y": 912
+      }
+    },
+    "21ac": {
+      "name": "arrayPush",
+      "canvasName": "push",
+      "summary": "Device Array",
+      "description": "Adds one element to the end of an array and returns the (newly modified) array.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "automatic",
+      "displayName": "Array",
+      "variables": {
+        "incoming": {
+          "arr": [],
+          "elementN": "$var.job.device"
+        },
+        "outgoing": {
+          "pushedArray": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {
+        "x": -480,
+        "y": 912
+      }
+    },
+    "6c30": {
+      "name": "arrayPush",
+      "canvasName": "push",
+      "summary": "Config Array",
+      "description": "Adds one element to the end of an array and returns the (newly modified) array.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "automatic",
+      "displayName": "Array",
+      "variables": {
+        "incoming": {
+          "arr": [],
+          "elementN": "$var.e97b.return_data"
+        },
+        "outgoing": {
+          "pushedArray": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {
+        "x": -168,
+        "y": 912
+      }
+    },
+    "b9ed": {
+      "name": "renderJinjaTemplate",
+      "canvasName": "renderJinjaTemplate",
+      "summary": "Render Jinja Template",
+      "description": "Renders jinja template output.",
+      "location": "Application",
+      "locationType": null,
+      "app": "TemplateBuilder",
+      "type": "automatic",
+      "displayName": "TemplateBuilder",
+      "variables": {
+        "incoming": {
+          "name": "$var.job.templateName",
+          "context": "$var.job.templateVariables"
+        },
+        "outgoing": {
+          "renderedTemplate": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {
+        "x": -1104,
+        "y": 912
+      }
+    },
+    "e97b": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Query Template",
+      "description": "Query template from jinja response",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "renderedTemplate",
+          "obj": "$var.b9ed.renderedTemplate"
+        },
+        "outgoing": {
+          "return_data": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "scheduled": false,
+      "nodeLocation": {
+        "x": -792,
+        "y": 912
+      }
+    },
+    "7a4c": {
+      "name": "ViewData",
+      "canvasName": "ViewData",
+      "summary": "View Error",
+      "description": "View IAG Error",
+      "location": "Application",
+      "app": "WorkFlowEngine",
+      "displayName": "Tools",
+      "type": "manual",
+      "variables": {
+        "incoming": {
+          "header": "Configuration Error",
+          "message": "The configuration had an error, retry or abort?",
+          "body": "$var.ca47.stdout",
+          "variables": {},
+          "btn_success": "Retry",
+          "btn_failure": "Abort"
+        },
+        "outgoing": {},
+        "error": "",
+        "decorators": []
+      },
+      "view": "/workflow_engine/task/ViewData",
+      "groups": [],
+      "scheduled": false,
+      "nodeLocation": {
+        "x": 624,
+        "y": 804
+      }
+    },
+    "f14d": {
+      "name": "evaluation",
+      "canvasName": "evaluation",
+      "summary": "Eval Success",
+      "description": "Run an evaluation",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "all_true_flag": false,
+          "evaluation_groups": [
+            {
+              "all_true_flag": false,
+              "evaluations": [
+                {
+                  "query": "completed[0].response[*].status",
+                  "operand_1": {
+                    "variable": "stdout",
+                    "task": "ca47"
+                  },
+                  "operator": "!contains",
+                  "operand_2": {
+                    "variable": "FAILURE",
+                    "task": "static"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "outgoing": {
+          "return_value": null
+        }
+      },
+      "groups": [],
+      "nodeLocation": {
+        "x": 768,
+        "y": 912
+      }
+    },
+    "cba5": {
+      "name": "ViewData",
+      "canvasName": "ViewData",
+      "summary": "View Config",
+      "description": "View Config",
+      "location": "Application",
+      "app": "WorkFlowEngine",
+      "displayName": "Tools",
+      "type": "manual",
+      "variables": {
+        "incoming": {
+          "header": "View Configuration",
+          "message": "Approve or Reject the proposed configuration.",
+          "body": "$var.e97b.return_data",
+          "variables": {},
+          "btn_success": "Provision",
+          "btn_failure": "Retry"
+        },
+        "outgoing": {},
+        "error": "",
+        "decorators": []
+      },
+      "view": "/workflow_engine/task/ViewData",
+      "groups": [],
+      "scheduled": false,
+      "nodeLocation": {
+        "x": 144,
+        "y": 804
+      }
+    },
+    "c4c9": {
+      "name": "evaluation",
+      "canvasName": "evaluation",
+      "summary": "Eval autoApprove",
+      "description": "Run an evaluation for autoApprove",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "all_true_flag": false,
+          "evaluation_groups": [
+            {
+              "all_true_flag": false,
+              "evaluations": [
+                {
+                  "query": "",
+                  "operand_1": {
+                    "variable": "autoApprove",
+                    "task": "job",
+                    "editable": true
+                  },
+                  "operator": "==",
+                  "operand_2": {
+                    "variable": true,
+                    "task": "static"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "outgoing": {
+          "return_value": null
+        }
+      },
+      "groups": [],
+      "nodeLocation": {
+        "x": 144,
+        "y": 912
+      }
+    }
+  },
+  "transitions": {
+    "workflow_start": {
+      "b9ed": {
+        "type": "standard",
+        "state": "success"
+      }
+    },
+    "workflow_end": {},
+    "ca47": {
+      "f14d": {
+        "type": "standard",
+        "state": "success"
+      },
+      "7a4c": {
+        "type": "standard",
+        "state": "error"
+      }
+    },
+    "21ac": {
+      "6c30": {
+        "type": "standard",
+        "state": "success"
+      }
+    },
+    "6c30": {
+      "c4c9": {
+        "type": "standard",
+        "state": "success"
+      }
+    },
+    "b9ed": {
+      "e97b": {
+        "type": "standard",
+        "state": "success"
+      }
+    },
+    "e97b": {
+      "21ac": {
+        "type": "standard",
+        "state": "success"
+      }
+    },
+    "7a4c": {
+      "b9ed": {
+        "type": "revert",
+        "state": "success"
+      }
+    },
+    "f14d": {
+      "workflow_end": {
+        "type": "standard",
+        "state": "success"
+      },
+      "7a4c": {
+        "type": "standard",
+        "state": "failure"
+      }
+    },
+    "cba5": {
+      "ca47": {
+        "type": "standard",
+        "state": "success"
+      },
+      "b9ed": {
+        "type": "revert",
+        "state": "failure"
+      }
+    },
+    "c4c9": {
+      "ca47": {
+        "type": "standard",
+        "state": "success"
+      },
+      "cba5": {
+        "type": "standard",
+        "state": "failure"
+      }
+    },
+    "ed0d": {},
+    "7a2f": {}
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "device": {
+        "type": [
+          "array",
+          "string",
+          "boolean",
+          "integer",
+          "number",
+          "object"
+        ],
+        "title": "elementN",
+        "examples": [
+          "Device3"
+        ]
+      },
+      "templateName": {
+        "type": "string",
+        "examples": [
+          "Template name 1",
+          "Template name 2",
+          "Template name 3"
+        ]
+      },
+      "templateVariables": {
+        "type": "object",
+        "examples": [
+          {
+            "name": "John",
+            "DOB": "2000/1/1"
+          }
+        ]
+      },
+      "autoApprove": {
+        "type": [
+          "array",
+          "boolean",
+          "null",
+          "number",
+          "object",
+          "string"
+        ]
+      }
+    },
+    "required": [
+      "device",
+      "templateName",
+      "templateVariables",
+      "autoApprove"
+    ]
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "device": {
+        "type": [
+          "array",
+          "string",
+          "boolean",
+          "integer",
+          "number",
+          "object"
+        ],
+        "title": "elementN",
+        "examples": [
+          "Device3"
+        ]
+      },
+      "templateName": {
+        "type": "string",
+        "examples": [
+          "Template name 1",
+          "Template name 2",
+          "Template name 3"
+        ]
+      },
+      "templateVariables": {
+        "type": "object",
+        "examples": [
+          {
+            "name": "John",
+            "DOB": "2000/1/1"
+          }
+        ]
+      },
+      "autoApprove": {
+        "type": [
+          "array",
+          "boolean",
+          "null",
+          "number",
+          "object",
+          "string"
+        ]
+      },
+      "_id": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{24}$"
+      },
+      "initiator": {
+        "type": "string"
+      }
+    }
+  },
+  "type": "automation",
+  "font_size": 12,
+  "lastUpdatedVersion": "5.55.2-2023.2.3.0",
+  "createdVersion": "5.46.0-2023.1.30.0",
+  "preAutomationTime": 0,
+  "sla": 0,
+  "last_updated": "2024-09-04T13:52:04.817Z",
+  "created": "2024-08-01T15:33:00.748Z",
+  "canvasVersion": 3,
+  "name": "Push Configuration to Device - IAG",
+  "scenarios": [],
+  "tags": [],
+  "groups": [],
+  "migrationVersion": 7
+}
