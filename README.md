@@ -98,6 +98,8 @@ Then start your first delivery from inside that folder:
 
 See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first delivery walkthrough.
 
+For Claude slash commands, Codex global skill install, Cursor rules, and GitHub Copilot prompt compatibility, see [`docs/vendor-install.md`](docs/vendor-install.md). For the source/generated model, see [`docs/multi-vendor-architecture.md`](docs/multi-vendor-architecture.md). For governance, see [`docs/constitution.md`](docs/constitution.md).
+
 ---
 
 ## How to Use It
@@ -125,6 +127,8 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 ---
 
 ## Skills
+
+This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical cross-vendor agent guide. Canonical skill content lives in [`skills/`](skills/). Claude compatibility files in `.claude/skills/` are generated from `skills/`; run `scripts/sync-vendor-skills.sh` after editing canonical skills and `scripts/check-vendor-skills.sh` before release.
 
 **Delivery**
 

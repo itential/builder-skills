@@ -2,6 +2,19 @@
 
 This project contains skills for assisting developers on the Itential Platform. Read this first, then use the skills for detailed API references.
 
+`AGENTS.md` is the canonical cross-vendor agent guide. Canonical skill content lives in `skills/{skill-name}/SKILL.md`. For agents without a native Skill tool, treat each `/skill-name` reference as a pointer to `skills/skill-name/SKILL.md` and read that file before acting in the domain. `.claude/skills/` is a generated compatibility mirror for Claude. Project governance lives in `docs/constitution.md`.
+
+## Customization Layers
+
+Before acting, check optional customization guidance in this order:
+
+1. `customizations/developer/` — local developer preferences, ignored by git except examples
+2. `customizations/team/` — team-specific standards
+3. `customizations/org/` — organization-wide standards
+4. Core repository guidance — `AGENTS.md`, `skills/`, `docs/constitution.md`
+
+Higher-priority customization may narrow style, naming, defaults, and review expectations, but it must not violate `docs/constitution.md` or fork canonical skill behavior.
+
 ## Skill Router
 
 Each skill owns a domain. **Invoke the skill using the Skill tool before working in that domain.** Skills contain the correct API methods, request bodies, response shapes, and patterns. Don't guess — load the skill.
