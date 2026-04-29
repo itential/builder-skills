@@ -909,6 +909,7 @@ The rules below assume **horizontal**. For vertical, swap x and y roles (phases 
 - **Branch convergence** — tasks that merge back to the success path return to `y=0`
 - **Group related tasks** at the same x: merge + the adapter it feeds, childJob + its query extractor
 - **Never overlap** — maintain at least +264px x-delta between task columns
+- **Preserve Studio-arranged positions** — if an engineer has arranged a workflow in Automation Studio, treat its `nodeLocation` values as authoritative. Always read from the live export before reimporting. Never recalculate positions from scratch on a workflow that has already been arranged.
 
 Example for a 3-phase workflow:
 ```
@@ -1102,6 +1103,8 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 **Task ID validation:** `$var.taskId.x` only resolves when `taskId` matches `[0-9a-f]{1,4}`. Non-hex IDs silently fail.
 
 **Prefer task-to-task wiring:** When a task's output feeds directly into the next task's input, wire it as `$var.<taskId>.<outVar>` instead of bouncing through `$var.job.x`. Only use job variables when: (a) values cross non-adjacent tasks, (b) values need to be visible in job output, or (c) multiple downstream tasks need the same value. Direct task-to-task wiring reduces clutter and makes data flow easier to trace.
+
+**`task: "static"` values are backed by `job_data` documents written at Studio-save time, not at import time.** This applies to ALL task types — not just evaluations. Importing via API does NOT update the backing store. Any static value (template strings, query paths, model IDs, inline constants in childJob `variables` dicts) resolves as `null` at runtime on a freshly imported workflow until it is saved through Automation Studio. The `newVariable` workaround described under evaluation tasks applies here too.
 
 ---
 
@@ -1419,6 +1422,11 @@ jq '.[] | select(.app == "WorkFlowEngine") | {name, summary}' {use-case}/tasks.j
 | Time | `getTime`, `addDuration`, `convertTimezone`, `calculateTimeDiff` |
 | Parse/Transform | `parse`, `transformation`, `stringify` |
 | Tools | `restCall`, `csvStringToJson`, `excelToJson`, `asciiToBase64` |
+
+**Reach for purpose-built tasks before chaining primitives.** Two tasks that are commonly underused:
+
+- **`setObjectKey`** (WorkFlowEngine) — writes a value directly into a nested key of an existing object. Use instead of `query` + `merge` when updating a single field on an object already in `$var.job.*`.
+- **`renderJinja2ContextWithCast`** (ConfigurationManager) — renders a Jinja2 template with the full job context automatically injected, plus optional type casting on the output. Use instead of `merge` → `renderJinja2` → `query` chains when the template needs access to existing job variables. Outputs `renderedTemplate` accessible via `$var.<taskId>.renderedTemplate`.
 
 Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true`.
 
@@ -1763,6 +1771,29 @@ Every adapter task needs both success and error transitions. Route errors to an 
 
 ### Manual Tasks (Human-in-the-Loop)
 
+**ViewHTML** — renders an HTML string in a modal for operator review. Requires specific fields or it becomes a draft workflow:
+```json
+{
+  "name": "ViewHTML", "canvasName": "ViewHTML",
+  "location": "Application", "locationType": null, "app": "WorkFlowEngine",
+  "type": "manual", "displayName": "Tools",
+  "view": "/workflow_engine/task/ViewHTML",
+  "taskVersion": 2, "hostApp": "@itential/app-operations_manager",
+  "variables": {
+    "incoming": {
+      "header": "Report Title",
+      "body": "$var.job.html_output",
+      "variables": "",
+      "btn_success": "Acknowledge",
+      "btn_failure": ""
+    },
+    "outgoing": {}
+  },
+  "actor": "Pronghorn"
+}
+```
+`view`, `taskVersion: 2`, and `hostApp` are all **required** — omitting any one causes "Manual Tasks require 'view' key" draft error.
+
 ```json
 {
   "name": "ViewData",
@@ -1913,12 +1944,16 @@ The `revert` transition moves execution back to a previous task, allowing the us
 34. **Always use a local venv for Python** — run `python3 -m venv .venv && source .venv/bin/activate` instead of using global Python when running any Python scripts during the build process.
 35. **`evaluation` operator is a closed enum** — only `contains, !contains, <, <=, >, >=, ==, !=` exist. Any other operator silently returns `false` with empty outgoing. See the `evaluation` task section for the full enum and testing endpoint.
 36. **`contains` operator uses regex, not substring matching** — escape metacharacters (`(`, `)`, `.`, `[`, `]`, `?`, `+`, `*`, `|`) in literal `operand_2` values. Test patterns with `POST /workflow_engine/runEvaluationGroups` before wiring.
-37. **API PUT does not regenerate `incomingRefs`** — evaluation operand literals left stale after PUT silently resolve to `null`. Always verify evals work after an API-only deploy; if they silently fail, open the workflow in the UI and save. See `evaluation` task section for the API-only constant-holder workaround.
+37. **API PUT does not regenerate `incomingRefs`** — evaluation operand literals left stale after PUT silently resolve to `null`. Always verify evals work after an API-only deploy; if they silently fail, open the workflow in the UI and save. See `evaluation` task section for the API-only constant-holder workaround. **Broader symptom:** the entire workflow can hang after `workflow_start` (current_task: null, status: running forever) when any task's incomingRefs are stale — not just evaluations. If a workflow that was working suddenly hangs at start after a PUT, recreate it fresh via POST instead of attempting more PUTs.
 38. **`$var.<taskId>.<out>` does not resolve inside nested forEach bodies** — use `$var.job.<varName>` for any variable referenced inside a nested loop body.
 39. **Search `tasks.json` before designing any sub-workflow** — grep for keywords matching the intent (e.g., `filter`, `inventory`, `tag`) before building client-side logic. A platform task may already exist that does the work server-side more efficiently.
 40. **Prefer server-side filtering over client-side when available** — fetching the full collection and filtering in the workflow adds unnecessary iterations and complexity. Check whether the target application exposes a filtered-fetch task before designing a forEach + evaluation filter pattern.
 41. **Propose decomposition when a workflow exceeds ~20 tasks** — large flat workflows are hard to test and debug in isolation. If the design calls for more than ~20 tasks, offer a decomposed alternative: extract the inner iteration body into a reusable child workflow and call it via childJob.
 42. **DRY check on sibling workflows** — if building multiple similarly-named workflows, compare their task graphs before generating. If the task graphs are identical, flag it and propose a single generic workflow; don't silently generate N identical clones.
+44. **Workflow delete endpoint exists** — `DELETE /workflow_builder/workflows/delete/{URL-encoded-name}` deletes by name, returns 200 with deleted doc. `DELETE /automation-studio/automations/{id}` does NOT exist (404). Always export the project before deleting anything.
+45. **Project component refresh** — `mode: "copy"` creates a new project-scoped UUID that immediately diverges from the standalone. To keep the project current: `DELETE /automation-studio/projects/{id}/components/{ref}` each old component, then `POST /projects/{id}/components/add` fresh. After refresh, update any Operations Manager automation `componentId` to the new UUID via `PATCH /operations-manager/automations/{id}`.
+46. **`renderJinja2` inline template with `\n` breaks `parse`** — when a template string containing `\n` is stored in a workflow task's static value, the platform stores literal backslash-n characters. The rendered output contains `\n` as text, causing `parse` to fail with "Expected property name or '}' in JSON at position 1". Fix: write single-line templates (no newlines). JSON parsers handle compact single-line JSON fine.
+47. **Task outgoing can write directly to job var** — `"outgoing": {"merged_object": "$var.job.myVar"}` works on any task. This is more reliable than a separate `newVariable` copy step and survives PUT cache issues because outgoing is written at task execution time, not resolved from incomingRefs.
 43. **GatewayManager `"failed to parse start_time"` = device unreachable** — this IAG error (`"failed to parse start_time for command 0: failed to parse timestamp string ''"`) means the device is offline, unreachable, or authentication failed. The timestamp complaint is misleading — the session never opened. It is NOT a workflow bug or command syntax error. Guard with an `evaluation` checking whether the response contains a `result` key; if not, route to a skip handler and continue.
 
 ---
