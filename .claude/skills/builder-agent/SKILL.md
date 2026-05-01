@@ -1106,6 +1106,14 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **`task: "static"` values are backed by `job_data` documents written at Studio-save time, not at import time.** This applies to ALL task types — not just evaluations. Importing via API does NOT update the backing store. Any static value (template strings, query paths, model IDs, inline constants in childJob `variables` dicts) resolves as `null` at runtime on a freshly imported workflow until it is saved through Automation Studio. The `newVariable` workaround described under evaluation tasks applies here too.
 
+**`makeData` static `input` strings do NOT resolve after API create/PUT.** The `input` and `outputType` fields in `makeData` are backed by `job_data` (type `static`). They resolve as null until Automation Studio saves the workflow. Workaround: use `newVariable` with `value: [...]` (array literal) for static command arrays — `newVariable.value` resolves correctly after API create without a Studio save.
+
+**PUT generates incomingRefs for new tasks.** `PUT /automation-studio/automations/{id}` DOES correctly generate `incomingRefs` for tasks that are newly added to the workflow. This applies only to net-new tasks — not to modified field values on existing tasks. Task-to-task `$var` refs (`type: "taskRef"`) on newly added tasks resolve correctly after PUT without a Studio save.
+
+**Outgoing must write to job var for cross-task `$var` to be readable by downstream tasks.** Pattern: `"outgoing": {"result": "$var.job.raw_result"}` then downstream: `"obj": "$var.job.raw_result"`. If outgoing is `null`, the value is accessible via task iteration (`GET /operations-manager/tasks/{iterationId}`) but NOT via `$var.taskId.result` in downstream tasks at runtime. Use job vars for any result you need to pass forward.
+
+**`POST /automation-studio/workflows/validate`** — runs pre-flight schema validation before create or update. Returns `{errors: [], warnings: []}`. An empty `errors` array means the workflow is schema-valid. Run this on every workflow before POSTing or PUTting.
+
 ---
 
 ## Utility Tasks (WorkFlowEngine)
@@ -1728,11 +1736,28 @@ Some tasks have REST endpoints for quick testing without creating workflows:
 
 ### Updating Assets (Edit Locally, PUT to Update)
 
-| Asset | Create | Update |
-|-------|--------|--------|
-| Workflow | `POST /automation-studio/automations` | `PUT /automation-studio/automations/{id}` with `{"update": {...}}` |
-| Template | `POST /automation-studio/templates` | `PUT /automation-studio/templates/{id}` with `{"update": {...}}` |
-| Command Template | `POST /mop/createTemplate` | `POST /mop/updateTemplate/{name}` with `{"mop": {...}}` (full replacement) |
+| Asset | Create | Update | Delete |
+|-------|--------|--------|--------|
+| Workflow | `POST /automation-studio/automations` | `PUT /automation-studio/automations/{id}` with `{"update": {...}}` | `DELETE /workflow_builder/workflows/delete/{URL-encoded-name}` (by name, not ID) |
+| Template | `POST /automation-studio/templates` | `PUT /automation-studio/templates/{id}` with `{"update": {...}}` | `DELETE /automation-studio/templates/{id}` |
+| Command Template | `POST /mop/createTemplate` | `POST /mop/updateTemplate/{name}` with `{"mop": {...}}` (full replacement) | — |
+
+**Pre-flight validate before every create or update:**
+```
+POST /automation-studio/workflows/validate
+{"workflow": {...}}
+→ {"errors": [], "warnings": []}
+```
+Empty `errors` = schema valid. Run this before every POST or PUT.
+
+**`workflow_builder/workflows/save` does NOT fix incomingRefs.** `POST /workflow_builder/workflows/save` with the full workflow doc returns 200 but does NOT regenerate `incomingRefs`. Static values (makeData input, clusterId strings) still resolve as null after calling it. The only fix for stale static values is to open the workflow in Automation Studio and save manually. For task-to-task refs added via PUT, see the note in $var Resolution Rules above.
+
+**Workflow rename:**
+```
+POST /workflow_builder/workflows/rename
+{"workflow": {...full doc...}, "newName": "New Workflow Name"}
+```
+Renames in-place without recreating. Use instead of appending `[Fixed]` suffixes.
 
 ---
 
