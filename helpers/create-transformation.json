@@ -1,0 +1,187 @@
+{
+  "_comment_overview": "JSON Transformation (JST) scaffold for POST /transformations/. JSTs reshape data between workflow steps. The structure is: incoming/outgoing schemas + a steps[] array of operations + an optional functions[] array holding callback bodies for Array.map/filter/reduce/etc. This template demonstrates the canonical patterns; trim down for simpler transformations.",
+
+  "_comment_when_to_use": "Use this template when creating a JST that uses Array callback methods (map, filter, reduce, find, findIndex, some, every, sort, flatMap) or Conditional.if...else branching. For trivial straight-line transformations (assign in → assign out) you can omit the functions[] array entirely.",
+
+  "name": "Sample JST — Array.map with Conditional.if...else",
+  "description": "Wraps each input string into {MyOtherObject: {key1: 'blah', key2: <item>}}, with a Conditional.if...else demonstrating inline branching",
+
+  "_comment_schemas": "incoming and outgoing define the data contract. Each entry needs $id (the slot name used in steps), type, and optionally examples. Inner step assigns reference these slots via {location:'incoming', name:'<$id>', ptr:''} or {location:'outgoing', name:'<$id>', ptr:''}.",
+  "incoming": [
+    {
+      "$id": "items",
+      "type": "array",
+      "items": { "type": "string", "examples": ["apple"] },
+      "examples": [["apple", "orange", "banana"]]
+    }
+  ],
+  "outgoing": [
+    {
+      "$id": "result",
+      "type": "object",
+      "properties": {
+        "myobject": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "MyOtherObject": {
+                "type": "object",
+                "properties": {
+                  "key1": { "type": "string" },
+                  "key2": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+
+  "_comment_steps_top": "Root-level steps. Step types: 'method' (calls a library function), 'assign' (wires from→to), 'declaration' (creates a literal — e.g., String.new String, Number.new Number), 'context' (branching/looping containers like Conditional.if...else). All root steps have context: '#'.",
+  "steps": [
+    {
+      "_comment": "Step 1 — Array.map with a callback function reference. args[0] is the input array (filled by step 2 below). args[1] is the function name string — its actual logic lives in functions[] keyed by matching name/id. The 'ƒ_map_<n>' prefix is shared with Array.flatMap (NOT a separate ƒ_flatMap_* prefix). Predicate-shaped methods (filter/find/findIndex/some/every) all use 'ƒ_query_<n>' instead.",
+      "id": 1, "type": "method", "library": "Array", "method": "map",
+      "args": [null, "ƒ_map_1"],
+      "view": {"row": 1, "col": 1}, "context": "#"
+    },
+    {
+      "_comment": "Step 2 — feed the JST's incoming 'items' into step 1's args[0]. Pattern: from incoming → method args[N]/value.",
+      "id": 2, "type": "assign",
+      "from": {"location": "incoming", "name": "items", "ptr": ""},
+      "to":   {"location": "method", "name": 1, "ptr": "/args/0/value"},
+      "context": "#"
+    },
+    {
+      "_comment": "Step 3 — wrap the mapped array in {myobject: ...}.",
+      "id": 3, "type": "method", "library": "Object", "method": "setProperty",
+      "args": [{}, "myobject", null],
+      "view": {"row": 2, "col": 1}, "context": "#"
+    },
+    {
+      "_comment": "Step 4 — feed map's per-iteration collected return into step 3's args[2].",
+      "id": 4, "type": "assign",
+      "from": {"location": "method", "name": 1, "ptr": "/return"},
+      "to":   {"location": "method", "name": 3, "ptr": "/args/2/value"},
+      "context": "#"
+    },
+    {
+      "_comment": "Step 5 — emit step 3's wrapped object as the JST's outgoing 'result'.",
+      "id": 5, "type": "assign",
+      "from": {"location": "method", "name": 3, "ptr": "/return"},
+      "to":   {"location": "outgoing", "name": "result", "ptr": ""},
+      "context": "#"
+    }
+  ],
+
+  "_comment_functions_top": "functions[] is a TOP-LEVEL array, sibling to steps[]. Each entry holds the body of a callback referenced by an Array.* method. The function's name and id MUST match the string in the parent step's args (e.g., 'ƒ_map_1'). Inner steps use context: '#' (their OWN root, not the parent's). 'Anchors could not be found' canvas errors usually mean a parent references a function name that has no matching entry here.",
+  "functions": [
+    {
+      "name": "ƒ_map_1",
+      "id":   "ƒ_map_1",
+      "_comment_signature": "Array.map callback signature: (currentValue, index, array). All three slots must be present even when only currentValue is used. If the parent step has args[2] (a constant), an extra 'constantValue1' slot appears here too — verified across find/findIndex/flatMap.",
+      "incoming": [
+        { "$id": "currentValue", "type": "string", "examples": ["apple"] },
+        { "$id": "index",        "type": "number", "title": "index", "optional": true },
+        { "$id": "array",        "type": "array", "optional": true,
+          "items": {"type": "string", "examples": ["apple"]} }
+      ],
+      "_comment_outgoing": "Array.map's function emits each per-iteration result via 'newValue'. Predicate methods (filter/find/findIndex/some/every) emit a boolean via 'return' instead. Array.reduce emits the new accumulator via 'accumulator'. Array.sort emits a number via 'comparison'.",
+      "outgoing": [
+        { "$id": "newValue", "title": "newValue",
+          "type": ["array","boolean","number","integer","string","object","null"],
+          "editable": true }
+      ],
+      "_comment_steps": "Function-body steps. context '#' here means the function's own root, NOT the parent JST's root. Read iteration values via {location:'incoming', name:'currentValue', ptr:''}. Write per-iteration result via {location:'outgoing', name:'newValue', ptr:''}. The body below also demonstrates Conditional.if...else inline branching with context pointers '#/N[0]' (if) and '#/N[1]' (else) — that's a DIFFERENT mechanism from this functions[] array, used for control flow inside any step body.",
+      "steps": [
+        { "id": 1, "type": "method", "library": "Object", "method": "setProperty",
+          "args": [{}, "key1", "blah"],
+          "view": {"row": 1, "col": 1}, "context": "#" },
+        { "id": 2, "type": "method", "library": "Object", "method": "setProperty",
+          "args": [null, "key2", null],
+          "view": {"row": 2, "col": 1}, "context": "#" },
+        { "id": 3, "type": "assign",
+          "from": {"location": "method", "name": 1, "ptr": "/return"},
+          "to":   {"location": "method", "name": 2, "ptr": "/args/0/value"},
+          "context": "#" },
+        { "id": 4, "type": "assign",
+          "from": {"location": "incoming", "name": "currentValue", "ptr": ""},
+          "to":   {"location": "method", "name": 2, "ptr": "/args/2/value"},
+          "context": "#" },
+        { "id": 5, "type": "method", "library": "Object", "method": "setProperty",
+          "args": [{}, "MyOtherObject", null],
+          "view": {"row": 3, "col": 1}, "context": "#" },
+        { "id": 6, "type": "assign",
+          "from": {"location": "method", "name": 2, "ptr": "/return"},
+          "to":   {"location": "method", "name": 5, "ptr": "/args/2/value"},
+          "context": "#" },
+        { "id": 7, "type": "assign",
+          "from": {"location": "method", "name": 5, "ptr": "/return"},
+          "to":   {"location": "outgoing", "name": "newValue", "ptr": ""},
+          "context": "#" }
+      ],
+      "functions": [],
+      "view": {"col": 2, "row": 4},
+      "comments": []
+    }
+  ],
+
+  "comments": [],
+  "view": {"col": 3, "row": 5},
+  "tags": [],
+
+  "_comment_array_methods_reference": [
+    "Per-method shape for Array.* callback methods. Function name prefix and incoming/outgoing slots vary — DO NOT assume slot names from the method name. Verified against IAP transformations as of 2026-05.",
+    "",
+    "Array.map     — parent args [array, ƒ_map_<n>];           function incoming: currentValue/index/array;                    outgoing: newValue",
+    "Array.flatMap — parent args [array, ƒ_map_<n>, constant]; function incoming: currentValue/index/array/constantValue1;    outgoing: newValue (parent flattens). SHARES ƒ_map_* with map.",
+    "Array.filter  — parent args [array, ƒ_query_<n>];         function incoming: element/index/array;                          outgoing: return (boolean)",
+    "Array.find    — parent args [array, ƒ_query_<n>, const];  function incoming: element/index/array/constantValue1;          outgoing: return (boolean) — parent returns the matched element",
+    "Array.findIndex — args/incoming/outgoing IDENTICAL to find;  parent returns the integer index instead of element",
+    "Array.some    — parent args [array, ƒ_query_<n>];         function incoming: element/index/array;                          outgoing: return (boolean) — parent returns boolean",
+    "Array.every   — same as some, parent returns boolean (true if all elements pass)",
+    "Array.reduce  — parent args [array, ƒ_reduce_<n>, initial]; function incoming: accumulator/currentValue/index/array;       outgoing: accumulator (symmetric naming)",
+    "Array.sort    — parent args [array, ƒ_sort_<n>];          function incoming: firstEl/secondEl;                             outgoing: comparison (numeric: -1, 0, 1)",
+    "",
+    "Gotchas:",
+    "- All five predicate methods (filter/find/findIndex/some/every) share the ƒ_query_* namespace AND have identical function-body shape. The parent step's method field is the only differentiator.",
+    "- Array.flatMap shares the ƒ_map_* namespace with Array.map (not ƒ_flatMap_*).",
+    "- Extra parent args slots beyond [array, callbackName] bind to constantValue<N> in the function's incoming. Verified across find, findIndex, flatMap.",
+    "- One function entry can be referenced by multiple parent steps — verified with one ƒ_query_<n> shared between Array.some and Array.every parents.",
+    "- Array.forEach does NOT exist in JST.",
+    "- Parent step type is 'method' for all Array.* (not 'context'). 'context' type is for Conditional.if...else and similar."
+  ],
+
+  "_comment_conditional_if_else_pattern": [
+    "Conditional.if...else uses INLINE sub-context (a different mechanism from functions[]):",
+    "",
+    "1. Parent step is type:'context', library:'Conditional', method:'if...else', args:[null]. args[0] takes the boolean condition.",
+    "2. Inner branch steps live in the SAME steps[] array as the parent, distinguished by their context pointer:",
+    "     '#/N[0]' = step N's IF branch",
+    "     '#/N[1]' = step N's ELSE branch",
+    "     Nested: '#/1[1]/14[0]' = step 14's IF branch, where step 14 lives in step 1's ELSE branch",
+    "3. Each branch needs an entry assign that wires {location:'context', name:N, ptr:'/return/if'} (or '/return/else') to the first inner step's '/context' slot. Note: ptr uses STRINGS ('if'/'else'), not branch indices.",
+    "4. Inner steps can be method/declaration/assign/even another context — all must carry the matching '#/N[<branch>]' context pointer.",
+    "5. Returning a value: inner steps assign directly to outgoing.<slot> — there is no per-branch return buffer.",
+    "",
+    "Useful boolean libraries: Equality.identity (===), Equality.equality (==), Equality.inequality (!=), Relational.lessThan/greaterThan/lessThanEq/greaterThanEq."
+  ],
+
+  "_comment_step_types": [
+    "type:'method'      — calls a library function. Has library/method/args. Result accessed via /return.",
+    "type:'assign'      — wires from→to. Has from/to (no args). Used to feed values between steps.",
+    "type:'declaration' — creates a literal. Example: {library:'Number', method:'new Number', args:[0]} or {library:'String', method:'new String', args:['hello']}. Result accessed via /return.",
+    "type:'context'     — branching/looping container (e.g., Conditional.if...else). Inner steps use the inline '#/N[<branch>]' pointer."
+  ],
+
+  "_comment_endpoints": [
+    "POST   /transformations/        — create. Body: this whole document (sans _id). Response includes the new _id.",
+    "GET    /transformations/        — list (paginated as {results:[...], totalRecords, ...}).",
+    "GET    /transformations/{id}    — fetch a single JST.",
+    "PUT    /transformations/{id}    — update (full replacement). Body: the whole document. NO {options:{}} wrapper (unlike json-forms PUT).",
+    "DELETE /transformations/{id}    — delete a single JST.",
+    "POST   /transformations/import  — import an exported JST."
+  ]
+}

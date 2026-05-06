@@ -813,6 +813,83 @@ Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json`
 
 ---
 
+## JSON Transformations (JSTs) — Building
+
+JSTs reshape data between workflow steps. This section covers BUILDING JSTs (creating the document with its steps and callback functions). For CONSUMING a JST inside a workflow via the `transformation` task, see the "transformation" task section earlier in this skill.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/transformations/` | List all JSTs (paginated as `{results:[...]}`) |
+| GET | `/transformations/{id}` | Fetch a single JST |
+| POST | `/transformations/` | Create a JST |
+| PUT | `/transformations/{id}` | Update a JST (full replacement) |
+| DELETE | `/transformations/{id}` | Delete a JST |
+| POST | `/transformations/import` | Import an exported JST |
+
+### Create a JST
+
+```
+POST /transformations/
+```
+
+Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-transformation.json`
+
+**Update format:** `PUT /transformations/{id}` — body is the whole document (no `{"options": {...}}` wrapper, unlike json-forms PUT). Full replacement; include all fields.
+
+### Step types
+
+| `type` | Purpose | Key fields |
+|---|---|---|
+| `method` | Calls a library function (e.g., `Object.setProperty`, `Equality.equality`, `Array.map`) | `library`, `method`, `args` |
+| `assign` | Wires `from` → `to` between two locations | `from`, `to` |
+| `declaration` | Creates a literal (e.g., `Number.new Number` with `args: [0]`, `String.new String` with `args: ["hello"]`) | `library`, `method`, `args` |
+| `context` | Branching/looping container (e.g., `Conditional.if...else`) — inner steps live INLINE in `steps[]` with a `context` pointer like `#/N[<branch>]` | `library`, `method`, `args` |
+
+Every step has a `context` JSON pointer that describes where it lives. Root-level steps use `"#"`. Inner steps inside an inline `Conditional.if...else` use `"#/N[0]"` (if branch) or `"#/N[1]"` (else branch). Steps inside an `Array.*` callback function live in a SEPARATE `functions[]` array — see below.
+
+### Array callback methods
+
+Callback bodies for `Array.map`/`filter`/`reduce`/`find`/`findIndex`/`some`/`every`/`sort`/`flatMap` live in a **top-level `functions[]` array, sibling to `steps[]`** — NOT inline in `steps[]`. Each function entry's `name` and `id` must match the string the parent step's `args` references.
+
+| Method | Parent `args` | Function name | Function `incoming` | Function `outgoing` |
+|---|---|---|---|---|
+| `Array.map` | `[arr, "ƒ_map_<n>"]` | `ƒ_map_<n>` | `currentValue`, `index`, `array` | `newValue` |
+| `Array.flatMap` | `[arr, "ƒ_map_<n>", const]` | `ƒ_map_<n>` (shares with `map`) | `currentValue`, `index`, `array`, `constantValue1` | `newValue` |
+| `Array.filter` | `[arr, "ƒ_query_<n>"]` | `ƒ_query_<n>` | `element`, `index`, `array` | `return` (boolean) |
+| `Array.find` | `[arr, "ƒ_query_<n>", const]` | `ƒ_query_<n>` (shares with `filter`) | `element`, `index`, `array`, `constantValue1` | `return` (boolean) |
+| `Array.findIndex` | `[arr, "ƒ_query_<n>", const]` | `ƒ_query_<n>` | `element`, `index`, `array`, `constantValue1` | `return` (boolean) |
+| `Array.some` | `[arr, "ƒ_query_<n>"]` | `ƒ_query_<n>` | `element`, `index`, `array` | `return` (boolean) |
+| `Array.every` | `[arr, "ƒ_query_<n>"]` | `ƒ_query_<n>` | `element`, `index`, `array` | `return` (boolean) |
+| `Array.reduce` | `[arr, "ƒ_reduce_<n>", initial]` | `ƒ_reduce_<n>` | `accumulator`, `currentValue`, `index`, `array` | `accumulator` |
+| `Array.sort` | `[arr, "ƒ_sort_<n>"]` | `ƒ_sort_<n>` | `firstEl`, `secondEl` | `comparison` (-1, 0, 1) |
+
+**Gotchas — easy to assume wrong:**
+
+- The function-name prefix does NOT always match the method. `Array.filter`/`find`/`findIndex`/`some`/`every` all use `ƒ_query_<n>` (single shared counter); `Array.flatMap` uses `ƒ_map_<n>` shared with `Array.map`.
+- The five predicate-shaped methods have IDENTICAL function-body shape. The parent step's `method` field is the only differentiator — what the parent does with the per-iteration boolean varies (filter returns matched array, find returns element, findIndex returns integer index, some/every return overall boolean).
+- The iteration-slot name varies: `currentValue` (map/flatMap/reduce) vs `element` (predicate methods) vs `firstEl`/`secondEl` (sort).
+- `Array.reduce`'s outgoing slot is `accumulator` (symmetric with incoming), not `newValue`.
+- Extra parent `args` slots beyond `[array, callbackName]` bind to `constantValue<N>` slots in the function's `incoming`. Verified across `find`, `findIndex`, `flatMap`. Generalizes across map-family and predicate-family methods.
+- One function entry can be referenced by multiple parent steps (e.g., one `ƒ_query_<n>` shared by both an `Array.some` and an `Array.every` parent).
+- `Array.forEach` does NOT exist in JST.
+- Inner steps inside a function body use `context: "#"` (the function's OWN root) — NOT the parent step's `#/N[0]` pointer. The `#/N[<branch>]` pattern is for `Conditional.if...else`, not for `Array.*`.
+- Read iteration values via `{"location":"incoming","name":"<slotName>","ptr":""}`. Write the per-iteration result via `{"location":"outgoing","name":"<slotName>","ptr":""}`.
+
+**"Failed to draw assignment: Anchors could not be found for step(s) N, N+1"** in the canvas means a parent step references a function name (e.g. `"ƒ_map_1"`) but the matching `functions[]` entry is missing or empty. The fix is to add the function with the right `name`/`id`/`incoming`/`outgoing`/`steps` for the method's family.
+
+### Conditional.if...else
+
+`Conditional.if...else` uses **inline sub-context** (a different mechanism from `Array.*`'s `functions[]`):
+
+- Parent step: `type: "context"`, `library: "Conditional"`, `method: "if...else"`, `args: [null]`. `args[0]` takes the boolean condition (fed via an `assign`).
+- Inner branch steps live in the SAME `steps[]` array as the parent, distinguished by their `context` pointer: `"#/N[0]"` (if) or `"#/N[1]"` (else). Nested: `"#/1[1]/14[0]"` = step 14's if-branch, where step 14 itself lives in step 1's else-branch.
+- Each branch needs an entry `assign` that wires `{"location":"context","name":N,"ptr":"/return/if"}` (or `/return/else`) to the first inner step's `/context`. Note: `ptr` uses string suffixes (`if`/`else`), NOT branch indices.
+- Returning from a branch: inner steps assign directly to `outgoing.<slot>` — there is no per-branch return buffer.
+
+Useful libraries inside conditionals: `Equality.identity` (===), `Equality.equality` (==), `Equality.inequality` (!=), `Relational.lessThan`/`greaterThan`/`lessThanEq`/`greaterThanEq`.
+
+---
+
 ## Operations Manager (Automations & Triggers)
 
 | Method | Endpoint | Description |
@@ -1940,6 +2017,7 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
 | Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
 | Create a JSON form | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
+| Create a JST (transformation) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-transformation.json` | `POST /transformations/` |
 | Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
 | Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
 | Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
