@@ -796,8 +796,10 @@ PATCH /automation-studio/projects/{projectId}
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/json-forms/forms` | List all JSON forms |
+| GET | `/json-forms/forms/{id}` | Fetch a single form |
 | POST | `/json-forms/forms` | Create a JSON form |
 | PUT | `/json-forms/forms/{id}` | Update a JSON form (full replacement) |
+| DELETE | `/json-forms/forms` | Bulk delete — body `{"ids":["...","..."]}`. There is no per-id DELETE endpoint. |
 
 ### Create a JSON Form
 
@@ -809,7 +811,24 @@ Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json`
 
 **Update format:** `PUT /json-forms/forms/{id}` — body MUST be wrapped in `{"options": {...}}` and include ALL fields (`created`, `createdBy`, `lastUpdated`, `lastUpdatedBy`, `name`, `description`, `struct`, `schema`, `uiSchema`, `validationSchema`, `bindingSchema`, `version`). This is a full replacement — omitting any field will clear it.
 
-**Dropdown fields** use `enum`/`enumNames` arrays in both `struct.items` and `schema.properties` — these must stay in sync.
+**Dropdown fields (static enum)** use `enum`/`enumNames` arrays in both `struct.items` and `schema.properties` — these must stay in sync.
+
+**REST-bound dropdowns** — when options should reflect live platform state instead of a hardcoded list, the dropdown's options come from a GET against an IAP endpoint. Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form-rest-bound.json`.
+
+Three things must line up:
+
+1. **`struct.type` MUST be `"array"`** (not `"object"`). The static-enum scaffold uses `"array"` too — keep it.
+2. **`bindingSchema.properties.<customKey>` must mirror every REST-bound field.** Studio reverse-engineers `bindingSchema` from `struct` in the GUI, but the server does not — leaving `bindingSchema: {}` produces dropdowns that render but never fetch.
+3. **Endpoint discovery:** `GET /automation-studio/json-forms/method-options` returns the canonical list of bindable endpoints — the same list Studio shows in its dropdown picker.
+
+**Cascading dropdowns** (one dropdown's URL path parameter fed by another field's value):
+
+- The dependent dropdown's `href` stays as a TEMPLATE: `/v1/inventories/:inventoryIdentifier/nodes`. **Path params use `:name` colon syntax, NOT `{name}` curly braces.**
+- A `variables` array maps each placeholder to a JSON pointer into form data: `[{ "name": "inventoryIdentifier", "reference": "/site" }]` substitutes `:inventoryIdentifier` with whatever value the field whose `customKey` is `site` currently holds.
+- The same `variables` array must appear in BOTH `struct.items[i].variables` AND `bindingSchema.properties.<dependentKey>.binding:hyperSchema.links[0].variables`.
+- Both the source and the dependent field need `ui:widget: "DependencyWidget"` in `uiSchema` — without it the runtime will not re-fetch when the source changes.
+
+**`labelKeyPointer` is unused.** Both label and value come from `sourceKeyPointer`.
 
 ---
 
@@ -1939,7 +1958,8 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-template-textfsm.json` | `POST /automation-studio/templates` |
 | Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
 | Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
-| Create a JSON form | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
+| Create a JSON form (static dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
+| Create a JSON form (REST-bound or cascading dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form-rest-bound.json` | `POST /json-forms/forms` |
 | Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
 | Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
 | Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
