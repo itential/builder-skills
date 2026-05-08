@@ -131,11 +131,7 @@ GET /lifecycle-manager/model
 GET /automation-studio/projects?limit=500
 ```
 
-> **Visibility caveat:** All list endpoints are RBAC-filtered by the calling client. Assets gated by ACLs the client isn't on will be silently omitted. **Itential projects use per-project ACLs only — there is no platform-wide admin or "all-projects" role.** The calling client sees a project iff that project's ACL includes the client (or one of its groups), and the same per-resource model governs other Platform assets. A "complete" survey requires the calling client to be on every relevant ACL, which is rarely the case in practice. Before treating the survey as complete:
->
-> 1. Identify the calling client via `GET /iam/clients/{client_id}` and surface the client's group memberships in Step 6's summary.
-> 2. Tell the engineer the catalog is *"as visible to client `{client_id}`"*. If the engineer expects more coverage, the path is to ask the owners of additional projects/resources to add `{client_id}` (or its groups) to their ACLs — there is no shortcut "admin client" that grants global visibility.
-> 3. Never silently group or omit assets based on a hunch they "must exist somewhere" — only document what the API returns, with the visibility caveat attached.
+> **Visibility caveat:** Global Automation Studio assets (the focus of this skill) are **not** access-restricted by ACL — they are visible to any authenticated client, so list endpoints like `GET /automation-studio/workflows?exclude-project-members=true` return the complete global set regardless of the calling client. The catalog of *globals* is therefore not undercounted by RBAC. The one exception in the list above is `GET /automation-studio/projects?limit=500`, which **is** filtered by per-project ACLs (each project must explicitly grant access to a user or group; there is no platform-wide admin or "all-projects" role). For this skill that mostly matters as an aside — projects-out-of-scope by default — but if the engineer names a specific project they expect, see `/project-to-spec` for visibility-vs-existence handling.
 
 ### Classification Signatures
 
@@ -405,7 +401,7 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 
 ## Gotchas
 
-- **API survey is RBAC-filtered, and there is no admin scope that grants global visibility.** Itential projects use per-project ACLs only — every project explicitly grants access to specific users or groups. List endpoints in Mode B return only the projects/assets the calling client (or its groups) is explicitly granted access to. Always run the calling-client check (Step 1, Mode B caveat), report the client and its group memberships in the Step 6 summary, and label the catalog as *"as visible to client `{client_id}`"*. Extending coverage means asking owners of additional projects to add `{client_id}` (or its groups) to their ACLs — not switching to a different "admin" client.
+- **Global assets are not access-restricted; projects are.** Global Automation Studio assets (the focus of this skill) are visible to any authenticated client — RBAC does not undercount the global catalog. The `/automation-studio/projects` list, however, **is** filtered by per-project ACL (every project must explicitly grant a user or group; there is no platform-wide admin or "all-projects" role). For documenting *globals*, this is mostly out of scope; if the engineer names a specific project they expect, route to `/project-to-spec` rather than declaring it absent.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.

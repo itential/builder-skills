@@ -50,7 +50,7 @@ Save the project ID and component list.
 
 Project list/get responses are RBAC-filtered. A 404 or empty `data` array does NOT prove the project doesn't exist — it may be invisible to the calling client.
 
-**Important:** Itential projects use per-project ACLs only. There is **no platform-wide admin or "all-projects" role** — every project explicitly grants access to specific users or groups via its own ACL. The calling client sees a project iff that project's ACL includes the client or one of its groups.
+**Important:** Itential projects use per-project ACLs only. There is **no platform-wide admin or "all-projects" role** — every project explicitly grants access to specific users or groups via its own ACL. The calling client sees a project iff that project's ACL includes the client or one of its groups. (This applies to **projects** specifically; global Automation Studio assets that live outside any project are not access-restricted the same way.)
 
 Before declaring the project missing, do all of:
 
