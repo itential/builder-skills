@@ -10,7 +10,7 @@
       "workflow_start": {
         "name": "workflow_start",
         "groups": [],
-        "nodeLocation": { "x": 200, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 200 }
       },
       "a1b2": {
         "name": "transformation",
@@ -45,7 +45,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 500, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 308 }
       },
       "c3d4": {
         "name": "postMessage",
@@ -72,7 +72,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 800, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 416 }
       },
       "ef01": {
         "name": "newVariable",
@@ -93,12 +93,12 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 800, "y": 800 }
+        "nodeLocation": { "x": 864, "y": 416 }
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
-        "nodeLocation": { "x": 1100, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 524 }
       }
     },
     "transitions": {

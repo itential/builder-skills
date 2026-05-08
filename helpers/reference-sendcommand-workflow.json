@@ -10,7 +10,7 @@
       "workflow_start": {
         "name": "workflow_start",
         "groups": [],
-        "nodeLocation": { "x": 200, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 200 }
       },
 
       "k_result": {
@@ -32,7 +32,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 500, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 500 }
       },
 
       "i01": {
@@ -54,7 +54,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 800, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 800 }
       },
 
       "i02": {
@@ -75,7 +75,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 800, "y": 732 }
+        "nodeLocation": { "x": 732, "y": 800 }
       },
 
       "i03": {
@@ -96,7 +96,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 800, "y": 864 }
+        "nodeLocation": { "x": 864, "y": 800 }
       },
 
       "f01": {
@@ -123,7 +123,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 1100, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 1100 }
       },
 
       "q01": {
@@ -149,7 +149,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 1400, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 1400 }
       },
 
       "n01": {
@@ -171,7 +171,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 1700, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 1700 }
       },
 
       "b01": {
@@ -193,7 +193,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 2000, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 2000 }
       },
 
       "b02": {
@@ -217,7 +217,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 2300, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 2300 }
       },
 
       "b03": {
@@ -239,7 +239,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 2600, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 2600 }
       },
 
       "b04": {
@@ -264,7 +264,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 2900, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 2900 }
       },
 
       "b05": {
@@ -291,7 +291,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 3200, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 3200 }
       },
 
       "b06": {
@@ -312,7 +312,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 3500, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 3500 }
       },
 
       "b07": {
@@ -336,7 +336,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 3800, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 3800 }
       },
 
       "s01": {
@@ -362,7 +362,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 4100, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 4100 }
       },
 
       "e01": {
@@ -394,7 +394,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 4400, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 4400 }
       },
 
       "q02": {
@@ -420,7 +420,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 4700, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 4700 }
       },
 
       "e02": {
@@ -452,7 +452,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 5000, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 5000 }
       },
 
       "p_matched": {
@@ -473,7 +473,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 5300, "y": 468 }
+        "nodeLocation": { "x": 468, "y": 5300 }
       },
 
       "p_skipped": {
@@ -494,7 +494,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 5300, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 5300 }
       },
 
       "p_errored": {
@@ -516,7 +516,7 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 4400, "y": 732 }
+        "nodeLocation": { "x": 732, "y": 4400 }
       },
 
       "loop_end": {
@@ -538,13 +538,13 @@
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": { "x": 5600, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 5600 }
       },
 
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
-        "nodeLocation": { "x": 5900, "y": 600 }
+        "nodeLocation": { "x": 600, "y": 5900 }
       }
     },
 

@@ -11,8 +11,8 @@
         "name": "workflow_start",
         "groups": [],
         "nodeLocation": {
-          "x": 200,
-          "y": 600
+          "x": 600,
+          "y": 200
         }
       },
       "a1a1": {
@@ -40,8 +40,8 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 450,
-          "y": 600
+          "x": 600,
+          "y": 312
         }
       },
       "b2b2": {
@@ -69,8 +69,8 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 700,
-          "y": 500
+          "x": 336,
+          "y": 420
         }
       },
       "c3c3": {
@@ -98,16 +98,16 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 700,
-          "y": 700
+          "x": 864,
+          "y": 420
         }
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
         "nodeLocation": {
-          "x": 950,
-          "y": 600
+          "x": 600,
+          "y": 528
         }
       }
     },

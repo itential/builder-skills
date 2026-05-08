@@ -299,8 +299,9 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] merge uses `"variable"`, childJob uses `"value"`
 - [ ] childJob has `actor: "job"`, all others have `actor: "Pronghorn"`
 - [ ] `workflow_end` transition is empty `{}`
-- [ ] Canvas layout follows the spacing convention — success path on y=0 spine, error handlers drop to y=+132
-- [ ] No tasks overlap (minimum +264px x-delta between columns)
+- [ ] Canvas layout follows the vertical spacing convention — non-forked sequences on a constant-x spine, fork branches offset to `spine±264` and stay in their own column until convergence
+- [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
+- [ ] Sequential y-delta ~108px (tight grid)
 
 **Complete working example:** Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference-adapter-workflow.json` before building. It's a tested workflow (merge → adapter create → query → adapter update) with `_comment` fields explaining every decision.
 
@@ -887,45 +888,44 @@ POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
 
 ### nodeLocation Spacing Convention
 
-**Ask the engineer before starting:** "Do you prefer a horizontal layout (left to right) or vertical (top to bottom)?"
+Workflows are laid out **top-to-bottom (vertical)** by default — this is the Itential best practice for readability and consistency, and matches the conventions used in the platform's working examples. Use horizontal only when the engineer explicitly asks for it.
 
-- **Horizontal** is the Automation Studio default — tasks advance left-to-right, branches drop down. Use this unless the engineer says otherwise.
-- **Vertical** works better for deep workflows with many sequential phases where horizontal becomes too wide to read.
-
-The rules below assume **horizontal**. For vertical, swap x and y roles (phases advance on y, branches offset on x).
-
-#### Horizontal Layout (default)
+#### Vertical Layout (default)
 
 | Rule | Value |
 |------|-------|
-| workflow_start → first task (x-delta) | +264px |
-| Sequential task columns (x-delta) | +360px |
-| Stacked tasks in same column (y-delta) | +132px |
-| Last task → workflow_end (x-delta) | +276px |
+| Sequential tasks (y-delta) | +108px |
+| Fork branch offset from spine (x-delta) | ±264px |
+| Spine x | a constant column (e.g. `x=600`) |
 
 **Clean canvas principles:**
-- The **success path is the spine** — keep it on `y=0`, advancing left to right
-- **Error handlers drop down** — same x as the failing task, `y=+132` or `y=+264`
-- **Branch convergence** — tasks that merge back to the success path return to `y=0`
-- **Group related tasks** at the same x: merge + the adapter it feeds, childJob + its query extractor
-- **Never overlap** — maintain at least +264px x-delta between task columns
+- The **spine is a constant `x`** — non-forked sequences (start, single-thread tasks, end, convergence points) sit on it.
+- **Forks split off the spine** — at a fork point, both outgoing branches leave the spine column. Place one at `spine - 264` and the other at `spine + 264`. The spine column stays empty between the fork and the convergence point so transition lines don't cross task nodes. Direction (which branch goes left vs. right) is the engineer's call — pick whatever keeps the picture clean.
+- **Branches stay in their own column** until they converge.
+- **Convergence tasks** (workflow_end, merges, error sinks) return to the spine `x`.
+- **Tight y-spacing** — the canvas grid is dense; ~108px between sequential rows reads well. Don't pad to +250 or +360.
 - **Preserve Studio-arranged positions** — if an engineer has arranged a workflow in Automation Studio, treat its `nodeLocation` values as authoritative. Always read from the live export before reimporting. Never recalculate positions from scratch on a workflow that has already been arranged.
 
-Example for a 3-phase workflow:
+Example — fork with a shared error handler (mirrors `helpers/reference-adapter-workflow.json`):
 ```
-workflow_start (x=0,   y=0)
-  Phase 1:   x=264  — task1     (y=0),   task1_err (y=132)
-  Phase 2:   x=624  — task2     (y=0),   task2_err (y=132)
-  Phase 3:   x=984  — task3     (y=0),   task3_err (y=132)
-workflow_end (x=1260, y=0)
+workflow_start                        (x=600, y=200)
+e1a1 merge                            (x=600, y=312)
+a1b2 createCR  ── fork point ──       (x=600, y=420)
+b2c3 query   [success branch]         (x=336, y=540)
+c3d4 updateCR [success branch]        (x=336, y=636)   ef01 newVar [shared error handler]  (x=864, y=636)
+workflow_end                          (x=600, y=804)
 ```
 
-For a childJob phase with query + evaluation:
+For a childJob phase with query + evaluation (single-thread, no fork → all on spine):
 ```
-  x=264  — childJob     (y=0)
-  x=624  — query        (y=0)   ← extracts taskStatus from job_details
-  x=984  — evaluation   (y=0),  eval_fail (y=132)
+y=312  — childJob     (x=600)
+y=420  — query        (x=600)   ← extracts taskStatus from job_details
+y=528  — evaluation   (x=600)
 ```
+
+#### Horizontal Layout (only when requested)
+
+If the engineer explicitly asks for horizontal, swap x and y throughout: phases advance on x, fork branches offset on y, spine becomes a constant y row. Same magnitudes, opposite axes.
 
 ---
 
@@ -952,7 +952,7 @@ Body wraps the workflow in `{"automation": {...}}`:
       "workflow_start": {
         "name": "workflow_start",
         "groups": [],
-        "nodeLocation": {"x": 360, "y": 1308}
+        "nodeLocation": {"x": 600, "y": 200}
       },
       "a1b2": {
         "name": "query",
@@ -979,12 +979,12 @@ Body wraps the workflow in `{"automation": {...}}`:
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": {"x": 600, "y": 1308}
+        "nodeLocation": {"x": 600, "y": 312}
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
-        "nodeLocation": {"x": 1152, "y": 1308}
+        "nodeLocation": {"x": 600, "y": 420}
       }
     },
     "transitions": {

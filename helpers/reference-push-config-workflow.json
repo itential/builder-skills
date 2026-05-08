@@ -4,16 +4,16 @@
       "name": "workflow_start",
       "groups": [],
       "nodeLocation": {
-        "x": -1344,
-        "y": 912
+        "x": 912,
+        "y": 200
       }
     },
     "workflow_end": {
       "name": "workflow_end",
       "groups": [],
       "nodeLocation": {
-        "x": 1008,
-        "y": 912
+        "x": 912,
+        "y": 2552
       }
     },
     "ca47": {
@@ -42,8 +42,8 @@
       "actor": "Pronghorn",
       "scheduled": false,
       "nodeLocation": {
-        "x": 456,
-        "y": 912
+        "x": 912,
+        "y": 2000
       }
     },
     "21ac": {
@@ -71,8 +71,8 @@
       "actor": "Pronghorn",
       "scheduled": false,
       "nodeLocation": {
-        "x": -480,
-        "y": 912
+        "x": 912,
+        "y": 1064
       }
     },
     "6c30": {
@@ -100,8 +100,8 @@
       "actor": "Pronghorn",
       "scheduled": false,
       "nodeLocation": {
-        "x": -168,
-        "y": 912
+        "x": 912,
+        "y": 1376
       }
     },
     "b9ed": {
@@ -129,8 +129,8 @@
       "actor": "Pronghorn",
       "scheduled": false,
       "nodeLocation": {
-        "x": -1104,
-        "y": 912
+        "x": 912,
+        "y": 440
       }
     },
     "e97b": {
@@ -158,8 +158,8 @@
       "groups": [],
       "scheduled": false,
       "nodeLocation": {
-        "x": -792,
-        "y": 912
+        "x": 912,
+        "y": 752
       }
     },
     "7a4c": {
@@ -188,8 +188,8 @@
       "groups": [],
       "scheduled": false,
       "nodeLocation": {
-        "x": 624,
-        "y": 804
+        "x": 804,
+        "y": 2168
       }
     },
     "f14d": {
@@ -231,8 +231,8 @@
       },
       "groups": [],
       "nodeLocation": {
-        "x": 768,
-        "y": 912
+        "x": 912,
+        "y": 2312
       }
     },
     "cba5": {
@@ -261,8 +261,8 @@
       "groups": [],
       "scheduled": false,
       "nodeLocation": {
-        "x": 144,
-        "y": 804
+        "x": 804,
+        "y": 1688
       }
     },
     "c4c9": {
@@ -305,8 +305,8 @@
       },
       "groups": [],
       "nodeLocation": {
-        "x": 144,
-        "y": 912
+        "x": 912,
+        "y": 1688
       }
     }
   },

@@ -11,8 +11,8 @@
         "name": "workflow_start",
         "groups": [],
         "nodeLocation": {
-          "x": 50,
-          "y": 600
+          "x": 600,
+          "y": 200
         }
       },
       "a1a1": {
@@ -49,8 +49,8 @@
         "actor": "job",
         "scheduled": false,
         "nodeLocation": {
-          "x": 250,
-          "y": 600
+          "x": 600,
+          "y": 312
         }
       },
       "b2b2": {
@@ -79,8 +79,8 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 500,
-          "y": 600
+          "x": 600,
+          "y": 420
         }
       },
       "c3c3": {
@@ -125,8 +125,8 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 750,
-          "y": 600
+          "x": 600,
+          "y": 528
         }
       },
       "d4d4": {
@@ -154,8 +154,8 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 1000,
-          "y": 500
+          "x": 336,
+          "y": 636
         }
       },
       "e5e5": {
@@ -183,16 +183,16 @@
         "actor": "Pronghorn",
         "scheduled": false,
         "nodeLocation": {
-          "x": 1000,
-          "y": 700
+          "x": 864,
+          "y": 636
         }
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
         "nodeLocation": {
-          "x": 1250,
-          "y": 600
+          "x": 600,
+          "y": 744
         }
       }
     },

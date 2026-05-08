@@ -10,8 +10,8 @@
         "name": "workflow_start",
         "groups": [],
         "nodeLocation": {
-          "x": 300,
-          "y": 600
+          "x": 600,
+          "y": 200
         }
       },
       "a1b2": {
@@ -54,15 +54,15 @@
         "scheduled": false,
         "nodeLocation": {
           "x": 600,
-          "y": 600
+          "y": 312
         }
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
         "nodeLocation": {
-          "x": 900,
-          "y": 600
+          "x": 600,
+          "y": 420
         }
       }
     },

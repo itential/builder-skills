@@ -10,12 +10,12 @@
       "workflow_start": {
         "name": "workflow_start",
         "groups": [],
-        "nodeLocation": { "x": 360, "y": 1308 }
+        "nodeLocation": { "x": 600, "y": 200 }
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
-        "nodeLocation": { "x": 1152, "y": 1308 }
+        "nodeLocation": { "x": 600, "y": 312 }
       }
     },
     "transitions": {

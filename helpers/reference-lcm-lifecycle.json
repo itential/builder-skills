@@ -12,8 +12,8 @@
           "name": "workflow_start",
           "groups": [],
           "nodeLocation": {
-            "x": 200,
-            "y": 600
+            "x": 600,
+            "y": 200
           }
         },
         "a1b2": {
@@ -49,8 +49,8 @@
           "actor": "Pronghorn",
           "scheduled": false,
           "nodeLocation": {
-            "x": 500,
-            "y": 600
+            "x": 600,
+            "y": 500
           }
         },
         "c3d4": {
@@ -79,8 +79,8 @@
           "actor": "Pronghorn",
           "scheduled": false,
           "nodeLocation": {
-            "x": 750,
-            "y": 600
+            "x": 600,
+            "y": 750
           }
         },
         "e5f6": {
@@ -117,8 +117,8 @@
           "actor": "job",
           "scheduled": false,
           "nodeLocation": {
-            "x": 1000,
-            "y": 600
+            "x": 600,
+            "y": 1000
           }
         },
         "a7b8": {
@@ -155,16 +155,16 @@
           "actor": "Pronghorn",
           "scheduled": false,
           "nodeLocation": {
-            "x": 1250,
-            "y": 600
+            "x": 600,
+            "y": 1250
           }
         },
         "workflow_end": {
           "name": "workflow_end",
           "groups": [],
           "nodeLocation": {
-            "x": 1500,
-            "y": 600
+            "x": 600,
+            "y": 1500
           }
         }
       },
@@ -238,8 +238,8 @@
           "name": "workflow_start",
           "groups": [],
           "nodeLocation": {
-            "x": 200,
-            "y": 600
+            "x": 600,
+            "y": 200
           }
         },
         "a1b2": {
@@ -271,16 +271,16 @@
           "actor": "job",
           "scheduled": false,
           "nodeLocation": {
-            "x": 500,
-            "y": 600
+            "x": 600,
+            "y": 500
           }
         },
         "workflow_end": {
           "name": "workflow_end",
           "groups": [],
           "nodeLocation": {
-            "x": 800,
-            "y": 600
+            "x": 600,
+            "y": 800
           }
         }
       },
