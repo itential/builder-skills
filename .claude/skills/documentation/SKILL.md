@@ -131,6 +131,12 @@ GET /lifecycle-manager/model
 GET /automation-studio/projects?limit=500
 ```
 
+> **Visibility caveat:** All list endpoints are RBAC-filtered by the calling client. A platform survey run with a non-admin client will produce an *undercount* — assets gated by ACLs the client isn't on will be silently omitted. Before treating the survey as complete:
+>
+> 1. Confirm the calling client's roles via `GET /iam/clients/{client_id}` and surface them in Step 6's summary.
+> 2. If the client is not an admin, tell the engineer the catalog is *"as visible to client `{client_id}`"* and recommend re-running with an admin-scoped client for a full inventory.
+> 3. Never silently group or omit assets based on a hunch they "must exist somewhere" — only document what the API returns, with the visibility caveat attached.
+
 ### Classification Signatures
 
 | Asset Type | Identifying Fields |
@@ -399,6 +405,7 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 
 ## Gotchas
 
+- **API survey is RBAC-filtered.** List endpoints in Mode B return only what the calling client can see. A non-admin client will silently undercount the platform. Always run the calling-client check (Step 1, Mode B caveat), report the client and its roles in the Step 6 summary, and label the catalog as *"as visible to client `{client_id}`"* unless the client has admin scope.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.

@@ -111,6 +111,8 @@ Show:
 - Devices: count and OS types (if available)
 - Existing workflows: count
 
+> **Visibility note:** All list/get responses above are filtered by the calling client's RBAC. Counts and names reflect *what this client can see*, not what exists on the platform. If the engineer expects a specific project, workflow, or device that does not appear, treat it as *possibly access-restricted*, not *missing* — see the gotcha below.
+
 ---
 
 ## Step 4: Route to Skills
@@ -136,3 +138,4 @@ Point to the right skill for what the engineer wants to do:
 - OpenAPI spec is ~1.5MB — search locally with `jq`, never load into context
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list` for correct names
 - Devices endpoint is POST not GET — body required
+- **API responses are RBAC-filtered — absence in a list does NOT mean the resource doesn't exist.** A project, workflow, or device may be present on the platform but invisible to the calling client because the client isn't on its ACL. If the engineer names a specific resource you can't find, say *"not visible to this client (`{client_id}`) — possibly access-restricted; ask the owner or an admin to grant access"* rather than *"doesn't exist"*. Confirming non-existence requires a higher-privilege client or direct DB inspection — never grant access to yourself, ask the engineer how to proceed.
