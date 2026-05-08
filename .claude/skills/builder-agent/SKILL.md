@@ -1037,6 +1037,41 @@ PUT /automation-studio/automations/{id}
 
 **Adapter tasks also require `adapter_id`** in incoming variables — the adapter instance name from `health/adapters`.
 
+### Task Access Control (`groups`)
+
+The `groups` field on a task definition is **task-level GBAC** — group-based access control that restricts which IAP groups can see, claim, and complete a manual task in the Job Inbox.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `groups` *(plural)* | `string[]` | GBAC. Each entry is a group's MongoDB `_id` (24-char hex). Empty `[]` means no task-level restriction. |
+| `group` *(singular, optional)* | `string` | Canvas display category (e.g., `"Tools"`, `"JsonForms"`). Set by the Studio canvas. **NOT access control** — easy to confuse with `groups`. |
+
+```json
+{
+  "name": "ViewData",
+  "type": "manual",
+  "app": "WorkFlowEngine",
+  "view": "/workflow_engine/task/ViewData",
+  ...
+  "groups": ["69e65b4189b39131a9b8cce1"]
+}
+```
+
+**Look up group IDs:**
+- `GET /authorization/groups` — list groups (each has `_id` and `name`)
+- `GET /authorization/groups/<id>` — resolve a single group
+
+**Two GBAC scopes** — both use the same `string[]` shape (group `_id`s) but apply at different levels:
+- **Per-task `groups`** (on the task definition, sibling of `name`/`app`/`type`) — gates access to a single manual task.
+- **Top-level workflow `groups`** (sibling of `tasks`/`transitions` at the workflow level) — gates access to the workflow as a whole.
+
+**Tasks of any type can carry `groups`**, but only `type: "manual"` tasks surface in the Job Inbox where GBAC actually gates user access. Leave it as `[]` on automatic tasks unless platform-specific docs say otherwise.
+
+> **Edge cases not yet documented** — verify on your platform before relying on:
+> - Semantics with **multiple group IDs** in the array (likely OR — any-of — but unverified)
+> - Interaction between **task-level and workflow-level** `groups` (additive vs. override)
+> - Whether `groups` accepts a **`$var` job-variable** for dynamic group resolution (almost certainly no — design-time only — but worth confirming)
+
 ### Task IDs
 
 Task IDs must be **hex-only**: `[0-9a-f]{1,4}`. Non-hex IDs (e.g., `apush`) cause `$var` references to silently fail.
