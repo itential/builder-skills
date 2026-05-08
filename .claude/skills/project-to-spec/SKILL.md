@@ -50,12 +50,14 @@ Save the project ID and component list.
 
 Project list/get responses are RBAC-filtered. A 404 or empty `data` array does NOT prove the project doesn't exist — it may be invisible to the calling client.
 
+**Important:** Itential projects use per-project ACLs only. There is **no platform-wide admin or "all-projects" role** — every project explicitly grants access to specific users or groups via its own ACL. The calling client sees a project iff that project's ACL includes the client or one of its groups.
+
 Before declaring the project missing, do all of:
 
-1. **Identify the calling client** — `GET /iam/clients/{client_id}` (the `client_id` from `.auth.json` or the env file). Confirm whether the client has admin/all-access roles.
+1. **Identify the calling client** — `GET /iam/clients/{client_id}` (the `client_id` from `.auth.json` or the env file). Note its group memberships — these (together with the client itself) determine which project ACLs it might be on.
 2. **Try a broader query** — `GET /automation-studio/projects?limit=500` and inspect the result for partial-name matches; the `contains` filter is case-sensitive in some Platform versions.
-3. **Surface visibility, not absence** — report: *"No project named `{name}` is visible to this client (`{client_id}`). It may not exist, or it may be access-restricted. To confirm, ask the project owner or an admin to grant `{client_id}` read access via the Automation Studio UI."*
-4. **Do not auto-grant access.** Adding the calling client to a project ACL is a privileged write to a shared resource — always ask the engineer to handle it via the UI or via a separately authorized admin client. If the engineer authorizes a DB-level read-only confirmation (e.g. local dev Mongo), that is acceptable, but the granting itself stays a human action.
+3. **Surface visibility, not absence** — report: *"No project named `{name}` is visible to this client (`{client_id}`). It may not exist, or it may be access-restricted. To confirm, ask the project's owner (or someone with manage rights on that project) to add `{client_id}` to its ACL via the Automation Studio UI."*
+4. **Do not auto-grant access.** Adding the calling client to a project ACL is a privileged write to a shared resource — always ask the engineer to handle it via the UI, or via a different client that is already on that project's ACL with manage rights. If the engineer authorizes a DB-level read-only confirmation (e.g. local dev Mongo), that is acceptable, but the granting itself stays a human action.
 
 Stop and wait for engineer direction before proceeding to Step 2.
 
@@ -249,4 +251,4 @@ Show both documents and walk through:
 - Template `data` field is a JSON string, not an object — parse it before analyzing
 - childJob `workflow` field shows the child workflow name (with prefix) — this is the dependency graph
 - Task descriptions and summaries are the best source of intent — use them heavily
-- **Project not returned ≠ project doesn't exist.** RBAC filters list/get responses by client ACL. A named project the engineer expects but the API doesn't return is more likely access-restricted than missing. Follow the "If the project is not returned" path in Step 1 — never silently switch to a different project, never declare absence without surfacing the visibility caveat, and never grant the calling client access on its own initiative.
+- **Project not returned ≠ project doesn't exist.** Itential projects use per-project ACLs only — there is no platform-wide admin role that sees every project. List/get responses are filtered by the calling client's ACL membership per project. A named project the engineer expects but the API doesn't return is more likely access-restricted than missing. Follow the "If the project is not returned" path in Step 1 — never silently switch to a different project, never declare absence without surfacing the visibility caveat, and never grant the calling client access on its own initiative.

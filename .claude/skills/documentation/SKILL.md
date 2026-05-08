@@ -131,10 +131,10 @@ GET /lifecycle-manager/model
 GET /automation-studio/projects?limit=500
 ```
 
-> **Visibility caveat:** All list endpoints are RBAC-filtered by the calling client. A platform survey run with a non-admin client will produce an *undercount* — assets gated by ACLs the client isn't on will be silently omitted. Before treating the survey as complete:
+> **Visibility caveat:** All list endpoints are RBAC-filtered by the calling client. Assets gated by ACLs the client isn't on will be silently omitted. **Itential projects use per-project ACLs only — there is no platform-wide admin or "all-projects" role.** The calling client sees a project iff that project's ACL includes the client (or one of its groups), and the same per-resource model governs other Platform assets. A "complete" survey requires the calling client to be on every relevant ACL, which is rarely the case in practice. Before treating the survey as complete:
 >
-> 1. Confirm the calling client's roles via `GET /iam/clients/{client_id}` and surface them in Step 6's summary.
-> 2. If the client is not an admin, tell the engineer the catalog is *"as visible to client `{client_id}`"* and recommend re-running with an admin-scoped client for a full inventory.
+> 1. Identify the calling client via `GET /iam/clients/{client_id}` and surface the client's group memberships in Step 6's summary.
+> 2. Tell the engineer the catalog is *"as visible to client `{client_id}`"*. If the engineer expects more coverage, the path is to ask the owners of additional projects/resources to add `{client_id}` (or its groups) to their ACLs — there is no shortcut "admin client" that grants global visibility.
 > 3. Never silently group or omit assets based on a hunch they "must exist somewhere" — only document what the API returns, with the visibility caveat attached.
 
 ### Classification Signatures
@@ -405,7 +405,7 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 
 ## Gotchas
 
-- **API survey is RBAC-filtered.** List endpoints in Mode B return only what the calling client can see. A non-admin client will silently undercount the platform. Always run the calling-client check (Step 1, Mode B caveat), report the client and its roles in the Step 6 summary, and label the catalog as *"as visible to client `{client_id}`"* unless the client has admin scope.
+- **API survey is RBAC-filtered, and there is no admin scope that grants global visibility.** Itential projects use per-project ACLs only — every project explicitly grants access to specific users or groups. List endpoints in Mode B return only the projects/assets the calling client (or its groups) is explicitly granted access to. Always run the calling-client check (Step 1, Mode B caveat), report the client and its group memberships in the Step 6 summary, and label the catalog as *"as visible to client `{client_id}`"*. Extending coverage means asking owners of additional projects to add `{client_id}` (or its groups) to their ACLs — not switching to a different "admin" client.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.
