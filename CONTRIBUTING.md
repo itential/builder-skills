@@ -105,7 +105,7 @@ This project uses a fork and pull request model for contributions:
    git checkout -b feature/your-feature-name
    ```
 
-3. **Make your changes** in logical, atomic commits
+3. **Make your changes** in logical, atomic commits — every commit message must follow the [Commit Message Format](#commit-message-format) below; CI will reject the PR otherwise
 4. **Test your changes** thoroughly
 5. **Push to your fork:**
    ```bash
@@ -116,17 +116,68 @@ This project uses a fork and pull request model for contributions:
 
 ### Branch Naming Conventions
 
-Use descriptive branch names with prefixes:
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `chore/` - Maintenance tasks
-- `docs/` - Documentation updates
+Branch names are validated by CI against this regex:
+
+```
+^(feature|fix|refactor|docs|chore)/[a-z][a-z0-9-]*$
+```
+
+Format: `<type>/<description>` where:
+
+| Field | Rule |
+|---|---|
+| Type | One of `feature`, `fix`, `refactor`, `docs`, `chore` |
+| Description | Lowercase letters, numbers, and hyphens only; must start with a letter |
+
+Type meanings:
+- `feature/` — new features
+- `fix/` — bug fixes
+- `refactor/` — code restructuring without changing behavior
+- `chore/` — maintenance tasks (dependencies, tooling, build)
+- `docs/` — documentation updates
 
 Examples:
 - `feature/add-authentication-support`
 - `fix/handle-connection-timeout`
+- `refactor/extract-token-helper`
 - `chore/update-dependencies`
 - `docs/improve-api-examples`
+
+### Commit Message Format
+
+Every commit on a PR is validated by CI against the [Conventional Commits](https://www.conventionalcommits.org/) regex:
+
+```
+^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .{1,72}
+```
+
+Format: `<type>[(scope)]: <description>` where:
+
+| Field | Rule |
+|---|---|
+| Type | One of `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf` |
+| Scope | *(Optional)* parenthesized, e.g. `(builder-agent)` |
+| Description | 1–72 characters |
+
+> **Note** — the commit type list is **different from the branch type list**. Branches use `feature/` (full word); commits use `feat:` (Conventional Commits short form). Branches don't have `style`, `test`, or `perf`.
+
+Type meanings (commit-side):
+- `feat` — new feature
+- `fix` — bug fix
+- `docs` — documentation only
+- `style` — formatting, whitespace, missing semicolons (no code logic change)
+- `refactor` — code restructuring without behavior change
+- `test` — adding or fixing tests
+- `chore` — build process, tooling, dependencies
+- `perf` — performance improvements
+
+**Merge commits are not allowed** on PR branches — the CI rejects them. Use squash or rebase to integrate updates from `main`.
+
+Examples:
+- `feat(auth): add JWT token validation`
+- `fix: handle empty response from upstream`
+- `docs(contributing): document commit and branch CI rules`
+- `chore: bump dependency versions`
 
 ## Pull Request Guidelines
 
