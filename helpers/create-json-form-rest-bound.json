@@ -1,0 +1,162 @@
+{
+  "_comment_overview": "JSON Form scaffold for POST /json-forms/forms with REST-BOUND dropdowns whose options are pulled live from an IAP endpoint, including a cascading dependency (aka field dependency, as the Studio UI labels it) where one dropdown's URL path parameter is fed by another field's selection. For static enum dropdowns use create-json-form.json instead.",
+
+  "_comment_when_to_use": "Use this template when a dropdown's options should reflect live platform state (devices, inventories, projects, templates, etc.) rather than a hardcoded list. The example below builds a Site/Device cascade against Inventory Manager: dropdown 1 lists inventories, dropdown 2 lists nodes from the selected inventory.",
+
+  "name": "",
+  "description": "",
+
+  "_comment_struct_top": "struct.type MUST be 'array'. Every REST-bound dropdown lives in struct.items[] AND must have a mirror entry in bindingSchema.properties.<customKey> below — Studio reverse-engineers bindingSchema from struct in the GUI but the server does not, so an API-created form needs both populated.",
+
+  "struct": {
+    "type": "array",
+    "items": [
+      {
+        "_comment": "REST-bound dropdown (no cascade). Options come from GET base+href; the response is walked via sourcePointer to an array, and each item's sourceKeyPointer field becomes BOTH the value and the label (labelKeyPointer is unused). Keep enum/enumNames as empty arrays.",
+        "nodeId": "unique-uuid-per-field-1",
+        "type": "string",
+        "title": "Site",
+        "description": "Inventory from Inventory Manager",
+        "placeholder": "Select a site",
+        "required": false,
+        "enum": [],
+        "enumNames": [],
+        "uniqueItems": false,
+        "binding": true,
+        "rel": "collection",
+        "targetPointer": "/enum",
+        "method": "GET",
+        "base": "/inventory_manager",
+        "href": "/v1/inventories",
+        "sourcePointer": "/result/data",
+        "sourceKeyPointer": "/name",
+        "customKey": "site"
+      },
+      {
+        "_comment_cascade": "CASCADING dropdown (the Studio UI labels this pattern 'field dependency'). Depends on the 'site' field above. The href stays as a TEMPLATE with :paramName placeholders (colon syntax, NOT curly braces). The variables array maps each placeholder to a JSON pointer into form data: reference '/site' fills :inventoryIdentifier with whatever value the 'site' field currently holds. originalHref preserves the unresolved template; href is a copy used at runtime. The same variables array MUST also appear inside bindingSchema.properties.device.binding:hyperSchema.links[0].variables below.",
+        "nodeId": "unique-uuid-per-field-2",
+        "type": "string",
+        "title": "Device",
+        "description": "Device (node) from the selected site's inventory",
+        "placeholder": "Select a device",
+        "required": false,
+        "enum": [],
+        "enumNames": [],
+        "uniqueItems": false,
+        "binding": true,
+        "rel": "collection",
+        "targetPointer": "/enum",
+        "method": "GET",
+        "base": "/inventory_manager",
+        "originalHref": "/v1/inventories/:inventoryIdentifier/nodes",
+        "href": "/v1/inventories/:inventoryIdentifier/nodes",
+        "sourcePointer": "/result/data",
+        "sourceKeyPointer": "/name",
+        "variables": [
+          { "name": "inventoryIdentifier", "reference": "/site" }
+        ],
+        "customKey": "device"
+      }
+    ]
+  },
+
+  "_comment_schema": "schema is the data contract — property keys must match customKey values from struct. For REST-bound fields the enum/enumNames stay empty here too.",
+  "schema": {
+    "title": "Site and Device Selector",
+    "description": "Pick a site, then a device from that site",
+    "type": "object",
+    "required": [],
+    "properties": {
+      "site": {
+        "type": "string",
+        "title": "Site",
+        "_id": "/properties/site",
+        "description": "Inventory from Inventory Manager",
+        "enum": [],
+        "enumNames": []
+      },
+      "device": {
+        "type": "string",
+        "title": "Device",
+        "_id": "/properties/device",
+        "description": "Device (node) from the selected site's inventory",
+        "enum": [],
+        "enumNames": []
+      }
+    }
+  },
+
+  "_comment_uiSchema": "Cascading dropdowns require ui:widget 'DependencyWidget' on BOTH the source field and the dependent field. Without it the runtime will not re-fetch the dependent dropdown when the source changes.",
+  "uiSchema": {
+    "site": {
+      "ui:placeholder": "Select a site",
+      "ui:widget": "DependencyWidget"
+    },
+    "device": {
+      "ui:placeholder": "Select a device",
+      "ui:widget": "DependencyWidget"
+    },
+    "ui:order": ["site", "device", "*"]
+  },
+
+  "_comment_bindingSchema": "bindingSchema.properties.<customKey> must mirror every REST-bound field in struct. Keys use 'binding:'-prefixed names. binding:hyperSchema.links[0] holds the actual href + variables; binding:source holds the response-walking pointers. body:variables (note the 'body:' prefix) appears on dependent fields and is normally an empty array.",
+  "bindingSchema": {
+    "properties": {
+      "site": {
+        "binding:method": "GET",
+        "binding:link": { "$ref": "/links", "rel": "collection" },
+        "binding:target": { "propertyPointer": "/enum" },
+        "binding:hyperSchema": {
+          "type": "object",
+          "base": "/inventory_manager",
+          "links": [
+            {
+              "rel": "collection",
+              "href": "/v1/inventories",
+              "targetMediaType": "application/json",
+              "targetSchema": { "$ref": "#" },
+              "variables": []
+            }
+          ]
+        },
+        "binding:source": { "propertyPointer": "/result/data", "keyPointer": "/name" }
+      },
+      "device": {
+        "binding:method": "GET",
+        "binding:link": { "$ref": "/links", "rel": "collection" },
+        "body:variables": [],
+        "binding:target": { "propertyPointer": "/enum" },
+        "binding:hyperSchema": {
+          "type": "object",
+          "base": "/inventory_manager",
+          "links": [
+            {
+              "rel": "collection",
+              "href": "/v1/inventories/:inventoryIdentifier/nodes",
+              "targetMediaType": "application/json",
+              "targetSchema": { "$ref": "#" },
+              "variables": [
+                { "name": "inventoryIdentifier", "reference": "/site" }
+              ]
+            }
+          ]
+        },
+        "binding:source": { "propertyPointer": "/result/data", "keyPointer": "/name" }
+      }
+    }
+  },
+
+  "validationSchema": {},
+  "tags": [],
+  "version": "2020.1",
+
+  "_comment_gotchas": [
+    "struct.type MUST be 'array' — 'object' silently produces a form whose dropdowns never render correctly.",
+    "Path parameters in href use :name colon syntax, NOT {name} curly braces.",
+    "labelKeyPointer is ignored; both label and value come from sourceKeyPointer.",
+    "Cascading needs three things together: (1) variables[] in struct.items, (2) the same variables[] inside bindingSchema...links[0], (3) ui:widget 'DependencyWidget' on both fields.",
+    "To discover what endpoints are bindable, GET /automation-studio/json-forms/method-options — the same list Studio shows in its dropdown picker.",
+    "Bulk delete: DELETE /json-forms/forms with body {\"ids\":[\"...\"]}. There is no DELETE /json-forms/forms/{id}.",
+    "To UPDATE: PUT /json-forms/forms/{id} with body wrapped in {\"options\": {...}} including ALL fields — full replacement."
+  ]
+}

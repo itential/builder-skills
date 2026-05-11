@@ -108,6 +108,7 @@
     "comment": {"ui:placeholder": "Enter comment"}
   },
 
+  "_comment_bindingSchema": "Empty for static-enum forms. For REST-bound or cascading dropdowns (aka field dependency in the Studio UI) use create-json-form-rest-bound.json — bindingSchema must be populated with a binding entry per field.",
   "bindingSchema": {},
   "validationSchema": {},
   "tags": [],

@@ -800,23 +800,11 @@ PATCH /automation-studio/projects/{projectId}
 
 ## JSON Forms
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/json-forms/forms` | List all JSON forms |
-| POST | `/json-forms/forms` | Create a JSON form |
-| PUT | `/json-forms/forms/{id}` | Update a JSON form (full replacement) |
+JSON Forms have their own dedicated skill — `app-json_forms`. See that skill for the form structure (`struct` / `schema` / `uiSchema` / `bindingSchema`), the static-enum vs. REST-bound vs. cascading dropdown (aka field dependency) patterns, the full API reference (including the bulk-only DELETE), and the manual-trigger wiring (`legacyWrapper: false`).
 
-### Create a JSON Form
-
-```
-POST /json-forms/forms
-```
-
-Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json`
-
-**Update format:** `PUT /json-forms/forms/{id}` — body MUST be wrapped in `{"options": {...}}` and include ALL fields (`created`, `createdBy`, `lastUpdated`, `lastUpdatedBy`, `name`, `description`, `struct`, `schema`, `uiSchema`, `validationSchema`, `bindingSchema`, `version`). This is a full replacement — omitting any field will clear it.
-
-**Dropdown fields** use `enum`/`enumNames` arrays in both `struct.items` and `schema.properties` — these must stay in sync.
+Helper templates for forms still live under `${CLAUDE_PLUGIN_ROOT}/helpers/`:
+- `create-json-form.json` — static-enum dropdowns
+- `create-json-form-rest-bound.json` — REST-bound or cascading dropdowns
 
 ---
 
@@ -2041,7 +2029,8 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-template-textfsm.json` | `POST /automation-studio/templates` |
 | Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
 | Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
-| Create a JSON form | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` |
+| Create a JSON form (static dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
+| Create a JSON form (REST-bound or cascading dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
 | Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
 | Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
 | Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
