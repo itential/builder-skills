@@ -457,6 +457,20 @@ Decorators override a tool's schema and description **per team or use case** —
 3. An agent references decorators by name in `capabilities.decorators`
 4. When the agent runs, the decorator's overrides replace the original tool schema — the LLM sees the customized version
 
+**When to create a decorator (and when NOT to):**
+
+Create a decorator ONLY when:
+- The tool's native schema is too broad (many optional fields) and the LLM consistently sends wrong or incomplete inputs even with system prompt guidance
+- You need to enforce fields the adapter marks as optional but your use case requires as mandatory
+- Multiple agents need the same tool with different field constraints or descriptions per team or use case
+
+Do NOT create a decorator when:
+- The tool works correctly as-is — system prompt guidance alone fixes the behavior
+- The tool is read-only (GET-style operations like `getDevice`, `listRecords`) — schema constraints rarely matter for reads
+- You are creating the agent for the first time — test without decorators first, add one only if the native schema causes failures
+
+Rule of thumb: decorators are for **write operations** (POST/PUT/DELETE adapter calls) where schema correctness is critical. If a system prompt fix ("always include `summary` when calling `createIncident`") solves the problem, skip the decorator.
+
 **Create a decorator (example — adapt names, fields, and descriptions to your use case):**
 ```
 POST /flowai/decorators
@@ -596,6 +610,7 @@ Returns models available from the provider's API.
 - `llm.overrides` can override ANY provider config (model, temperature, apiKey) per-agent
 - **"Tool names must be unique" error** — happens when multiple adapters expose methods with the same name (e.g., `getDevice` on two adapters). The LLM provider rejects duplicate tool names. Use specific tool identifiers in `capabilities.toolset` to avoid loading conflicting tools.
 - **Decorator schema replaces the ENTIRE original schema** — if you omit a required field (e.g., `summary` for ServiceNow incidents), the agent won't send it and the adapter returns a schema validation error. Always test the tool directly first to discover all required fields, then include every one in the decorator's overrides schema.
+- **Do NOT include `$schema` in decorator overrides** — Anthropic's API rejects the tool definition at runtime with a schema validation error. `$id` is acceptable; `$schema` is not.
 - **callAgent response may be empty** — check `GET /flowai/missions` after calling to get the result. For async execution, use `startAgent` and poll with `GET /flowai/missions/{mission_id}` or `GET /flowai/missions/{mission_id}/events`
 
 ## Using Agents in Workflows
