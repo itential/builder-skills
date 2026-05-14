@@ -1967,6 +1967,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 4. **Component type is `mopCommandTemplate`** not `mop`.
 5. **Members PATCH is full replacement** — include ALL members.
 6. **Import sets the OAuth service account as project owner** — not the UI user. PATCH membership immediately after import (Phase 3, not Phase 6).
+7. **`accessControl` in PATCH body is silently ignored** — the API returns 200 but the field is a no-op. Always use the `members` array format (`[{type, reference, role}]`). See [#62](https://github.com/itential/builder-skills/issues/62)
 
 ### Workflows
 5. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`.
