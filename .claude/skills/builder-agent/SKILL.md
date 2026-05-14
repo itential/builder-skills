@@ -790,6 +790,8 @@ PATCH /automation-studio/projects/{projectId}
 
 > **If a username or group cannot be resolved from the lookup table, stop and ask the engineer.** Do not guess reference IDs or skip members.
 
+**Baseline members (when no spec membership is defined):** If there is no Project Membership table in the spec, or when doing a freeform build/import outside the spec lifecycle, **ask the engineer:** *"Which user accounts or groups should have access to this project?"* — do not assume or skip. Once you have the names, resolve them via the lookup table above and PATCH immediately. Without this step the engineer will be locked out of the project in the IAP UI. See [#63](https://github.com/itential/builder-skills/issues/63)
+
 ---
 
 ## JSON Forms
