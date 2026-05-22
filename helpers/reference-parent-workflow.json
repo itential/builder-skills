@@ -33,6 +33,10 @@
               "deviceName": {
                 "task": "job",
                 "value": "deviceName"
+              },
+              "configData": {
+                "task": "prevTaskId",
+                "value": "return_data"
               }
             },
             "data_array": "",

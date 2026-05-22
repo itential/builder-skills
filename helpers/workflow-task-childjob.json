@@ -16,6 +16,10 @@
         "childInputVar": {
           "task": "job",
           "value": "parentJobVar"
+        },
+        "childInputFromTask": {
+          "task": "prevTaskId",
+          "value": "return_data"
         }
       },
       "data_array": "",

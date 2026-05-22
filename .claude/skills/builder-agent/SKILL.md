@@ -496,6 +496,10 @@ The parent passes specific variables to one child workflow run.
 - `{"task": "static", "value": "validate"}` → passes the literal string `"validate"`
 - `{"task": "b2c3", "value": "return_data"}` → passes a previous task's output (preferred for runtime data)
 
+> **WRONG for task output refs in childJob:**
+> `{"task": "b2c3", "variable": "return_data"}` — `"variable"` is for merge/evaluation only.
+> In childJob, ALL refs (job, static, AND task output) use `"value"`. Using `"variable"` causes `undefined.indexOf()` at job start time (P6.4.0+) — the workflow fails before any task runs.
+
 **Extracting single child output:**
 ```json
 {
