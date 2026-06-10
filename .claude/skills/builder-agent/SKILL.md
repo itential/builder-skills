@@ -887,43 +887,36 @@ POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
 
 ### nodeLocation Spacing Convention
 
-**Ask the engineer before starting:** "Do you prefer a horizontal layout (left to right) or vertical (top to bottom)?"
-
-- **Horizontal** is the Automation Studio default — tasks advance left-to-right, branches drop down. Use this unless the engineer says otherwise.
-- **Vertical** works better for deep workflows with many sequential phases where horizontal becomes too wide to read.
-
-The rules below assume **horizontal**. For vertical, swap x and y roles (phases advance on y, branches offset on x).
-
-#### Horizontal Layout (default)
+Build **vertically** — tasks advance top to bottom on the y-axis. This is the team standard.
 
 | Rule | Value |
 |------|-------|
-| workflow_start → first task (x-delta) | +264px |
-| Sequential task columns (x-delta) | +360px |
-| Stacked tasks in same column (y-delta) | +132px |
-| Last task → workflow_end (x-delta) | +276px |
+| workflow_start → first task (y-delta) | +264px |
+| Sequential task rows (y-delta) | +360px |
+| Stacked tasks in same row (x-delta) | +132px |
+| Last task → workflow_end (y-delta) | +276px |
 
 **Clean canvas principles:**
-- The **success path is the spine** — keep it on `y=0`, advancing left to right
-- **Error handlers drop down** — same x as the failing task, `y=+132` or `y=+264`
-- **Branch convergence** — tasks that merge back to the success path return to `y=0`
-- **Group related tasks** at the same x: merge + the adapter it feeds, childJob + its query extractor
-- **Never overlap** — maintain at least +264px x-delta between task columns
+- The **success path is the spine** — keep it on `x=0`, advancing top to bottom
+- **Error handlers offset right** — same y as the failing task, `x=+132` or `x=+264`
+- **Branch convergence** — tasks that merge back to the success path return to `x=0`
+- **Group related tasks** at the same y: merge + the adapter it feeds, childJob + its query extractor
+- **Never overlap** — maintain at least +264px y-delta between task rows
 
 Example for a 3-phase workflow:
 ```
-workflow_start (x=0,   y=0)
-  Phase 1:   x=264  — task1     (y=0),   task1_err (y=132)
-  Phase 2:   x=624  — task2     (y=0),   task2_err (y=132)
-  Phase 3:   x=984  — task3     (y=0),   task3_err (y=132)
-workflow_end (x=1260, y=0)
+workflow_start (x=0, y=0)
+  Phase 1:   y=264  — task1     (x=0),   task1_err (x=132)
+  Phase 2:   y=624  — task2     (x=0),   task2_err (x=132)
+  Phase 3:   y=984  — task3     (x=0),   task3_err (x=132)
+workflow_end (x=0,   y=1260)
 ```
 
 For a childJob phase with query + evaluation:
 ```
-  x=264  — childJob     (y=0)
-  x=624  — query        (y=0)   ← extracts taskStatus from job_details
-  x=984  — evaluation   (y=0),  eval_fail (y=132)
+  y=264  — childJob     (x=0)
+  y=624  — query        (x=0)   ← extracts taskStatus from job_details
+  y=984  — evaluation   (x=0),  eval_fail (x=132)
 ```
 
 ---
@@ -951,7 +944,7 @@ Body wraps the workflow in `{"automation": {...}}`:
       "workflow_start": {
         "name": "workflow_start",
         "groups": [],
-        "nodeLocation": {"x": 360, "y": 1308}
+        "nodeLocation": {"x": 0, "y": 0}
       },
       "a1b2": {
         "name": "query",
@@ -978,12 +971,12 @@ Body wraps the workflow in `{"automation": {...}}`:
         "groups": [],
         "actor": "Pronghorn",
         "scheduled": false,
-        "nodeLocation": {"x": 600, "y": 1308}
+        "nodeLocation": {"x": 0, "y": 264}
       },
       "workflow_end": {
         "name": "workflow_end",
         "groups": [],
-        "nodeLocation": {"x": 1152, "y": 1308}
+        "nodeLocation": {"x": 0, "y": 624}
       }
     },
     "transitions": {
