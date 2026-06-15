@@ -10,6 +10,7 @@ Golden Configurations define the "desired state" for device configurations. They
 
 ## Gotchas
 
+- **NEVER wire any task that applies golden-config/compliance-derived changes onto a device.** This skill detects, reports, and grades compliance — it does **not** remediate. The prohibited tasks are `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, and `ManualRemediationResults`. No exceptions — not even when a spec asks for fully automatic remediation. To actually correct a device, hand the violations to a separate config-push delivery (see Remediation section).
 - `deviceType` must match exactly: `"cisco-ios"` not `"Cisco IOS"` or `"ios"`
 - `variables` in `PUT /configuration_manager/node/config` must be a **JSON object**, not a string
 - `updateVariables` boolean is **REQUIRED** in node config update — omitting it silently skips variable merge
@@ -37,7 +38,7 @@ Golden Config provides a hierarchical, version-controlled system for defining wh
 - **Configuration Parsers** - Define how raw CLI config is tokenized for comparison against config specs
 - **Compliance Reports** - Results of checking device configs against golden config specs
 - **Grading** - Scoring formula that produces a grade (Pass/Review/Fail) from compliance results
-- **Remediation** - Auto-fix or manual remediation of compliance violations
+- **Remediation** - Correcting a device is **out of scope for this skill** — it reports violations; a separate config-push delivery applies fixes. The Configuration Manager remediation tasks are never used (see Remediation section).
 
 ### How Inheritance Works
 
@@ -728,13 +729,37 @@ POST /configuration_manager/compliance_reports/grade/single
 
 ## Remediation
 
-When compliance violations are found, Configuration Manager supports auto-remediation and manual remediation.
+> **This skill does not remediate. NEVER wire a Configuration Manager remediation task that pushes golden-config/compliance-derived changes onto a device — auto *or* human-reviewed.** The job of Golden Config is to define the standard, check devices against it, and grade the result. Applying a fix to a device is a separate, deliberately-designed config-push delivery with its own change control — not something Golden Config does automatically.
 
-**Workflow tasks for remediation:**
-- **`runAutoRemediation`** - Automatically fix violations: `in: [complianceReportId, removeDisallowedConfig]`
-- **`advancedAutoRemediation`** - Auto remediate with options: `in: [complianceReportId, removeDisallowedConfig, options]`
-- **`ManualRemediation`** - Present violations for manual review: `in: [compliance_report] → out: [device, changes]`
-- **`patchDeviceConfiguration`** - Apply specific changes: `in: [deviceName, changes]`
+**Prohibited tasks (never wire any of these into a workflow, never suggest them):**
+
+| Task | App | What it (wrongly) does here |
+|------|-----|------------------------------|
+| `runAutoRemediation` | ConfigurationManager | Auto-fixes the device from the compliance report |
+| `advancedAutoRemediation` | ConfigurationManager | Auto-fix with extra options |
+| `convertChangesToConfig` | ConfigurationManager | Converts compliance patch data into device config (auto-remediation plumbing) |
+| `patchDeviceConfiguration` | ConfigurationManager | Alters the device configuration |
+| `advancedPatchDeviceConfiguration` | ConfigurationManager | Alters the device configuration with options |
+| `patchCMDeviceConfiguration` | IAP (legacy) | Alters a device configuration to achieve compliance |
+| `ManualRemediation` | ConfigurationManager | Generates GC-derived device changes for review/apply |
+| `ManualRemediationResults` | ConfigurationManager | Applies the manual-remediation results to the device |
+
+There is **no exception** — not even when a spec asks for fully automatic remediation with no human in the loop. (Itential is also deprecating the auto-remediation feature: `updateNodeConfig` and `convertChangesToConfig` are deprecated in Platform 6.5 and removed in Platform 7 — see the [deprecation notice](https://docs.itential.com/itential-platform/release-notes/deprecations/autoremediation-tasks). Building on it is a dead end regardless.)
+
+**If a spec calls for remediation, do this instead:**
+1. This skill produces the compliance report — the list of violations (`issues`) per device.
+2. Hand those violations to a **config-push delivery** built with `/builder-agent`: render the corrective configuration, then push it through the **config-push mechanism available in the environment**, with the normal dry-run → approval → commit pattern that any config change gets. **Which push task to use depends on what the platform has configured** — check the task catalog / adapters first, don't assume. Common options:
+   - **`sendConfig`** (GatewayManager) — "Send configuration to inventory nodes" via an Automation Gateway
+   - **`runService`** (GatewayManager) — run a gateway service such as the `itential_cli` Ansible role
+   - **`netmikoSendConfig` / `netmikoSendConfigSet`** (AG) — netmiko-based config push
+   - whatever vendor/SSH adapter the environment uses for config push
+
+   See `/builder-agent`'s config-push pattern and `helpers/reference-push-config-workflow.json`.
+3. Re-run compliance (this skill) afterward to confirm the device is back in standard.
+
+This keeps detection (Golden Config) and correction (a reviewed config-push) cleanly separated, and survives the Platform 7 removal of auto-remediation.
+
+> Note: `updateNodeConfig` is **not** prohibited — it authors the Golden Config **node template** (the standard), it does not touch a device. Likewise `applyDeviceConfig`/`applyDeviceTemplate` are generic config-apply tasks; they're fine for a deliberate push delivery but must never be wired to auto-apply changes derived from a compliance report.
 
 ## Helper JSON Templates
 
