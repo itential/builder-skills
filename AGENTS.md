@@ -188,6 +188,8 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 9. **Task IDs are hex-only** — `[0-9a-f]{1,4}`. Non-hex IDs (e.g., `apush`) cause `$var` references to silently fail (classified as static, never resolved)
 10. **`genericAdapterRequest` prepends the adapter's `base_path`** to `uriPath` — don't include `/api/v1` in `uriPath`. Use `genericAdapterRequestNoBasePath` if you need the full path
 11. **Use `POST /projects/import` to create projects atomically** — build all assets locally, pre-compute the project `_id`, pre-wire childJob `@projectId:` refs, then import everything in one call. Avoid the create-then-move pattern (breaks childJob refs, causes project-locking issues).
+11a. **Patch project membership immediately after every create or import** — the platform sets the OAuth service account as the sole owner on creation, locking out human users. Immediately after `POST /automation-studio/projects` or `POST /automation-studio/projects/import`, call `PATCH /automation-studio/projects/{id}` to add the engineer's user account or group as owner. This is mandatory — skip it and the engineer cannot open the project. Resolve reference IDs by scanning existing projects (see "Resolve membership references" below). PATCH is a **full replacement** — always include all members, including the service account, or they will be removed.
+11b. **Project thumbnails use a data URI, not raw base64** — `PUT /automation-studio/projects/{id}/thumbnail` expects `{"imageData": "data:image/png;base64,...", "backgroundColor": "#RRGGBB"}`. Passing raw base64 without the `data:image/png;base64,` prefix results in a black/blank thumbnail in the UI. Use `GET /automation-studio/projects/{id}/thumbnail` to retrieve; the response is `{"data": {"image": "data:image/png;base64,...", "backgroundColor": "..."}}`. Accepted formats: jpg, jpeg, png up to 1000 KB. **Optimal dimensions: 330×100 px.**
 12. **API response shapes vary** — projects use `{message, data, metadata}`, but workflow and template lists use `{items, skip, limit, total}`, and create endpoints return `{created, edit}`. Always check the response shape before parsing
 13. **Project component types** — valid values: `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
 14. **Use skills, don't reimplement** — `/builder-agent` covers projects, workflows, templates, MOP, and testing. Only load other skills for their specific domains (IAG, FlowAgent, MOP, etc.)
@@ -202,6 +204,86 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 23. **Adapter `app` ≠ adapter instance name** — The `app` and `locationType` fields on adapter tasks must be the adapter **type name** from `apps.json` (e.g., `EmailOpensource`, `Servicenow`), NOT the adapter **instance name** from `adapters.json` (e.g., `email`, `servicenow-prod`). Using the instance name causes `"No config found for Adapter: <name>"` at runtime. The `adapter_id` field is where the instance name goes. Triple-check: `app` = type, `adapter_id` = instance.
 24. **Project-scoped asset names** — once an asset is added to a project, its `name` is prefixed with `@{projectId}: `. When reading or updating a project-owned asset via PUT, you MUST use the scoped name or the API returns 400. Read the asset first to get its current name, or construct it as `@{projectId}: {displayName}`. Strip this prefix when displaying names to the user.
 25. **NEVER wire a Configuration Manager remediation task** — `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, and `ManualRemediationResults` are prohibited in every workflow, even when a spec asks for fully automatic remediation. Golden Config detects and reports drift; it never applies fixes to a device. To correct a device, build a normal config-push delivery using the environment's config-push task (`sendConfig`/`runService` via GatewayManager, `itential_cli`, or netmiko send-config). See the `/itential-golden-config` Remediation section. (`updateNodeConfig` is allowed — it authors the GC node template, not a device.)
+
+## Project Membership — Patch Immediately After Create/Import
+
+> **_MANDATORY:_** Every project create or import sets the OAuth service account as the sole owner. Human users and groups are locked out until you PATCH membership. Do this immediately — in the same build step as the create/import, before moving on.
+
+### Why this fails silently
+
+The create and import APIs return `200 OK` with no membership warning. The engineer only discovers they're locked out when they try to open the project in the UI. There is no grace period — the fix is a PATCH call right after creation.
+
+### Step 1: Resolve user/group reference IDs
+
+There is no dedicated user/group lookup API. Scan existing projects to build a lookup table:
+
+```bash
+PROJECT_IDS=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "$BASE/automation-studio/projects?limit=100" | jq -r '.data[]._id')
+
+for pid in $PROJECT_IDS; do
+  curl -s -H "Authorization: Bearer $TOKEN" \
+    "$BASE/automation-studio/projects/$pid" \
+    | jq -r '.data.members[]? | [.type, .reference, (.username // .name)] | @tsv'
+done | sort -u
+```
+
+Output: `type  reference  username/name` — find the `reference` value for the account or group you need.
+
+### Step 2: PATCH membership immediately after create/import
+
+```
+PATCH /automation-studio/projects/{projectId}
+```
+```json
+{
+  "members": [
+    {"type": "account", "role": "owner", "reference": "<service-account-ref>"},
+    {"type": "group",   "role": "owner", "reference": "<admin-group-ref>"}
+  ]
+}
+```
+
+**PATCH is full replacement** — include every member you want. Omitting an existing member removes them.
+
+If a reference ID cannot be resolved from the scan, ask the engineer. Do not guess.
+
+---
+
+## Project Thumbnails
+
+### API
+
+| Operation | Endpoint | Notes |
+|-----------|----------|-------|
+| Set thumbnail | `PUT /automation-studio/projects/{id}/thumbnail` | Body: `{"imageData": "<data-URI>", "backgroundColor": "<hex>"}` |
+| Get thumbnail | `GET /automation-studio/projects/{id}/thumbnail` | Returns `{"data": {"image": "<data-URI>", "backgroundColor": "<hex>"}}` |
+
+### Required format — data URI
+
+`imageData` **must** be a data URI, not raw base64:
+
+```
+data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+```
+
+Passing raw base64 without the `data:image/png;base64,` prefix stores the value but renders as a black/blank image in the UI.
+
+**Build the data URI in Python:**
+```python
+import base64, io
+buf = io.BytesIO()
+img.save(buf, format='PNG')
+b64 = base64.b64encode(buf.getvalue()).decode()
+data_uri = f"data:image/png;base64,{b64}"
+```
+
+### Dimensions and file constraints
+
+- **Optimal dimensions: 330 × 100 px** — matches the project card aspect ratio in Automation Studio
+- Accepted formats: `jpg`, `jpeg`, `png`
+- Maximum size: 1000 KB
+- Use `backgroundColor` (hex, e.g. `"#1B2A4A"`) for the card background color visible before the image loads
 
 ## Helper JSON Templates
 
