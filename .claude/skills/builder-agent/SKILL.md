@@ -796,6 +796,31 @@ PATCH /automation-studio/projects/{projectId}
 
 **Baseline members (when no spec membership is defined):** If there is no Project Membership table in the spec, or when doing a freeform build/import outside the spec lifecycle, **ask the engineer:** *"Which user accounts or groups should have access to this project?"* — do not assume or skip. Once you have the names, resolve them via the lookup table above and PATCH immediately. Without this step the engineer will be locked out of the project in the IAP UI. See [#63](https://github.com/itential/builder-skills/issues/63)
 
+### Project Thumbnail
+
+| Operation | Endpoint |
+|-----------|----------|
+| Set | `PUT /automation-studio/projects/{id}/thumbnail` — body: `{"imageData": "<data-URI>", "backgroundColor": "<hex>"}` |
+| Get | `GET /automation-studio/projects/{id}/thumbnail` — returns `{"data": {"image": "<data-URI>", "backgroundColor": "<hex>"}}` |
+
+**`imageData` must be a full data URI — not raw base64.** Passing raw base64 without the `data:image/png;base64,` prefix returns HTTP 200 and stores the value, but the UI renders a black/blank image with no error.
+
+```
+data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...
+```
+
+Build the data URI in Python:
+```python
+import base64, io
+buf = io.BytesIO()
+img.save(buf, format='PNG')
+data_uri = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
+```
+
+- **Optimal dimensions: 330 × 100 px** — matches the project card aspect ratio in Automation Studio
+- Accepted formats: `jpg`, `jpeg`, `png` — max 1000 KB
+- `backgroundColor` (hex, e.g. `"#1B2A4A"`) sets the card background color visible before the image loads
+
 ---
 
 ## JSON Forms
