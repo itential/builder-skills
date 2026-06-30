@@ -261,7 +261,7 @@ Schema response:
 }
 ```
 
-Becomes this workflow task (use the adapter helper template as starting point):
+Becomes this workflow task (extract a real adapter task from an asset project first — e.g. `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.location == "Adapter")] | first | .value' ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json`):
 ```json
 {
   "a1b2": {
@@ -2173,7 +2173,9 @@ The `revert` transition moves execution back to a previous task, allowing the us
 
 ## Helper Templates
 
-**Read the matching helper before building anything.** Helpers have the correct JSON structure. Modify them for your use case — do NOT build JSON from scratch.
+**Two separate concerns — don't mix them:**
+- **API wrappers** (project, workflow, template, form creation) → use `helpers/create/` scaffolds below. These are POST body wrappers — correct structure, required fields.
+- **Task JSON inside a workflow** → extract from `helpers/assets/` using jq (see Guide 1 STOP block). Do NOT use `helpers/create/` files for task bodies — they are scaffold stubs, not task examples.
 
 ### Scaffolds — start from these
 
