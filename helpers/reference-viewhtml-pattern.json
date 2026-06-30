@@ -1,0 +1,167 @@
+{
+  "name": "View HTML",
+  "description": "Example showing ViewHTML — renders HTML with inline <!var!> variable substitution",
+  "tasks": {
+    "workflow_start": {
+      "name": "workflow_start",
+      "groups": [],
+      "nodeLocation": {
+        "x": 12,
+        "y": -468
+      },
+      "x": 0,
+      "y": 0.5
+    },
+    "workflow_end": {
+      "name": "workflow_end",
+      "groups": [],
+      "nodeLocation": {
+        "x": 12,
+        "y": 192
+      },
+      "x": 1,
+      "y": 0.5
+    },
+    "d287": {
+      "name": "ViewHTML",
+      "canvasName": "ViewHTML",
+      "summary": "View HTML",
+      "description": "Displays HTML. use <!var!> format to create variables and pass json. Use inline styling to render your own css",
+      "location": "Application",
+      "app": "WorkFlowEngine",
+      "displayName": "Tools",
+      "type": "manual",
+      "variables": {
+        "incoming": {
+          "header": "HTML VIEW",
+          "body": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Device Status Report</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 40px;\">\n\n  <div style=\"background-color: #ffffff; padding: 24px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 6px rgba(0,0,0,0.1);\">\n\n    <h2 style=\"color: #2c3e50; margin-top: 0;\">Device Status Report</h2>\n    <p style=\"color: #555555; font-size: 14px; line-height: 1.5;\">\n      The <!myVar1!> <!myVar2!> following devices were checked as part of the automation job. Details are listed below.\n    </p>\n\n    <table style=\"width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;\">\n      <thead>\n        <tr style=\"background-color: #2c3e50; color: #ffffff; text-align: left;\">\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Device Name</th>\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Status</th>\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Last Checked</th>\n        </tr>\n      </thead>\n      <tbody>\n        <tr style=\"background-color: #f9f9f9;\">\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">CSR1000V-EDGE-01</td>\n          <td style=\"padding: 10px; border: 1px solid #ddd; color: #c0392b;\">Unreachable</td>\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">2026-06-30 09:15</td>\n        </tr>\n        <tr>\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">ARISTA-CORE-03</td>\n          <td style=\"padding: 10px; border: 1px solid #ddd; color: #27ae60;\">Online</td>\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">2026-06-30 09:15</td>\n        </tr>\n      </tbody>\n    </table>\n\n  </div>\n\n</body>\n</html>",
+          "variables": {
+            "myVar1": "Testing1",
+            "myVar2": "Testing2"
+          },
+          "btn_success": "Continue",
+          "btn_failure": "End"
+        },
+        "outgoing": {}
+      },
+      "view": "/workflow_engine/task/ViewHTML",
+      "groups": [],
+      "nodeLocation": {
+        "x": 12,
+        "y": -192
+      }
+    },
+    "2ff0": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Result",
+      "description": "Create a new Job variable by Job ID and assign it a value.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "Result",
+          "value": "The user selected to Continue"
+        },
+        "outgoing": {
+          "value": ""
+        }
+      },
+      "actor": "Pronghorn",
+      "groups": [],
+      "nodeLocation": {
+        "x": 216,
+        "y": 0
+      }
+    },
+    "4a23": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Result ",
+      "description": "Create a new Job variable by Job ID and assign it a value.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "Result",
+          "value": "The user selected to end the workflow"
+        },
+        "outgoing": {
+          "value": ""
+        }
+      },
+      "actor": "Pronghorn",
+      "groups": [],
+      "nodeLocation": {
+        "x": -180,
+        "y": 0
+      }
+    }
+  },
+  "transitions": {
+    "workflow_start": {
+      "d287": {
+        "state": "success",
+        "type": "standard"
+      }
+    },
+    "workflow_end": {},
+    "d287": {
+      "2ff0": {
+        "state": "success",
+        "type": "standard"
+      },
+      "4a23": {
+        "type": "standard",
+        "state": "failure"
+      }
+    },
+    "2ff0": {
+      "workflow_end": {
+        "state": "success",
+        "type": "standard"
+      }
+    },
+    "4a23": {
+      "workflow_end": {
+        "state": "success",
+        "type": "standard"
+      }
+    }
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {}
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "_id": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{24}$"
+      },
+      "initiator": {
+        "type": "string"
+      },
+      "Result": {
+        "type": "string"
+      }
+    }
+  },
+  "scenarios": [],
+  "canvasVersion": 3,
+  "type": "automation",
+  "font_size": 12,
+  "errorHandler": null,
+  "preAutomationTime": 0,
+  "sla": 0,
+  "tags": [],
+  "groups": [],
+  "migrationVersion": 7
+}

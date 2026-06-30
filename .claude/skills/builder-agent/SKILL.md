@@ -1889,6 +1889,44 @@ Three rules that cause `"Manual Tasks require 'view' key"` draft validation erro
 }
 ```
 
+### ViewHTML (Manual Task — HTML Display)
+
+Use `ViewHTML` when you need to display formatted HTML to an operator during a workflow — for reports, tables, or styled summaries. Same manual task rules as ViewData apply.
+
+**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewhtml-pattern.json` (full reference workflow showing ViewHTML → success/failure branches)
+
+Key differences from ViewData:
+1. `view` is `/workflow_engine/task/ViewHTML`
+2. `body` is a raw HTML string — use inline CSS (no `<style>` blocks), `<!var!>` syntax for variable substitution
+3. `incoming.variables` is a **plain object** `{"varName": "value"}` that populates `<!var!>` placeholders in the HTML — NOT a `$var` reference
+4. `displayName: "Tools"`, no `actor` field (same as ViewData)
+
+```json
+{
+  "name": "ViewHTML",
+  "canvasName": "ViewHTML",
+  "location": "Application",
+  "app": "WorkFlowEngine",
+  "displayName": "Tools",
+  "type": "manual",
+  "view": "/workflow_engine/task/ViewHTML",
+  "variables": {
+    "incoming": {
+      "header": "Report",
+      "body": "<h2>Status: <!status!></h2><p>Device: <!device!></p>",
+      "variables": {
+        "status": "$var.job.deviceStatus",
+        "device": "$var.job.deviceName"
+      },
+      "btn_success": "Continue",
+      "btn_failure": "End"
+    },
+    "outgoing": {}
+  },
+  "groups": []
+}
+```
+
 ### autoApprove Pattern
 
 Use an `evaluation` task to conditionally skip manual approval:
@@ -2077,6 +2115,7 @@ For every task you add to a workflow — whether building new or modifying exist
 | childJob task | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json` | `actor: "job"`, `task: ""`, variables use `{"task","value"}` syntax |
 | evaluation / branching | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-evalresult.json` | `operand_1`, `operator`, `operand_2` — both success AND failure transitions required |
 | ViewData (manual approval) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewdata-pattern.json` | `view` top-level, `displayName: "Tools"`, no `actor` field, NO `error`/`decorators` in variables |
+| ViewHTML (manual HTML display) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewhtml-pattern.json` | `body` is HTML with `<!var!>` placeholders; `variables` is a plain key-value object (not a `$var` ref) |
 | newVariable | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-newvariable.json` | `name`, `value` — use for error handlers and status flags |
 | query / extract data | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-query.json` | `query` (dot-path), `obj` ($var ref), `pass_on_null` |
 | transformation (JST) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-transformation.json` | `tr_id`, `variableMap`, `options` |
