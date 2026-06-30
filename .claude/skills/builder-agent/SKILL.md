@@ -158,6 +158,41 @@ The memory file is what makes it possible to pick up a use-case after weeks with
 
 Follow these steps in order. Do not skip any step.
 
+---
+
+> **STOP. Before writing a single line of task JSON — run these commands.**
+>
+> The asset projects in `helpers/assets/` are real, production-tested imports. Read them first.
+> Do not guess task structure from memory. Do not copy from `helpers/create/` for task bodies.
+> `helpers/create/` is for API wrappers (project/workflow creation endpoints) only — not task JSON.
+>
+> ```bash
+> # 1. Find which asset project matches your use case
+> ls ${CLAUDE_PLUGIN_ROOT}/helpers/assets/
+>
+> # 2. Extract the workflow most similar to what you're building
+> jq '[.components[] | select(.type=="workflow")] | .[].document.name' \
+>   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+>
+> # 3. Read its full task map — this is your reference
+> jq '[.components[] | select(.type=="workflow") | select(.document.name | test("WORKFLOW_NAME"; "i"))] | first | .document | {tasks, transitions}' \
+>   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+>
+> # 4. Extract the specific task type you need
+> jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
+>   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+> ```
+>
+> Replace `vendor-servicenow.json` with whichever asset file best matches your use case:
+> - Adapter tasks (ServiceNow, Infoblox) → `vendor-servicenow.json`, `vendor-infoblox-nios-ddi.json`
+> - Network device tasks (CLI, MOP) → `vendor-cisco-ios.json`, `vendor-arista-eos.json`, `vendor-juniper-junos.json`
+> - IPAM/inventory → `vendor-netbox.json`
+> - Data transformations → `itential-platform-data-manipulation.json`
+> - Config management (RunCommandTemplate, itential_cli) → `itential-platform-configuration-management.json`
+> - LCM action workflows → `helpers/assets/lcm/lcm-vxlan-fabric-services-project.json`
+
+---
+
 **Step 0: Decompose before you build.**
 
 Before writing any JSON, identify the parent/child split from the solution design. Ask for each phase:
@@ -169,22 +204,16 @@ Before writing any JSON, identify the parent/child split from the solution desig
 
 Build order is always: **children first, orchestrator last.** The orchestrator is just childJob calls to tested children — it should not contain raw adapter tasks unless there is no logical way to split.
 
-**Reference helpers for parent/child patterns — read from asset projects:**
+**Read a full workflow from asset projects before building any multi-workflow solution:**
 ```bash
-# Child workflow with try-catch pattern (sets taskStatus, always completes)
-jq '[.components[] | select(.type=="workflow") | .document | {name:.name, tasks:.tasks}] | .[]' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json | head -60
-
 # Parent → childJob → evaluation pattern
-jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Upgrade|Runner")) | .document | {name:.name, tasks:.tasks}] | first' \
+jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Upgrade|Runner"))] | first | .document | {name,tasks,transitions}' \
   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
 
-# childJob loop with data_array (Chunk Array Wrapper pattern)
-jq '[.components[] | select(.type=="workflow") | .document | {name:.name, tasks:.tasks}] | .[]' \
+# childJob loop with data_array
+jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Chunk|Loop"))] | first | .document | {name,tasks,transitions}' \
   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/itential-platform-configuration-management.json
 ```
-
-Read at least one complete workflow before building any multi-workflow solution.
 
 **Step 1: Find tasks.** Search `tasks.json` for the tasks you need:
 ```bash
