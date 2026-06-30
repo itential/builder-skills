@@ -368,6 +368,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Canvas layout follows the vertical spacing convention — non-forked sequences on a constant-x spine, fork branches offset to `spine±264` and stay in their own column until convergence
 - [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
 - [ ] Sequential y-delta ~108px (tight grid)
+- [ ] **LCM Create actions only:** the instance-write merge task's `data_to_merge` covers every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's `schema.required` before building the merge task: `jq '.schema.required' helpers/assets/lcm/<model>.json`
 
 **Complete working example:** Read the ServiceNow "Create Change Request" workflow before building — it demonstrates merge → adapter create → query → adapter update with error transitions:
 ```bash
