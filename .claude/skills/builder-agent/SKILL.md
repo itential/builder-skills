@@ -923,7 +923,35 @@ grep -i "template" {use-case}/tasks.json
 jq '.[] | select(.app == "ConfigurationManager") | .name' {use-case}/tasks.json
 ```
 
-### Get Full Task Schemas
+### Look up task wiring in asset projects first
+
+Before fetching schemas from the API, check if an asset project already has the task wired up. If it does, you get the exact field structure for free — no API call needed.
+
+```bash
+# Does any asset project use this task? Find it by task name:
+grep -rl '"name": "TASK_NAME"' ${CLAUDE_PLUGIN_ROOT}/helpers/assets/
+
+# Extract the wired task from the matching project:
+jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/MATCHING_FILE.json
+
+# See which tasks a specific workflow uses:
+jq '[.components[] | select(.type=="workflow") | select(.document.name | test("WORKFLOW"; "i"))] | first | .document.tasks | to_entries[] | {id:.key, name:.value.name, app:.value.app}' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/MATCHING_FILE.json
+```
+
+Asset project → best match by task type:
+| Task | Best asset to check |
+|------|-------------------|
+| ServiceNow adapter tasks | `vendor-servicenow.json` |
+| Infoblox / DNS / IPAM tasks | `vendor-infoblox-nios-ddi.json` |
+| NetBox tasks | `vendor-netbox.json` |
+| itential_cli, RunCommandTemplate, MOP tasks | `itential-platform-configuration-management.json`, `vendor-cisco-ios.json` |
+| transformation (JST) | `vendor-netbox.json`, `itential-platform-data-manipulation.json` |
+| childJob, evaluation, query, newVariable | any vendor project |
+| LCM action workflow tasks | `helpers/assets/lcm/lcm-vxlan-fabric-services-project.json` |
+
+### Get Full Task Schemas (only if not found in assets)
 
 **Single task:**
 ```
@@ -954,9 +982,10 @@ POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
 **IMPORTANT:** The `pckg` value must come from `apps.json`, NOT `tasks.json`. The names can differ (e.g., tasks.json says `ServiceNow` but apps.json says `Servicenow`).
 
 **Before fetching schemas:**
-1. Check if `{use-case}/task-schemas.json` exists — search it first
-2. Only call `multipleTaskDetails` for tasks NOT already in the local file
-3. After fetching, append to the local file
+1. Search asset projects (above) — if found, use the wired example directly
+2. Check if `{use-case}/task-schemas.json` exists — search it next
+3. Only call `multipleTaskDetails` for tasks not found in either place
+4. After fetching, append to `{use-case}/task-schemas.json`
 
 ### nodeLocation Spacing Convention
 
