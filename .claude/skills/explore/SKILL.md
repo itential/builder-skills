@@ -115,6 +115,14 @@ Show:
 
 ---
 
+## Step 3b: Initialize Memory File
+
+After pulling platform data, check for `{use-case}/use-case-memory.md`:
+- **Exists** → read it. It has context from a previous session — platform URL, prior decisions, open items.
+- **Missing** → create it from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md`. Populate Platform URL, Status: `in-progress`, and any adapter/app names discovered in Step 2.
+
+---
+
 ## Step 4: Route to Skills
 
 Point to the right skill for what the engineer wants to do:

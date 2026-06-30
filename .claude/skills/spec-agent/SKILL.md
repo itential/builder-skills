@@ -123,10 +123,13 @@ Tell the engineer what happens next:
 
 ```
 {use-case}/
-  customer-spec.md    ← approved HLD (Requirements complete)
-  .env                ← credentials (if provided)
-  customer-context.md ← business rules, naming (if provided)
+  customer-spec.md     ← approved HLD (Requirements complete)
+  .env                 ← credentials (if provided)
+  customer-context.md  ← business rules, naming (if provided)
+  use-case-memory.md   ← create from helpers/use-case-memory.md, set Status: in-progress
 ```
+
+Create `use-case-memory.md` at handoff — populate the use-case name, one-sentence description, and Status. The solution-arch-agent will add platform refs and adapter details during feasibility; the builder will add asset IDs and decisions during build.
 
 No auth. No platform data. `/solution-arch-agent` owns everything from Feasibility onward.
 
@@ -139,3 +142,4 @@ No auth. No platform data. `/solution-arch-agent` owns everything from Feasibili
 | `customer-spec.md` | Approved HLD — the source of truth for this delivery |
 | `.env` | Credentials saved for later auth during Feasibility |
 | `customer-context.md` | Business rules and naming conventions (if provided) |
+| `use-case-memory.md` | Living context file — initialized here, updated throughout all stages |

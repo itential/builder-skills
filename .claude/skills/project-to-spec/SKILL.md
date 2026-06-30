@@ -217,7 +217,20 @@ etc.
 
 ---
 
-## Step 6: Present to Engineer
+## Step 6: Write Memory File
+
+Before presenting to the engineer, create `{use-case}/use-case-memory.md` from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` and populate it with what you just read — don't leave this for later:
+
+- **Platform References** — platform URL, project name, project `_id`, adapter instance names and type names, group memberships observed
+- **What Was Built** — every component from the inventory table: name, type, ID, status=`existing`
+- **Architecture Decisions** — any patterns you inferred (why childJob loop, why this adapter, why approval gate)
+- **Status** — `in-progress` if handed to another skill, `delivered` if the project is fully in production
+
+This means any skill that picks up from here (spec-agent, solution-arch-agent, builder-agent) starts with the real IDs already recorded — no re-discovery.
+
+---
+
+## Step 7: Present to Engineer
 
 Show both documents and walk through:
 
