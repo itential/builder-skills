@@ -363,6 +363,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Incoming variable types match task schema exactly (arrays for `to`/`cc`/`bcc`, numbers for `page`/`pageSize`, etc.)
 - [ ] No `$var` references inside nested objects (use merge/makeData)
 - [ ] merge uses `"variable"`, childJob uses `"value"`
+- [ ] If a `query` downstream of a `childJob` returns null despite the child succeeding: check whether `"obj": "$var.<childJobId>.job_details"` is resolving — on some platform versions it is treated as a literal string. Fix: insert a `merge` task between childJob and query using `{"task": "<childJobId>", "variable": "job_details"}` in `data_to_merge`, then point `obj` to `$var.<mergeId>.merged_object` (see Guide 4)
 - [ ] childJob has `actor: "job"`, all others have `actor: "Pronghorn"`
 - [ ] `workflow_end` transition is empty `{}`
 - [ ] Canvas layout follows the vertical spacing convention — non-forked sequences on a constant-x spine, fork branches offset to `spine±264` and stay in their own column until convergence
@@ -570,6 +571,39 @@ The parent passes specific variables to one child workflow run.
 ```
 Query uses flat variable names — `"taskStatus"`, NOT `"variables.job.taskStatus"`.
 
+**If the query returns null even though the childJob succeeded** — the `$var` form in `obj` may not resolve on your platform version. Use the merge+taskRef workaround:
+```
+a1a1 (childJob) → m1m1 (merge: captures job_details via taskRef) → b2b2 (query: reads merged_object)
+```
+```json
+{
+  "m1m1": {
+    "name": "merge",
+    "variables": {
+      "incoming": {
+        "data_to_merge": [
+          {"task": "a1a1", "variable": "job_details"},
+          {"task": "static", "value": {}}
+        ]
+      },
+      "outgoing": {"merged_object": null}
+    }
+  },
+  "b2b2": {
+    "name": "query",
+    "variables": {
+      "incoming": {
+        "pass_on_null": false,
+        "query": "taskStatus",
+        "obj": "$var.m1m1.merged_object"
+      },
+      "outgoing": {"return_data": "$var.job.childStatus"}
+    }
+  }
+}
+```
+The static `{}` second item is required — merge needs at least 2 items in `data_to_merge`.
+
 #### Mode B: Loop — one child per item in `data_array`
 
 Each element in `data_array` becomes the child's input variables for that iteration. Set `variables: {}` (empty).
@@ -624,6 +658,7 @@ Each element in `data_array` becomes the child's input variables for that iterat
   }
 }
 ```
+If the query returns null (platform-version-specific `$var` resolution issue), use the same merge+taskRef workaround described above (Mode A) — capture `job_details` via `{"task": "a1a1", "variable": "job_details"}` in merge, then query `$var.m1m1.merged_object`.
 
 **Loop output shape** (each element is a flat spread of the child's job variables):
 ```json
@@ -645,6 +680,7 @@ Use `"[**].taskStatus"` in a query to extract one field from all iterations.
 - [ ] `variables` is `{}` when using `data_array` (loop mode)
 - [ ] Child workflow's `inputSchema.required` matches what you're passing
 - [ ] `loopType`: `""` (single), `"parallel"` (simultaneous), `"sequential"` (one at a time)
+- [ ] If a downstream `query` of a childJob returns null: the `"obj": "$var.<childJobId>.job_details"` form may not resolve on this platform version — use merge+taskRef workaround (see "Extracting single child output" above)
 
 #### Building the child workflow
 
