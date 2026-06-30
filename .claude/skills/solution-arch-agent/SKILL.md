@@ -338,22 +338,31 @@ Hand off to `/builder-agent`. The workspace is complete.
 {use-case}/
   .auth.json              ← auth token
   .env                    ← credentials (for re-auth)
+  use-case-memory.md      ← living context: platform refs, built assets, decisions, open items
   customer-spec.md        ← approved HLD
   feasibility.md          ← approved feasibility assessment
   solution-design.md      ← approved Solution Design / LLD
   customer-context.md     ← business rules, naming (if provided)
-  openapi.json            ← platform API reference
-  tasks.json              ← task catalog
-  apps.json               ← app/adapter names
-  adapters.json           ← adapter instances
-  applications.json       ← app health
+  openapi.json            ← platform API reference (pulled during feasibility)
+  tasks.json              ← task catalog (pulled during feasibility)
+  apps.json               ← app/adapter type names (pulled during feasibility)
+  adapters.json           ← adapter instances (pulled during feasibility)
+  applications.json       ← app health (pulled during feasibility)
   devices.json            ← device inventory (if spec involves devices)
   workflows.json          ← existing workflows (if reuse planned)
   device-groups.json      ← device groups (if spec involves groups)
-  task-schemas.json       ← cached task schemas (populated during design)
+  task-schemas.json       ← fetched on demand by builder during build (not pre-populated)
 ```
 
 The builder builds from the locked plan, tests each component, and produces the `as-built.md` record.
+
+**Before handing off — create `use-case-memory.md`** from `helpers/use-case-memory.md` and populate:
+- Platform URL and project name (if a project already exists)
+- Status: `in-progress`
+- Any adapter instance names and type names resolved during feasibility
+- Key decisions made during design (why this adapter, why this split, any constraints)
+
+The builder will read this file first and update it after every build session.
 
 ---
 

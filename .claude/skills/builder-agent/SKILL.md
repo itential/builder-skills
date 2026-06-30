@@ -51,15 +51,16 @@ This skill covers everything needed to build and test Itential automation assets
 {use-case}/
   .auth.json              ← auth token
   .env                    ← credentials (for re-auth if token expires)
-  openapi.json            ← API reference
-  tasks.json              ← task catalog
-  apps.json               ← app names
-  adapters.json           ← adapter instances
-  applications.json       ← app health
+  openapi.json            ← API reference (pulled by solution-arch-agent or explore)
+  tasks.json              ← task catalog (pulled by solution-arch-agent or explore)
+  apps.json               ← app/adapter type names (pulled by solution-arch-agent or explore)
+  adapters.json           ← adapter instances (pulled by solution-arch-agent or explore)
+  applications.json       ← app health (pulled by solution-arch-agent or explore)
 ```
 
 **May also exist (spec-contingent):**
 ```
+  use-case-memory.md      ← living context: IDs, decisions, gotchas, open items — READ THIS FIRST
   customer-spec.md        ← approved HLD (Requirements)
   feasibility.md          ← approved feasibility assessment
   customer-context.md     ← business rules (if provided)
@@ -67,7 +68,7 @@ This skill covers everything needed to build and test Itential automation assets
   devices.json            ← device inventory
   workflows.json          ← existing workflows
   device-groups.json      ← device groups
-  task-schemas.json       ← cached task schemas
+  task-schemas.json       ← fetched on demand during build (append-only, never pre-populated)
 ```
 
 **The builder NEVER re-pulls bootstrap or discovery data.** If `tasks.json`, `apps.json`, or `adapters.json` is missing, stop and tell the user — that's an upstream failure, not something to silently fix.
@@ -879,6 +880,8 @@ Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manage
 ## Task Discovery
 
 ### Pull Task Catalog
+
+**`{use-case}/tasks.json` should already exist** — pulled by `/solution-arch-agent` or `/explore` during feasibility. Do not re-pull if the file exists. If missing, fetch it:
 
 ```
 GET /workflow_builder/tasks/list → save to {use-case}/tasks.json

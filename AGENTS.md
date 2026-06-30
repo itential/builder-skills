@@ -64,22 +64,27 @@ Platform data (shared, pulled once) and use-case data (per engagement) live in s
 
 ```
 builder-skills/
-├── platform/               ← pulled once via scripts/platform_pull.py
-│   ├── openapi.json        — full API reference (search locally, never load fully)
-│   ├── tasks.json          — complete task catalog
-│   ├── apps.json           — registered apps and adapter types
+├── platform/               ← shared pre-pull via scripts/platform_pull.py (fallback only)
+│   ├── openapi.json        — full API reference
+│   ├── tasks.json          — task catalog
+│   ├── apps.json           — app and adapter type names
 │   ├── adapters.json       — adapter instances and state
 │   ├── applications.json   — application details
 │   ├── environment.md      — human-readable summary
-│   └── .pulled-at          — timestamp of last pull (checked before re-pulling)
+│   └── .pulled-at          — timestamp of last pull
 │
 └── use-cases/
     └── <use-case-name>/    ← scaffolded via scripts/use_case_init.py
         ├── .env              — credentials (gitignored)
         ├── .auth.json        — live bearer token (gitignored, auto-refreshed)
-        ├── task-schemas.json — schemas fetched on demand (cached, never re-fetch)
-        ├── use-case-memory.md — living context file: IDs, decisions, gotchas, test log, open items
-        └── (deliverables: customer-spec.md, solution-design.md, as-built.md, assets)
+        ├── openapi.json      — pulled fresh by /explore or /solution-arch-agent (prefer over platform/)
+        ├── tasks.json        — pulled fresh per engagement (prefer over platform/)
+        ├── apps.json         — pulled fresh per engagement (prefer over platform/)
+        ├── adapters.json     — pulled fresh per engagement (prefer over platform/)
+        ├── applications.json — pulled fresh per engagement (prefer over platform/)
+        ├── task-schemas.json — fetched on demand during build, never pre-populated
+        ├── use-case-memory.md — living context: IDs, decisions, gotchas, test log, open items
+        └── (deliverables: customer-spec.md, feasibility.md, solution-design.md, as-built.md)
 ```
 
 **Setup sequence (one-time per platform):**
@@ -104,9 +109,10 @@ cat use-cases/<name>/use-case-memory.md
 It contains the platform URL, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented. If the file doesn't exist, create it from `helpers/use-case-memory.md`.
 
 **Data lookup order:**
-- `openapi.json`, `tasks.json`, `apps.json`, `adapters.json`, `applications.json` → always in `platform/`
-- `task-schemas.json`, `.auth.json`, deliverables → always in `use-cases/<name>/`
-- If `platform/` is missing → tell the user to run `scripts/platform_pull.py` first
+- `{use-case}/tasks.json`, `apps.json`, `adapters.json`, `openapi.json` — pulled by `/solution-arch-agent` or `/explore` during feasibility. **Always prefer these — they are per-engagement and fresh.**
+- `platform/tasks.json`, `platform/apps.json` etc. — pulled once by `scripts/platform_pull.py`, shared across engagements. Use as fallback only if `{use-case}/` files are missing.
+- `{use-case}/task-schemas.json` — fetched on demand during build (never pre-populated). Append after every fetch; never re-fetch what's already cached.
+- If neither `{use-case}/tasks.json` nor `platform/tasks.json` exist → tell the user to run `/explore` or `scripts/platform_pull.py` first.
 
 ### Auth Reuse — Authenticate Once, Reuse Everywhere
 
