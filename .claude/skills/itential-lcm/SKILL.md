@@ -313,7 +313,7 @@ Errors at any phase stop execution. Each phase has its own status tracked in the
 
 | File | Purpose |
 |------|---------|
-| `${CLAUDE_PLUGIN_ROOT}/helpers/lcm-action-workflow.json` | LCM action workflow with merge task that outputs `instance` variable. Start from this — it prevents the "workflow does not output a value for 'instance'" error. |
+| `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/lcm-action-workflow.json` | LCM action workflow with merge task that outputs `instance` variable. Start from this — it prevents the "workflow does not output a value for 'instance'" error. |
 
 ## Developer Scenarios
 

@@ -209,11 +209,43 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 
 **ALWAYS start from a helper template when creating assets.** Read the helper file first, then modify it for your use case. Do NOT build JSON from scratch — the helpers have the correct structure, field names, and wrappers.
 
-Helper templates are in `helpers/`:
+Helper templates are organized in subdirectories under `helpers/`:
+
+**`helpers/create/`** — POST bodies for creating assets
 
 | File | Purpose |
 |------|---------|
 | `create-workflow.json` | Workflow scaffold with start/end tasks |
+| `create-project.json` | Project creation |
+| `import-project.json` | Import a project (atomic — preferred over create + add) |
+| `create-command-template.json` | Command template with `<!var!>` syntax |
+| `create-template-jinja2.json` | Jinja2 template |
+| `create-template-textfsm.json` | TextFSM template |
+| `create-json-form.json` | JSON form for user input |
+| `create-json-form-rest-bound.json` | JSON form with REST-bound dropdowns |
+| `create-ops-manager-automation.json` | Operations Manager automation |
+| `create-ops-manager-trigger.json` | API endpoint trigger |
+| `create-ops-manager-trigger-manual.json` | Manual/form trigger (legacyWrapper: false) |
+| `create-ops-manager-trigger-schedule.json` | Scheduled trigger (repeat object, not cron) |
+| `create-lcm-resource-model.json` | LCM resource model with lifecycle actions |
+| `create-integration.json` | Virtual integration (adapter instance) |
+| `create-golden-config-tree.json` | Golden config tree |
+| `create-golden-config-node.json` | Child node |
+| `create-compliance-plan.json` | Compliance plan |
+
+**`helpers/update/`** — PUT/PATCH bodies for updating assets
+
+| File | Purpose |
+|------|---------|
+| `update-command-template.json` | Update command template (full replacement) |
+| `update-json-form.json` | Update a JSON form — wrapped in `options` key (full replacement) |
+| `update-node-config.json` | Node template with full syntax |
+| `update-project-members.json` | Update project membership — include all members (PATCH = full replacement) |
+
+**`helpers/tasks/`** — Workflow task JSON snippets
+
+| File | Purpose |
+|------|---------|
 | `workflow-task-adapter.json` | Adapter task template |
 | `workflow-task-application.json` | Application task template |
 | `workflow-task-childjob.json` | childJob task template (actor: "job") |
@@ -222,27 +254,49 @@ Helper templates are in `helpers/`:
 | `workflow-task-transformation.json` | JST transformation task (tr_id + variableMap) |
 | `workflow-task-gettime.json` | Get current time task |
 | `workflow-task-evalresult.json` | Evaluation/branching task (operand_1/operand_2) |
-| `create-command-template.json` | Command template with `<!var!>` syntax |
-| `create-template-jinja2.json` | Jinja2 template |
-| `create-template-textfsm.json` | TextFSM template |
-| `create-json-form.json` | JSON form for user input |
-| `update-json-form.json` | Update an existing JSON form (full replacement) |
-| `create-ops-manager-automation.json` | Operations Manager automation |
-| `create-ops-manager-trigger.json` | API endpoint trigger |
-| `create-ops-manager-trigger-manual.json` | Manual/form trigger (legacyWrapper: false) |
-| `create-ops-manager-trigger-schedule.json` | Scheduled/cron trigger |
-| `create-lcm-resource-model.json` | LCM resource model with lifecycle actions |
-| `create-integration.json` | Virtual integration (adapter instance) |
-| `create-project.json` | Project creation |
-| `add-components-to-project.json` | Add assets to project |
-| `import-project.json` | Import a project |
-| `update-project-members.json` | Update project membership |
-| `create-golden-config-tree.json` | Golden config tree |
-| `create-golden-config-node.json` | Child node |
-| `update-node-config.json` | Node template with full syntax |
-| `add-devices-to-node.json` | Assign devices to a golden config node |
-| `create-compliance-plan.json` | Compliance plan |
-| `run-compliance-plan.json` | Run compliance plan |
-| `run-compliance.json` | Run compliance directly |
-| `update-command-template.json` | Update command template (full replacement) |
+| `workflow-task-itential-cli.json` | Send CLI config to device via itential_cli |
+| `workflow-task-run-command-template.json` | MOP RunCommandTemplate task |
+| `workflow-task-view-template-results.json` | MOP viewTemplateResults manual task |
+| `workflow-task-run-templates-diff.json` | MOP runTemplatesDiff (pre vs post) manual task |
+| `workflow-task-reattempt.json` | MOP reattempt task |
 | `lcm-action-workflow.json` | LCM action workflow (must output `instance` variable) |
+
+**`helpers/reference/`** — Full working workflow exports (real platform exports, metadata stripped)
+
+| File | Purpose |
+|------|---------|
+| `reference-adapter-workflow.json` | Adapter task wiring pattern |
+| `reference-parent-workflow.json` | Parent workflow with childJob |
+| `reference-child-workflow.json` | Child workflow invoked by parent |
+| `reference-childjob-loop.json` | childJob loop pattern |
+| `reference-merge-makedata.json` | merge + makeData patterns |
+| `reference-error-handling-workflow.json` | Error handling with transitions |
+| `reference-notification-workflow.json` | Notification / email workflow |
+| `reference-command-template-runner.json` | MOP command template runner workflow |
+| `reference-gateway-service-workflow.json` | AGManager gateway service workflow |
+| `reference-sendcommand-workflow.json` | Send command to device workflow |
+| `reference-push-config-workflow.json` | Push config to device workflow |
+| `reference-form-to-automation.json` | JSON Form → Ops Manager automation wiring |
+| `reference-lcm-lifecycle.json` | LCM lifecycle action workflow |
+| `reference-viewdata-pattern.json` | ViewData manual task pattern |
+| `reference-viewhtml-pattern.json` | ViewHTML manual task pattern |
+| `reference-golden-config-tree.json` | Golden config multi-region tree |
+
+**`helpers/operations/`** — Add, run, and other operation bodies
+
+| File | Purpose |
+|------|---------|
+| `add-components-to-project.json` | Add assets to an existing project |
+| `add-devices-to-node.json` | Assign devices to a golden config node |
+| `run-compliance-plan.json` | Run a compliance plan |
+| `run-compliance.json` | Run compliance directly against a tree/node |
+
+**`helpers/iag/`** — Automation Gateway service files
+
+| File | Purpose |
+|------|---------|
+| `example-python-service.yaml` | Python script service |
+| `example-ansible-service.yaml` | Ansible playbook service |
+| `example-opentofu-service.yaml` | OpenTofu plan service |
+| `example-multi-service-chain.yaml` | Multi-service orchestration |
+| `service-file-schema.md` | Full YAML schema reference |

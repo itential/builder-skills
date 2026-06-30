@@ -40,8 +40,8 @@ Choose the helper that matches your form's dropdown needs:
 
 | Use case | Helper |
 |---|---|
-| Static-enum dropdowns only (hardcoded option lists) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` |
-| REST-bound or cascading dropdowns (live data from IAP endpoints) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form-rest-bound.json` |
+| Static-enum dropdowns only (hardcoded option lists) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` |
+| REST-bound or cascading dropdowns (live data from IAP endpoints) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` |
 
 Both helpers are annotated scaffolds — read the `_comment_*` fields inline before customizing.
 
@@ -124,7 +124,7 @@ A JSON Form is consumed by an Operations Manager **manual trigger** that hands t
 
 Required trigger fields: `name`, `type` (`"manual"`), `enabled`, `actionType` (`"automations"`), `actionId`, `formId`, `legacyWrapper`.
 
-Helper for the wired-up trigger: `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json`.
+Helper for the wired-up trigger: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-manual.json`.
 
 ## Common Gotchas
 

@@ -149,9 +149,9 @@ Before writing any JSON, identify the parent/child split from the solution desig
 Build order is always: **children first, orchestrator last.** The orchestrator is just childJob calls to tested children — it should not contain raw adapter tasks unless there is no logical way to split.
 
 **Reference helpers for parent/child patterns:**
-- `${CLAUDE_PLUGIN_ROOT}/helpers/reference-child-workflow.json` — child with try-catch (always sets `taskStatus`, always completes)
-- `${CLAUDE_PLUGIN_ROOT}/helpers/reference-parent-workflow.json` — parent with childJob → query → evaluation branching
-- `${CLAUDE_PLUGIN_ROOT}/helpers/reference-childjob-loop.json` — parent + child with `data_array` loop (parallel or sequential)
+- `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-child-workflow.json` — child with try-catch (always sets `taskStatus`, always completes)
+- `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-parent-workflow.json` — parent with childJob → query → evaluation branching
+- `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-childjob-loop.json` — parent + child with `data_array` loop (parallel or sequential)
 
 Read these before building any multi-workflow solution.
 
@@ -309,7 +309,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
 - [ ] Sequential y-delta ~108px (tight grid)
 
-**Complete working example:** Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference-adapter-workflow.json` before building. It's a tested workflow (merge → adapter create → query → adapter update) with `_comment` fields explaining every decision.
+**Complete working example:** Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-adapter-workflow.json` before building. It's a tested workflow (merge → adapter create → query → adapter update) with `_comment` fields explaining every decision.
 
 **How the example works — what each task does and why:**
 
@@ -417,9 +417,9 @@ Always check `task-schemas.json` for the exact type of each incoming field befor
 ### Guide 3: Add a task to an existing workflow
 
 **Step 1:** Read the helper template for the task type:
-- Adapter task → `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-adapter.json`
-- Application task → `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-application.json`
-- childJob → `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json`
+- Adapter task → `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-adapter.json`
+- Application task → `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-application.json`
+- childJob → `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-childjob.json`
 
 **Step 2:** Fill in the fields using the mapping rules from Guide 1 Step 4.
 
@@ -705,7 +705,7 @@ Do not auto-discover or assume groups. Wait for the answer, resolve each name to
 PATCH /automation-studio/projects/{projectId}
 ```
 
-Use the helper: `${CLAUDE_PLUGIN_ROOT}/helpers/update-project-members.json`
+Use the helper: `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-project-members.json`
 
 Include ALL members in every PATCH — this is a full replacement. Omitting an existing member removes them.
 
@@ -824,7 +824,7 @@ Helper templates for forms still live under `${CLAUDE_PLUGIN_ROOT}/helpers/`:
 
 This is a two-step process: create the automation, then create a manual trigger that binds to it.
 
-Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json`
+Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-automation.json`
 
 **Critical: `legacyWrapper` must be `false`.** When creating a manual trigger with a JSON form, set `legacyWrapper: false`. The default is `true`, which wraps form field values under `formData`, breaking the mapping to workflow job variables. With `legacyWrapper: false`, form field values map directly to workflow input variables by name.
 
@@ -902,7 +902,7 @@ Workflows are laid out **top-to-bottom (vertical)** by default — this is the I
 - **Tight y-spacing** — the canvas grid is dense; ~108px between sequential rows reads well. Don't pad to +250 or +360.
 - **Preserve Studio-arranged positions** — if an engineer has arranged a workflow in Automation Studio, treat its `nodeLocation` values as authoritative. Always read from the live export before reimporting. Never recalculate positions from scratch on a workflow that has already been arranged.
 
-Example — fork with a shared error handler (mirrors `helpers/reference-adapter-workflow.json`):
+Example — fork with a shared error handler (mirrors `helpers/reference/reference-adapter-workflow.json`):
 ```
 workflow_start                        (x=600, y=200)
 e1a1 merge                            (x=600, y=312)
@@ -1301,7 +1301,7 @@ Returns `true`/`false`. Invalid operators silently return `false`. Use this to v
 
 ### childJob
 
-Run another workflow as a sub-job. **Use helper template** `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json`.
+Run another workflow as a sub-job. **Use helper template** `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-childjob.json`.
 
 **Critical differences from normal tasks:**
 - **`actor` MUST be `"job"`** — not `"Pronghorn"`
@@ -1544,7 +1544,7 @@ Pre-Check (RunCommandTemplate child)
   → runTemplatesDiff (compare pre vs post)
 ```
 
-Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference-push-config-workflow.json` and `${CLAUDE_PLUGIN_ROOT}/helpers/reference-command-template-runner.json` before building any config push delivery.
+Read `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-push-config-workflow.json` and `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-command-template-runner.json` before building any config push delivery.
 
 ### Create a Command Template
 
@@ -1858,7 +1858,7 @@ Every adapter task needs both success and error transitions. Route errors to an 
 ```
 `view`, `taskVersion: 2`, and `hostApp` are all **required** — omitting any one causes "Manual Tasks require 'view' key" draft error.
 
-**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewdata-pattern.json` (full reference workflow showing makeData → ViewData → success/failure branches)
+**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-viewdata-pattern.json` (full reference workflow showing makeData → ViewData → success/failure branches)
 
 Three rules that cause `"Manual Tasks require 'view' key"` draft validation errors if missed:
 1. `view` is a **top-level** field (sibling of `name`, `type`, `app`) — NOT inside `variables`
@@ -1893,7 +1893,7 @@ Three rules that cause `"Manual Tasks require 'view' key"` draft validation erro
 
 Use `ViewHTML` when you need to display formatted HTML to an operator during a workflow — for reports, tables, or styled summaries. Same manual task rules as ViewData apply.
 
-**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewhtml-pattern.json` (full reference workflow showing ViewHTML → success/failure branches)
+**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-viewhtml-pattern.json` (full reference workflow showing ViewHTML → success/failure branches)
 
 Key differences from ViewData:
 1. `view` is `/workflow_engine/task/ViewHTML`
@@ -2089,20 +2089,20 @@ Read these first. They have the correct wrapper, required fields, and structure.
 
 | When you need to... | Read this helper | Then POST to |
 |---------------------|------------------|--------------|
-| Create a project | `${CLAUDE_PLUGIN_ROOT}/helpers/create-project.json` | `POST /automation-studio/projects` |
-| Create a workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/create-workflow.json` | `POST /automation-studio/automations` |
-| Create a Jinja2 template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-template-jinja2.json` | `POST /automation-studio/templates` |
-| Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-template-textfsm.json` | `POST /automation-studio/templates` |
-| Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` |
-| Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
-| Create a JSON form (static dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
-| Create a JSON form (REST-bound or cascading dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
-| Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
-| Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
-| Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
-| Import a project (atomic) | `${CLAUDE_PLUGIN_ROOT}/helpers/import-project.json` | `POST /automation-studio/projects/import` |
-| Add assets to a project | `${CLAUDE_PLUGIN_ROOT}/helpers/add-components-to-project.json` | `POST /projects/{id}/components/add` |
-| Update project membership | `${CLAUDE_PLUGIN_ROOT}/helpers/update-project-members.json` | `PATCH /projects/{id}` |
+| Create a project | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-project.json` | `POST /automation-studio/projects` |
+| Create a workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-workflow.json` | `POST /automation-studio/automations` |
+| Create a Jinja2 template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-template-jinja2.json` | `POST /automation-studio/templates` |
+| Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-template-textfsm.json` | `POST /automation-studio/templates` |
+| Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` | `POST /mop/createTemplate` |
+| Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
+| Create a JSON form (static dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
+| Create a JSON form (REST-bound or cascading dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `app-json_forms` skill |
+| Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
+| Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
+| Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
+| Import a project (atomic) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/import-project.json` | `POST /automation-studio/projects/import` |
+| Add assets to a project | `${CLAUDE_PLUGIN_ROOT}/helpers/operations/add-components-to-project.json` | `POST /projects/{id}/components/add` |
+| Update project membership | `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-project-members.json` | `PATCH /projects/{id}` |
 
 ### Task templates — embed these in your workflow
 
@@ -2110,21 +2110,21 @@ For every task you add to a workflow — whether building new or modifying exist
 
 | Task type | Read this helper | Key fields to set |
 |-----------|------------------|-------------------|
-| Application task (WorkFlowEngine, TemplateBuilder, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-application.json` | `app`, `name`, `canvasName`, incoming/outgoing from schema |
-| Adapter task (ServiceNow, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-adapter.json` | `app`/`locationType` from apps.json, add `adapter_id`, add error transition |
-| childJob task | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json` | `actor: "job"`, `task: ""`, variables use `{"task","value"}` syntax |
-| evaluation / branching | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-evalresult.json` | `operand_1`, `operator`, `operand_2` — both success AND failure transitions required |
-| ViewData (manual approval) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewdata-pattern.json` | `view` top-level, `displayName: "Tools"`, no `actor` field, NO `error`/`decorators` in variables |
-| ViewHTML (manual HTML display) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewhtml-pattern.json` | `body` is HTML with `<!var!>` placeholders; `variables` is a plain key-value object (not a `$var` ref) |
-| newVariable | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-newvariable.json` | `name`, `value` — use for error handlers and status flags |
-| query / extract data | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-query.json` | `query` (dot-path), `obj` ($var ref), `pass_on_null` |
-| transformation (JST) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-transformation.json` | `tr_id`, `variableMap`, `options` |
-| getTime | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-gettime.json` | `timezone`, `format` |
-| itential_cli (config push via IAG) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-itential-cli.json` | `_hosts` (device array), `command` (CLI command array), app: `AGManager` |
-| RunCommandTemplate (MOP pre/post check) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-run-command-template.json` | `template`, `variables`, `devices` |
-| viewTemplateResults (MOP review) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-view-template-results.json` | `mop_template_results` — manual task, pauses for operator |
-| reattempt (MOP retry) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-reattempt.json` | `job_id`, `attemptID`, `minutes`, `attempts` |
-| runTemplatesDiff (MOP pre vs post) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-run-templates-diff.json` | `pre`, `post` — manual task, shows diff to operator |
+| Application task (WorkFlowEngine, TemplateBuilder, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-application.json` | `app`, `name`, `canvasName`, incoming/outgoing from schema |
+| Adapter task (ServiceNow, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-adapter.json` | `app`/`locationType` from apps.json, add `adapter_id`, add error transition |
+| childJob task | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-childjob.json` | `actor: "job"`, `task: ""`, variables use `{"task","value"}` syntax |
+| evaluation / branching | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-evalresult.json` | `operand_1`, `operator`, `operand_2` — both success AND failure transitions required |
+| ViewData (manual approval) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-viewdata-pattern.json` | `view` top-level, `displayName: "Tools"`, no `actor` field, NO `error`/`decorators` in variables |
+| ViewHTML (manual HTML display) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-viewhtml-pattern.json` | `body` is HTML with `<!var!>` placeholders; `variables` is a plain key-value object (not a `$var` ref) |
+| newVariable | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-newvariable.json` | `name`, `value` — use for error handlers and status flags |
+| query / extract data | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-query.json` | `query` (dot-path), `obj` ($var ref), `pass_on_null` |
+| transformation (JST) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-transformation.json` | `tr_id`, `variableMap`, `options` |
+| getTime | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-gettime.json` | `timezone`, `format` |
+| itential_cli (config push via IAG) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-itential-cli.json` | `_hosts` (device array), `command` (CLI command array), app: `AGManager` |
+| RunCommandTemplate (MOP pre/post check) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-run-command-template.json` | `template`, `variables`, `devices` |
+| viewTemplateResults (MOP review) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-view-template-results.json` | `mop_template_results` — manual task, pauses for operator |
+| reattempt (MOP retry) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-reattempt.json` | `job_id`, `attemptID`, `minutes`, `attempts` |
+| runTemplatesDiff (MOP pre vs post) | `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/workflow-task-run-templates-diff.json` | `pre`, `post` — manual task, shows diff to operator |
 
 ### Reference workflows — study these patterns
 
@@ -2132,16 +2132,16 @@ These are complete, tested workflows. Read them to understand how tasks connect,
 
 | Pattern | Read this helper | What it teaches |
 |---------|------------------|-----------------|
-| Adapter workflow with merge + query + error handling | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-adapter-workflow.json` | merge builds objects, adapter tasks need error transitions, query extracts from adapter response, newVariable as error handler |
-| childJob loop (parent + child) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-childjob-loop.json` | Has both parent and child workflows. data_array input, parallel/sequential, extracting loop results, try-catch in child |
-| childJob with evaluation (parent orchestrator) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-parent-workflow.json` | childJob → query → evaluation pattern for checking child success/failure |
-| merge → makeData pattern | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-merge-makedata.json` | Building template variables with merge, then string substitution with makeData |
-| Child with makeData/query/merge | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-child-workflow.json` | Data transformation patterns inside a child workflow |
-| Config push to device (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-push-config-workflow.json` | renderJinjaTemplate → dry run ViewData → itential_cli (dry) → commit ViewData → itential_cli (commit) |
-| Pre/post check with reattempt (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-command-template-runner.json` | RunCommandTemplate → viewTemplateResults → evaluation → reattempt loop — use as child for pre-check and post-check |
-| Error handling patterns | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-error-handling-workflow.json` | Try-catch, error flags, escalation paths |
-| Form → OM automation trigger wiring | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-form-to-automation.json` | JSON form → automation → manual trigger end-to-end wiring |
-| IAG gateway service call | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-gateway-service-workflow.json` | Calling IAG services from a workflow via GatewayManager |
-| LCM lifecycle (create + delete) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-lcm-lifecycle.json` | LCM create/delete workflow pattern, instance object output |
-| Notification workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-notification-workflow.json` | Email/notification patterns |
-| Per-device sendCommand scan | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-sendcommand-workflow.json` | buildInventoryFilter → forEach → newVariable+push array build → sendCommand → response guard → pattern match → matched/errored/skipped classification. Demonstrates constant-holder pattern for evaluation operands and `$var.job.*` usage inside loop body. |
+| Adapter workflow with merge + query + error handling | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-adapter-workflow.json` | merge builds objects, adapter tasks need error transitions, query extracts from adapter response, newVariable as error handler |
+| childJob loop (parent + child) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-childjob-loop.json` | Has both parent and child workflows. data_array input, parallel/sequential, extracting loop results, try-catch in child |
+| childJob with evaluation (parent orchestrator) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-parent-workflow.json` | childJob → query → evaluation pattern for checking child success/failure |
+| merge → makeData pattern | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-merge-makedata.json` | Building template variables with merge, then string substitution with makeData |
+| Child with makeData/query/merge | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-child-workflow.json` | Data transformation patterns inside a child workflow |
+| Config push to device (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-push-config-workflow.json` | renderJinjaTemplate → dry run ViewData → itential_cli (dry) → commit ViewData → itential_cli (commit) |
+| Pre/post check with reattempt (standard pattern) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-command-template-runner.json` | RunCommandTemplate → viewTemplateResults → evaluation → reattempt loop — use as child for pre-check and post-check |
+| Error handling patterns | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-error-handling-workflow.json` | Try-catch, error flags, escalation paths |
+| Form → OM automation trigger wiring | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-form-to-automation.json` | JSON form → automation → manual trigger end-to-end wiring |
+| IAG gateway service call | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-gateway-service-workflow.json` | Calling IAG services from a workflow via GatewayManager |
+| LCM lifecycle (create + delete) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-lcm-lifecycle.json` | LCM create/delete workflow pattern, instance object output |
+| Notification workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-notification-workflow.json` | Email/notification patterns |
+| Per-device sendCommand scan | `${CLAUDE_PLUGIN_ROOT}/helpers/reference/reference-sendcommand-workflow.json` | buildInventoryFilter → forEach → newVariable+push array build → sendCommand → response guard → pattern match → matched/errored/skipped classification. Demonstrates constant-holder pattern for evaluation operands and `$var.job.*` usage inside loop body. |

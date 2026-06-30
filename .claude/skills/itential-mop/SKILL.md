@@ -433,15 +433,15 @@ Always start from a helper template when creating assets. Read the helper file f
 
 | File | API Call | Purpose |
 |------|----------|---------|
-| `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` | `POST /mop/createTemplate` | Command template with rules |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/update-command-template.json` | `POST /mop/updateTemplate/{mopID}` | Update template (full replacement) |
+| `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` | `POST /mop/createTemplate` | Command template with rules |
+| `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{mopID}` | Update template (full replacement) |
 
 ## Developer Scenarios
 
 ### 1. Build a pre-check command template
 
 1. Identify the show commands needed (e.g., `show interface`, `show vlan brief`)
-2. Read `${CLAUDE_PLUGIN_ROOT}/helpers/create-command-template.json` as a starting template
+2. Read `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` as a starting template
 3. Fill in `name`, `description`, add commands with `<!variable!>` placeholders
 4. Add rules for each command -- use `contains` for simple checks, `RegEx` for pattern matching
 5. Set `passRule` at template and command level (AND vs OR logic)
