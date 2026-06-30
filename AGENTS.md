@@ -75,9 +75,10 @@ builder-skills/
 │
 └── use-cases/
     └── <use-case-name>/    ← scaffolded via scripts/use_case_init.py
-        ├── .env            — credentials (gitignored)
-        ├── .auth.json      — live bearer token (gitignored, auto-refreshed)
+        ├── .env              — credentials (gitignored)
+        ├── .auth.json        — live bearer token (gitignored, auto-refreshed)
         ├── task-schemas.json — schemas fetched on demand (cached, never re-fetch)
+        ├── use-case-memory.md — living context file: IDs, decisions, gotchas, test log, open items
         └── (deliverables: customer-spec.md, solution-design.md, as-built.md, assets)
 ```
 
@@ -95,6 +96,12 @@ builder-skills/
 ```bash
 ./scripts/platform_pull.py --refresh <platform-url> <client-id> <client-secret>
 ```
+
+**At the start of every session — read the memory file first:**
+```bash
+cat use-cases/<name>/use-case-memory.md
+```
+It contains the platform URL, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented. If the file doesn't exist, create it from `helpers/use-case-memory.md`.
 
 **Data lookup order:**
 - `openapi.json`, `tasks.json`, `apps.json`, `adapters.json`, `applications.json` → always in `platform/`

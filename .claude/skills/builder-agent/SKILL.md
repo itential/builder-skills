@@ -109,6 +109,7 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 ## Build Lifecycle
 
 ```
+0. Memory file              → create or read use-cases/{name}/use-case-memory.md
 1. Decompose                → identify parent/child split before writing any code
 2. Create project           → container for all assets
 3. Discover tasks           → search tasks.json, fetch schemas
@@ -121,10 +122,29 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 10. Test                    → jobs/start, check results
 11. Debug                   → check job.error, filesystem-first
 12. Reconcile               → diff built vs designed, update artifacts
-13. Update this skill       → if you hit a platform behavior not documented here, add it before closing out
+13. Update memory file      → record IDs, decisions, gotchas, test results, open items
+14. Update this skill       → if you hit a platform behavior not documented here, add it before closing out
 ```
 
-**Step 13 — how to update this skill:**
+**Step 0 — memory file:**
+
+At the start of every session, check for `use-cases/{use-case}/use-case-memory.md`:
+- **Exists** → read it before doing anything else. It tells you the platform, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented.
+- **Missing** → create it now from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` template. Fill in Platform URL and Status immediately.
+
+**Step 13 — update memory file after every session:**
+
+Before closing out any build session, update `use-case-memory.md` with:
+- Any new asset IDs (project ID, workflow UUIDs, transformation IDs, adapter names)
+- Any architectural decisions made and **why**
+- Any gotchas hit and how they were fixed
+- Test results (date, what was tested, outcome)
+- Updated open items list
+- Status field if it changed
+
+The memory file is what makes it possible to pick up a use-case after weeks without re-discovering everything from scratch.
+
+**Step 14 — how to update this skill:**
 - New platform behavior (error shape, field constraint, task gotcha) → add detail to the relevant body section (`### query`, `### childJob`, `### Projects`, etc.), then add a one-liner to the Gotchas pre-flight list under the right category.
 - New pattern or workflow recipe → add to `## Workflow Patterns` and, if the pattern is reusable, export the project from the platform and save it to `${CLAUDE_PLUGIN_ROOT}/helpers/assets/`. Add a row to the Helper Templates table in this file pointing to it.
 - Do NOT create a new top-level section for a single finding — put it where a builder would look when working on that topic.
