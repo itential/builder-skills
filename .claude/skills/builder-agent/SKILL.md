@@ -1123,6 +1123,16 @@ PUT /automation-studio/automations/{id}
 {"update": { ...same structure as automation object... }}
 ```
 
+**Project-scoped name required on PUT.** If the workflow belongs to a project, the `name` field in the `update` body must include the `@<projectId>: ` prefix — even if the workflow was created without it:
+```json
+{"update": {"name": "@69f10abc: My Workflow", "tasks": {...}, "transitions": {...}}}
+```
+Sending the bare name (`"name": "My Workflow"`) returns `{"error": {"message": "Name must begin with '@projectId: '"}}`.
+
+Asymmetry: workflow **CREATE** (`POST /automation-studio/automations`) does NOT require the prefix — the platform applies it when the workflow is added to a project. But **PUT-update** always requires it for project-member workflows.
+
+Always read the workflow before updating (`GET /automation-studio/workflows/detailed/{name}` or export the project) to get the current scoped name. See [Rule 24](#) and [issue #55](https://github.com/itential/builder-skills/issues/55).
+
 ### Task Fields
 
 | Field | Application Tasks | Adapter Tasks |
