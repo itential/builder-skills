@@ -363,6 +363,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Incoming variable types match task schema exactly (arrays for `to`/`cc`/`bcc`, numbers for `page`/`pageSize`, etc.)
 - [ ] No `$var` references inside nested objects (use merge/makeData)
 - [ ] merge uses `"variable"`, childJob uses `"value"`
+- [ ] No `{task:"job", variable:"x"}` in merge/childJob for workflow-internal variables — `{task:"job"}` refs add `x` to `inputSchema.required`, prompting operators for values that should be internal. Use the producing task ref instead (query→`return_data`, newVariable→`value`, makeData→`output`, merge→`merged_object`)
 - [ ] If a `query` downstream of a `childJob` returns null despite the child succeeding: check whether `"obj": "$var.<childJobId>.job_details"` is resolving — on some platform versions it is treated as a literal string. Fix: insert a `merge` task between childJob and query using `{"task": "<childJobId>", "variable": "job_details"}` in `data_to_merge`, then point `obj` to `$var.<mergeId>.merged_object` (see Guide 4)
 - [ ] childJob has `actor: "job"`, all others have `actor: "Pronghorn"`
 - [ ] `workflow_end` transition is empty `{}`
@@ -548,6 +549,8 @@ The parent passes specific variables to one child workflow run.
 - `{"task": "job", "value": "targetDevice"}` → passes the parent's `targetDevice` job variable to the child as `deviceName`
 - `{"task": "static", "value": "validate"}` → passes the literal string `"validate"`
 - `{"task": "b2c3", "value": "return_data"}` → passes a previous task's output (preferred for runtime data)
+
+> **WARNING — `{task:"job"}` refs in childJob variables add fields to `inputSchema.required`** — same behavior as merge (see `### merge` section). Only use `{task:"job", value:"x"}` for genuine workflow inputs. For runtime data produced by earlier tasks, use `{task:"<taskId>", value:"<outVar>"}` to reference the producing task directly.
 
 > **WRONG for task output refs in childJob:**
 > `{"task": "b2c3", "variable": "return_data"}` — `"variable"` is for merge/evaluation only.
@@ -1346,9 +1349,24 @@ Build an object from multiple resolved values. Primary workaround for `$var` not
 **IMPORTANT: The field is `"variable"` NOT `"value"`** in the reference objects inside `data_to_merge`.
 
 **Reference format in `data_to_merge`:**
-- `{"task": "job", "variable": "varName"}` — pull from a job variable
+- `{"task": "job", "variable": "varName"}` — pull from a **user-supplied** job variable (input to the workflow)
 - `{"task": "static", "variable": "literalValue"}` — literal value
 - `{"task": "taskId", "variable": "outVar"}` — pull from a previous task's output
+
+> **WARNING — `{task:"job"}` references add fields to `inputSchema.required`.**
+> The platform scans every `data_to_merge` entry in merge tasks (and every `variables` entry in childJob) for `{task:"job"}` references and automatically adds that variable name to `inputSchema.required`. This means using `{task:"job", variable:"changeId"}` for a variable that was produced internally by a query task will prompt operators to supply `changeId` as a workflow input — even though it should never come from the user.
+>
+> **Rule:** only use `{task:"job"}` for variables that are genuine workflow inputs. For anything produced by an earlier task, use the producing task's ref directly:
+>
+> | Value source | Correct ref form |
+> |---|---|
+> | User workflow input | `{"task": "job", "variable": "x"}` |
+> | `query` output | `{"task": "queryTaskId", "variable": "return_data"}` |
+> | `merge` output | `{"task": "mergeTaskId", "variable": "merged_object"}` |
+> | `newVariable` output | `{"task": "newVarTaskId", "variable": "value"}` |
+> | `makeData` output | `{"task": "makeDataTaskId", "variable": "output"}` |
+> | `parse` output | `{"task": "parseTaskId", "variable": "return_data"}` |
+> | adapter task output | `{"task": "adapterTaskId", "variable": "result"}` |
 
 ```json
 {
