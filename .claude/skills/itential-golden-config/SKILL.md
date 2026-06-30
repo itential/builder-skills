@@ -766,6 +766,7 @@ This keeps detection (Golden Config) and correction (a reviewed config-push) cle
 | File | API Call | Description |
 |------|----------|-------------|
 | `create-golden-config-tree.json` | `POST /configuration_manager/configs` | Create a golden config tree |
+| `reference-golden-config-tree.json` | `POST /configuration_manager/import/goldenconfigs` | Full multi-region tree reference (Global → EMEA/NA/APAC with node templates and variables) |
 | `update-node-config.json` | `PUT /configuration_manager/node/config` | Update node template with all syntax features |
 | `create-golden-config-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{parentPath}` | Create a child node |
 | `add-devices-to-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{nodePath}/devices` | Assign devices |
