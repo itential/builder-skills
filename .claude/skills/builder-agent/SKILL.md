@@ -1858,16 +1858,20 @@ Every adapter task needs both success and error transitions. Route errors to an 
 ```
 `view`, `taskVersion: 2`, and `hostApp` are all **required** — omitting any one causes "Manual Tasks require 'view' key" draft error.
 
-**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-viewdata.json`
+**Use helper template:** `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewdata-pattern.json` (full reference workflow showing makeData → ViewData → success/failure branches)
 
 Three rules that cause `"Manual Tasks require 'view' key"` draft validation errors if missed:
 1. `view` is a **top-level** field (sibling of `name`, `type`, `app`) — NOT inside `variables`
-2. `incoming.variables` MUST be present — value can be `{}` but the key must exist
-3. `variables` block has **ONLY** `incoming` and `outgoing` — no `error` or `decorators` (those are for automatic tasks only)
+2. `variables` block has **ONLY** `incoming` and `outgoing` — no `error` or `decorators` (those are for automatic tasks only)
+3. `displayName` must be `"Tools"` and there is **no `actor` field** on manual tasks
 
 ```json
 {
   "name": "ViewData",
+  "canvasName": "ViewData",
+  "location": "Application",
+  "app": "WorkFlowEngine",
+  "displayName": "Tools",
   "type": "manual",
   "view": "/workflow_engine/task/ViewData",
   "variables": {
@@ -1875,11 +1879,13 @@ Three rules that cause `"Manual Tasks require 'view' key"` draft validation erro
       "header": "Approval Required",
       "message": "Review and approve.",
       "body": "$var.job.dataToReview",
+      "variables": "$var.job.dataToReview",
       "btn_success": "Approve",
       "btn_failure": "Reject"
     },
     "outgoing": {}
-  }
+  },
+  "groups": []
 }
 ```
 
@@ -2070,7 +2076,7 @@ For every task you add to a workflow — whether building new or modifying exist
 | Adapter task (ServiceNow, etc.) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-adapter.json` | `app`/`locationType` from apps.json, add `adapter_id`, add error transition |
 | childJob task | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-childjob.json` | `actor: "job"`, `task: ""`, variables use `{"task","value"}` syntax |
 | evaluation / branching | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-evalresult.json` | `operand_1`, `operator`, `operand_2` — both success AND failure transitions required |
-| ViewData (manual approval) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-viewdata.json` | `view` top-level, `outgoing: {}` required, NO `error`/`decorators` in variables |
+| ViewData (manual approval) | `${CLAUDE_PLUGIN_ROOT}/helpers/reference-viewdata-pattern.json` | `view` top-level, `displayName: "Tools"`, no `actor` field, NO `error`/`decorators` in variables |
 | newVariable | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-newvariable.json` | `name`, `value` — use for error handlers and status flags |
 | query / extract data | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-query.json` | `query` (dot-path), `obj` ($var ref), `pass_on_null` |
 | transformation (JST) | `${CLAUDE_PLUGIN_ROOT}/helpers/workflow-task-transformation.json` | `tr_id`, `variableMap`, `options` |
