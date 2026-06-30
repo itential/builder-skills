@@ -5,11 +5,6 @@
   "actionType": "automations",
   "actionId": "",
   "description": "",
-  "formId": "",
-  "legacyWrapper": false,
-  "schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "jst": ""
+  "formId": null,
+  "legacyWrapper": false
 }

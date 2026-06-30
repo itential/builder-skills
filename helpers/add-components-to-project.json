@@ -7,12 +7,12 @@
     },
     {
       "type": "template",
-      "reference": "REPLACE_TEMPLATE_UUID",
+      "reference": "REPLACE_TEMPLATE_ID",
       "folder": "/"
     },
     {
       "type": "transformation",
-      "reference": "REPLACE_TRANSFORMATION_UUID",
+      "reference": "REPLACE_TRANSFORMATION_ID",
       "folder": "/"
     },
     {
@@ -31,5 +31,5 @@
       "folder": "/"
     }
   ],
-  "mode": "move"
+  "mode": "copy"
 }

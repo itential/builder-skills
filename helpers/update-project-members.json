@@ -2,6 +2,11 @@
   "members": [
     {
       "type": "account",
+      "role": "owner",
+      "reference": "REPLACE_OWNER_ACCOUNT_ID"
+    },
+    {
+      "type": "account",
       "role": "editor",
       "reference": "REPLACE_USER_ACCOUNT_ID"
     },

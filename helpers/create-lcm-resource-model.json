@@ -1,5 +1,5 @@
 {
-  "_comment": "LCM Resource Model — defines the schema and lifecycle actions for a service type. POST /lifecycle-manager/resources. Actions link to workflows via workflowId. Pre/post JSTs transform data before/after the action workflow runs.",
+  "_comment": "LCM Resource Model — defines the schema and lifecycle actions for a service type. POST /lifecycle-manager/resources. Actions link to workflows via 'workflow' (UUID or null). Pre/post JSTs are MongoDB ObjectIds (24-char hex) or null — transform data before/after the action workflow runs.",
   "name": "",
   "description": "",
   "schema": {
@@ -24,25 +24,25 @@
       "name": "Create",
       "description": "Provision a new instance",
       "type": "create",
-      "workflowId": "",
-      "preWorkflowJst": "",
-      "postWorkflowJst": ""
+      "workflow": null,
+      "preWorkflowJst": null,
+      "postWorkflowJst": null
     },
     {
       "name": "Delete",
       "description": "Deprovision and remove an instance",
       "type": "delete",
-      "workflowId": "",
-      "preWorkflowJst": "",
-      "postWorkflowJst": ""
+      "workflow": null,
+      "preWorkflowJst": null,
+      "postWorkflowJst": null
     },
     {
       "name": "Update",
       "description": "Modify an existing instance",
       "type": "update",
-      "workflowId": "",
-      "preWorkflowJst": "",
-      "postWorkflowJst": ""
+      "workflow": null,
+      "preWorkflowJst": null,
+      "postWorkflowJst": null
     }
   ]
 }

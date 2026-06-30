@@ -1,14 +1,17 @@
 {
   "mop": {
-    "name": "",
+    "name": "REPLACE_TEMPLATE_NAME",
+    "description": "REPLACE_DESCRIPTION",
+    "os": "",
     "passRule": true,
+    "tags": [],
     "commands": [
       {
-        "command": "",
+        "command": "REPLACE_COMMAND",
         "passRule": true,
         "rules": [
           {
-            "rule": "",
+            "rule": "REPLACE_RULE",
             "eval": "contains",
             "severity": "error",
             "evaluation": "pass"

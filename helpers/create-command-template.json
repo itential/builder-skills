@@ -1,7 +1,7 @@
 {
   "mop": {
-    "name": "",
-    "description": "",
+    "name": "REPLACE_TEMPLATE_NAME",
+    "description": "REPLACE_DESCRIPTION",
     "os": "",
     "passRule": true,
     "commands": [

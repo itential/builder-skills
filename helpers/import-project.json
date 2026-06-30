@@ -84,22 +84,16 @@
         "reference": "@REPLACE_PROJECT_ID: REPLACE_TEMPLATE_NAME",
         "folder": "/",
         "document": {
+          "_comment_timestamps": "created/lastUpdated are Unix epoch milliseconds (integer), NOT ISO strings. createdBy/lastUpdatedBy are plain username strings OR null, NOT objects.",
           "name": "REPLACE_TEMPLATE_NAME",
           "os": "",
           "passRule": true,
-          "ignoreWarnings": false,
           "commands": [],
           "tags": [],
-          "created": "2026-01-01T00:00:00.000Z",
-          "createdBy": {
-            "provenance": "CloudAAA",
-            "username": "admin@itential"
-          },
-          "lastUpdated": "2026-01-01T00:00:00.000Z",
-          "lastUpdatedBy": {
-            "provenance": "CloudAAA",
-            "username": "admin@itential"
-          }
+          "created": 1735689600000,
+          "createdBy": "admin@itential",
+          "lastUpdated": 1735689600000,
+          "lastUpdatedBy": "admin@itential"
         }
       }
     ],

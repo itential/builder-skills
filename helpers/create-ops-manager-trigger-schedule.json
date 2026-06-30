@@ -1,18 +1,18 @@
 {
-  "_comment": "Scheduled trigger — runs the automation on a cron schedule. POST /operations-manager/triggers. Standard cron syntax with timezone.",
+  "_comment": "Scheduled trigger — runs the automation on a repeating interval. POST /operations-manager/triggers. Uses 'repeat' object (not cron syntax). 'processMissedRuns' is required. Fields 'schedule', 'schema', and 'jst' are NOT valid for schedule triggers — those belong to endpoint triggers only.",
   "name": "",
   "type": "schedule",
   "enabled": true,
   "actionType": "automations",
   "actionId": "",
   "description": "",
-  "schedule": {
-    "cron": "0 9 * * 1-5",
-    "timezone": "America/New_York"
-  },
-  "schema": {
-    "type": "object",
-    "properties": {}
-  },
-  "jst": ""
+  "processMissedRuns": "none",
+  "repeat": {
+    "type": "repeating",
+    "duration": {
+      "unit": "hour",
+      "quantity": 1
+    },
+    "action": "execute"
+  }
 }

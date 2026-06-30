@@ -1,31 +1,32 @@
 {
-  "_comment_overview": "JSON Form scaffold for POST /json-forms/forms. The struct and schema must stay in sync — struct defines the UI rendering, schema defines the data contract. Fields with customKey in struct map to property keys in schema.",
-
   "name": "",
   "description": "",
 
-  "_comment_struct": "struct defines the form UI. Each item is a field. type controls the widget: 'string' for text/dropdown, 'number' for numeric, 'boolean' for checkbox. Dropdowns use enum/enumNames arrays. customKey maps the field to the schema property name and becomes the job variable key.",
   "struct": {
     "type": "array",
     "items": [
       {
-        "_comment": "Text input — required string field",
         "nodeId": "unique-uuid-per-field-1",
         "type": "string",
         "title": "Device Name",
         "description": "Short hostname of the target device",
         "placeholder": "Enter device name",
         "required": true,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
         "customKey": "device_name"
       },
       {
-        "_comment": "Dropdown — enum defines values, enumNames defines display labels. Each entry needs an id, label, and value. The schema.properties entry also needs matching enum/enumNames arrays (but as flat string arrays, not objects).",
         "nodeId": "unique-uuid-per-field-2",
         "type": "string",
         "title": "Environment",
         "description": "Target environment",
         "placeholder": "Select an environment",
         "required": true,
+        "binding": false,
+        "rel": "collection",
+        "targetPointer": "/enum",
         "enum": [
           {"id": "e1", "label": "Production", "value": "production"},
           {"id": "e2", "label": "Staging", "value": "staging"},
@@ -39,7 +40,6 @@
         "customKey": "environment"
       },
       {
-        "_comment": "Number input — optional with default value",
         "nodeId": "unique-uuid-per-field-3",
         "type": "number",
         "title": "Timeout (seconds)",
@@ -50,20 +50,21 @@
         "customKey": "timeout"
       },
       {
-        "_comment": "Text input — optional with default value",
         "nodeId": "unique-uuid-per-field-4",
         "type": "string",
         "title": "Comment",
         "description": "Free-text note",
         "placeholder": "Enter comment",
         "required": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
         "default": "",
         "customKey": "comment"
       }
     ]
   },
 
-  "_comment_schema": "schema defines the data contract for validation. Property keys must match customKey values from struct. required array lists mandatory field keys. enum arrays here are flat strings (not objects like in struct).",
   "schema": {
     "title": "Form Title Here",
     "description": "Form description here",
@@ -100,7 +101,6 @@
     }
   },
 
-  "_comment_uiSchema": "Controls UI behavior per field. ui:placeholder sets hint text, ui:disabled disables the field, ui:widget can change the widget type.",
   "uiSchema": {
     "device_name": {"ui:placeholder": "Enter device name"},
     "environment": {"ui:placeholder": "Select an environment"},
@@ -108,11 +108,8 @@
     "comment": {"ui:placeholder": "Enter comment"}
   },
 
-  "_comment_bindingSchema": "Empty for static-enum forms. For REST-bound or cascading dropdowns (aka field dependency in the Studio UI) use create-json-form-rest-bound.json — bindingSchema must be populated with a binding entry per field.",
   "bindingSchema": {},
   "validationSchema": {},
   "tags": [],
-  "version": "2020.1",
-
-  "_comment_update": "To UPDATE an existing form: PUT /json-forms/forms/{id} with the body wrapped in {\"options\": { ...all fields above plus created, createdBy, lastUpdated, lastUpdatedBy... }}. It is a full replacement — include ALL fields."
+  "version": "2020.1"
 }
