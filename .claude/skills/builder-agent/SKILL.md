@@ -371,6 +371,11 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
 - [ ] Sequential y-delta ~108px (tight grid)
 - [ ] **LCM Create actions only:** the instance-write merge task's `data_to_merge` covers every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's `schema.required` before building the merge task: `jq '.schema.required' helpers/assets/lcm/<model>.json`
+- [ ] **ViewData manual tasks:** `view` is a top-level field; `incoming.variables` is present (even if `{}`); `displayName: "Tools"`, no `actor` field
+- [ ] **restCall downstream query:** path targets body field directly (e.g., `"access_token"`) — NOT `"response.access_token"` (restCall has no wrapper, unlike adapter tasks)
+- [ ] **childJob loop:** if child workflow has `inputSchema.required` fields beyond what each `data_array` element contains, use the forEach enrichment pattern (forEach → merge → arrayPush) to add shared fields into each element before the childJob loop; set `variables: {}` on the childJob
+- [ ] **forEach body:** `incoming` contains ONLY `data_array` (no `job_id`); loop body tasks have no external error transitions; last body task has an empty `{}` transition; `$var.job.<varName>` inside loop body instead of `$var.<taskId>.<output>`
+- [ ] **makeData with childJob-sourced merge:** if a merge task references a childJob variable, do NOT wire that merge's `merged_object` into `makeData.incoming.variables` — use `query` to extract individual values first
 
 **Complete working example:** Read the ServiceNow "Create Change Request" workflow before building — it demonstrates merge → adapter create → query → adapter update with error transitions:
 ```bash
@@ -662,6 +667,37 @@ Each element in `data_array` becomes the child's input variables for that iterat
 }
 ```
 If the query returns null (platform-version-specific `$var` resolution issue), use the same merge+taskRef workaround described above (Mode A) — capture `job_details` via `{"task": "a1a1", "variable": "job_details"}` in merge, then query `$var.m1m1.merged_object`.
+
+**Loop element completeness — required fields must be in each element (not in `variables`).**
+
+The platform validates the child workflow's `inputSchema.required` against **each element's keys only**. Static `variables` set on the childJob task are NOT counted toward satisfying required fields. If your loop elements only contain per-iteration fields (e.g., `subnet_name`, `subnet_cidr`) but the child also requires shared fields (e.g., `subscription_id`, `region`), the validation fails before any iteration runs.
+
+**Fix — forEach enrichment pattern:** enrich each element with the shared fields before the childJob loop, then set `variables: {}` on the childJob:
+
+```
+forEach (loop over elements) → merge (add shared fields to current_item) → arrayPush (append enriched element to new array)
+                                                                                    ↓ (after forEach success)
+childJob (data_array: enrichedArray, variables: {})
+```
+
+```json
+// forEach outgoing binds current_item to job var
+{"outgoing": {"current_item": "$var.job.currentElement"}}
+
+// merge combines current element + shared fields
+{"data_to_merge": [
+  {"task": "forEachId", "variable": "current_item"},
+  {"key": "subscription_id", "value": {"task": "job", "variable": "subscription_id"}},
+  {"key": "region", "value": {"task": "job", "variable": "region"}}
+]}
+// → $var.mergeId.merged_object is the enriched element
+
+// arrayPush appends to accumulator
+{"incoming": {"job_variable": "enrichedElements", "item_to_push": "$var.mergeId.merged_object"}}
+
+// childJob uses the enriched array and no static variables
+{"data_array": "$var.job.enrichedElements", "variables": {}, "loopType": "parallel"}
+```
 
 **Loop output shape** (each element is a flat spread of the child's job variables):
 ```json
@@ -1529,7 +1565,7 @@ Use flat variable names, NOT nested paths. For loop output: `"[**].fieldName"`.
 
 Iterate over an array. **Deprecated** — prefer `childJob` with `loopType`. Still common in existing workflows.
 
-**Incoming:** `data_array` (array)
+**Incoming:** `data_array` (array) — **ONLY `data_array`**. Do NOT include `job_id` in incoming — it triggers errors.
 **Outgoing:** `current_item` (any)
 
 **Transition pattern (critical):**
@@ -1537,9 +1573,27 @@ Iterate over an array. **Deprecated** — prefer `childJob` with `loopType`. Sti
 forEach --state:loop--> firstBodyTask -> ... -> lastBodyTask --(empty {})
 forEach --state:success--> nextTaskAfterLoop
 ```
-The last task in the loop body has an **empty transition `{}`**. Do NOT connect it back to forEach.
 
-**Nested forEach — `$var.<taskId>.<output>` does NOT resolve inside nested loop bodies.** String references like `$var.n01.current_item` silently resolve to `null` when used inside an inner forEach body. Use `$var.job.<varName>` (the forEach's outgoing job variable binding) instead. This applies to all reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body. Always bind forEach outputs to job variables and reference those inside nested bodies.
+#### forEach constraints (all four are required)
+
+1. **`incoming` must only contain `data_array`** — do NOT include `job_id` or any other field. Adding `job_id` causes errors at runtime.
+
+2. **`$var.<taskId>.<output>` does NOT resolve inside the loop body** — string references like `$var.n01.current_item` silently resolve to `null` inside a forEach body. Use `$var.job.<varName>` instead (bind the forEach's outgoing to a job variable and reference that). This applies to ALL reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body.
+
+3. **Loop body tasks cannot transition to tasks outside the loop** — no error transitions from loop body tasks to external error handlers. The `forEach` task itself handles exit via `state: "error"` on the forEach transition. Handle errors within the loop body, then let the forEach's error transition route out.
+
+4. **The last loop body task signals loop-back with an empty `{}` transition** — do NOT add an explicit loop-back target pointing to forEach.
+
+```json
+"transitions": {
+  "forEachTaskId": {
+    "firstBodyTask": {"type": "standard", "state": "loop"},
+    "nextTaskAfterLoop": {"type": "standard", "state": "success"},
+    "errorHandlerTask": {"type": "standard", "state": "error"}
+  },
+  "lastBodyTask": {}
+}
+```
 
 ### newVariable
 
@@ -1569,6 +1623,13 @@ Construct data with `<!var!>` variable substitution.
 ```
 merge (build variables object) → makeData (use $var.taskId.merged_object as variables)
 ```
+
+> **WARNING — `makeData.incoming.variables` cannot use `$var` references to a merge that sources childJob output.**
+> When a `merge` task's `data_to_merge` contains a childJob reference (e.g., `{"task": "childJobId", "variable": "job_details"}`), the platform cannot compile `$var.<mergeId>.merged_object` as a `taskRef` for `makeData.incoming.variables` — it is stored as a literal static string. Template substitution then operates on the literal string and emits unresolved placeholders.
+>
+> `query.incoming.obj` does NOT have this limitation — it resolves `$var.<mergeId>.merged_object` correctly even when the merge references childJob output.
+>
+> **Fix:** extract individual values from the childJob-sourced merge using `query` tasks, then pass those resolved scalars to makeData via a second merge (that contains only non-childJob refs). Do NOT feed a childJob-sourced merge directly into makeData's `variables`.
 
 ### delay
 
@@ -1615,6 +1676,16 @@ Multi-way branching based on conditions. Unlike `evaluation` (binary true/false)
 ### restCall
 
 Make external HTTP calls from within a workflow. Use when calling APIs not exposed through adapters.
+
+**Response shape — no wrapper.** `restCall` returns the **already-parsed JSON body directly** as the outgoing value. There is no `response` or `result` wrapper. Query paths target body fields directly:
+
+```
+Correct:   "query": "access_token"
+Wrong:     "query": "response.access_token"   ← no response wrapper
+Wrong:     "query": "result.access_token"     ← no result wrapper
+```
+
+This is the opposite of adapter tasks (e.g., `genericAdapterRequest`), which always wrap the upstream response in `{response, headers, metrics}`. Don't cross-apply the adapter query paths to `restCall` output — you'll get null every time.
 
 ### modify
 
@@ -2042,10 +2113,12 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "
   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
 ```
 
-Three rules that cause `"Manual Tasks require 'view' key"` draft validation errors if missed:
-1. `view` is a **top-level** field (sibling of `name`, `type`, `app`) — NOT inside `variables`
-2. `variables` block has **ONLY** `incoming` and `outgoing` — no `error` or `decorators` (those are for automatic tasks only)
-3. `displayName` must be `"Tools"` and there is **no `actor` field** on manual tasks
+Three rules that cause draft validation errors if missed:
+1. `view` is a **top-level** field (sibling of `name`, `type`, `app`) — NOT inside `variables`. Missing it → `"Manual Tasks require 'view' key with path to task view"`.
+2. `incoming.variables` **MUST be present** (value can be `{}` if unused). Missing it → `"Input: 'variables' is not defined in task model"`.
+3. `displayName` must be `"Tools"` and `actor` must be `null` (no actor field) on manual tasks.
+
+Note: production assets include `"error": ""` and `"decorators": []` in the variables block on ViewData tasks — these are added by Studio on export and are harmless. You do not need to add or remove them.
 
 ```json
 {
