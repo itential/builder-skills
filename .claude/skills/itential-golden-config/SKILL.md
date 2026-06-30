@@ -723,7 +723,7 @@ There is **no exception** — not even when a spec asks for fully automatic reme
    - **`netmikoSendConfig` / `netmikoSendConfigSet`** (AG) — netmiko-based config push
    - whatever vendor/SSH adapter the environment uses for config push
 
-   See `/builder-agent`'s config-push pattern and `helpers/reference/reference-push-config-workflow.json`.
+   See `/builder-agent`'s config-push pattern and the Arista EOS "Push Configuration to Device - IAG" workflow in `helpers/assets/vendor-arista-eos.json`.
 3. Re-run compliance (this skill) afterward to confirm the device is back in standard.
 
 This keeps detection (Golden Config) and correction (a reviewed config-push) cleanly separated, and survives the Platform 7 removal of auto-remediation.

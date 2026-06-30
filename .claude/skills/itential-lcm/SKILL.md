@@ -311,9 +311,27 @@ Errors at any phase stop execution. Each phase has its own status tracked in the
 
 ## Helper Templates
 
-| File | Purpose |
+**Read a real LCM action workflow before building.** The VXLAN Fabric Services project contains production LCM action workflows — they show exactly how to declare and output the required `instance` variable:
+
+```bash
+# List available LCM action workflows
+jq '[.data.project.components[] | select(.type=="workflow")] | .[].document.name' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
+
+# Read a specific action workflow (e.g., Create)
+jq '[.data.project.components[] | select(.type=="workflow") | select(.document.name | test("Create"; "i"))] | first | .document | {name:.name, tasks:.tasks, transitions:.transitions}' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
+```
+
+The resource model exports (in `${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/`) show how actions are wired to workflows — import via `POST /lifecycle-manager/resources/import`:
+
+| File | Actions |
 |------|---------|
-| `${CLAUDE_PLUGIN_ROOT}/helpers/tasks/lcm-action-workflow.json` | LCM action workflow with merge task that outputs `instance` variable. Start from this — it prevents the "workflow does not output a value for 'instance'" error. |
+| `lcm-vxlan-fabric-management.json` | Create Network, Re-Provision, Delete, Decommission (4/5 wired) |
+| `lcm-fan-device-lifecycle-management.json` | Device Onboarding, SW Compliance, Upgrade, Decommission, and more (9/10 wired) |
+| `lcm-ip-blocking-service.json` | Create, Update, Delete, Retry (fully wired) |
+| `lcm-interface-service-provisioning.json` | Create, Modify, Delete (fully wired) |
+| `lcm-port-turn-up.json` | Create, Delete, Service Verification, Update Service Policy (4/6 wired) |
 
 ## Developer Scenarios
 
