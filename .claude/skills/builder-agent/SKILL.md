@@ -102,7 +102,7 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 - The `/login` endpoint does NOT support OAuth client credentials on SaaS instances — always use `/oauth/token`.
 - On success, write `.auth.json` with the token so all subsequent API calls just work.
 
-**Helper script:** `${CLAUDE_PLUGIN_ROOT}/helpers/oauth-bootstrap.sh` — reads `.env`, POSTs to `/oauth/token`, writes `.auth.json`. The builder should run this automatically when `.auth.json` is missing and `.env` has `AUTH_METHOD=oauth`.
+**Helper script:** `${CLAUDE_PLUGIN_ROOT}/scripts/oauth-bootstrap.sh` — reads `.env`, POSTs to `/oauth/token`, writes `.auth.json`. The builder should run this automatically when `.auth.json` is missing and `.env` has `AUTH_METHOD=oauth`.
 
 ---
 
