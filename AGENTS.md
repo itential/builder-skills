@@ -239,7 +239,9 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 
 ## Helper JSON Templates
 
-**ALWAYS start from a helper template when creating assets.** Read the helper file first, then modify it for your use case. Do NOT build JSON from scratch — the helpers have the correct structure, field names, and wrappers.
+**For workflow design and task wiring — read from `helpers/assets/` first.** The asset projects are real, tested, production imports. Extract task structures, variable wiring, transition patterns, and transformation usage directly from those files. Do not invent task schemas from memory.
+
+**For API call bodies (create, update, operations) — use the helpers below.** These cover request wrappers and field names for endpoints that the asset projects don't demonstrate.
 
 Helper templates are organized in subdirectories under `helpers/`:
 
@@ -274,46 +276,6 @@ Helper templates are organized in subdirectories under `helpers/`:
 | `update-node-config.json` | Node template with full syntax |
 | `update-project-members.json` | Update project membership — include all members (PATCH = full replacement) |
 
-**`helpers/tasks/`** — Workflow task JSON snippets
-
-| File | Purpose |
-|------|---------|
-| `workflow-task-adapter.json` | Adapter task template |
-| `workflow-task-application.json` | Application task template |
-| `workflow-task-childjob.json` | childJob task template (actor: "job") |
-| `workflow-task-query.json` | Query/extract data task (json-query syntax) |
-| `workflow-task-newvariable.json` | Create job variable task |
-| `workflow-task-transformation.json` | JST transformation task (tr_id + variableMap) |
-| `workflow-task-gettime.json` | Get current time task |
-| `workflow-task-evalresult.json` | Evaluation/branching task (operand_1/operand_2) |
-| `workflow-task-itential-cli.json` | Send CLI config to device via itential_cli |
-| `workflow-task-run-command-template.json` | MOP RunCommandTemplate task |
-| `workflow-task-view-template-results.json` | MOP viewTemplateResults manual task |
-| `workflow-task-run-templates-diff.json` | MOP runTemplatesDiff (pre vs post) manual task |
-| `workflow-task-reattempt.json` | MOP reattempt task |
-| `lcm-action-workflow.json` | LCM action workflow (must output `instance` variable) |
-
-**`helpers/reference/`** — Full working workflow exports (real platform exports, metadata stripped)
-
-| File | Purpose |
-|------|---------|
-| `reference-adapter-workflow.json` | Adapter task wiring pattern |
-| `reference-parent-workflow.json` | Parent workflow with childJob |
-| `reference-child-workflow.json` | Child workflow invoked by parent |
-| `reference-childjob-loop.json` | childJob loop pattern |
-| `reference-merge-makedata.json` | merge + makeData patterns |
-| `reference-error-handling-workflow.json` | Error handling with transitions |
-| `reference-notification-workflow.json` | Notification / email workflow |
-| `reference-command-template-runner.json` | MOP command template runner workflow |
-| `reference-gateway-service-workflow.json` | AGManager gateway service workflow |
-| `reference-sendcommand-workflow.json` | Send command to device workflow |
-| `reference-push-config-workflow.json` | Push config to device workflow |
-| `reference-form-to-automation.json` | JSON Form → Ops Manager automation wiring |
-| `reference-lcm-lifecycle.json` | LCM lifecycle action workflow |
-| `reference-viewdata-pattern.json` | ViewData manual task pattern |
-| `reference-viewhtml-pattern.json` | ViewHTML manual task pattern |
-| `reference-golden-config-tree.json` | Golden config multi-region tree |
-
 **`helpers/operations/`** — Add, run, and other operation bodies
 
 | File | Purpose |
@@ -322,6 +284,87 @@ Helper templates are organized in subdirectories under `helpers/`:
 | `add-devices-to-node.json` | Assign devices to a golden config node |
 | `run-compliance-plan.json` | Run a compliance plan |
 | `run-compliance.json` | Run compliance directly against a tree/node |
+
+**`helpers/assets/`** — Importable sample projects. Use these as design references and borrow components directly rather than building from scratch.
+
+Import via `POST /automation-studio/projects/import` with body `{"project": <file contents>}`.
+After import, PATCH membership immediately (see Rule 11a).
+
+**Itential Platform — core utilities**
+
+| File | What's Inside |
+|------|--------------|
+| `itential-platform-configuration-management.json` | 6 workflows (Command Template Runner, Golden Config, Backup Config, Push Config, Diff), 2 templates, 6 transformations — *requires IAG* |
+| `itential-platform-data-manipulation.json` | 21 transformations — Parse Number, Chunk Array, Get Value From JSON Pointer, Group Records, Filter Array, Split String, Remove Duplicates, Allocate Numbers, Convert CSV to JSON, and more |
+| `itential-platform-email.json` | 1 workflow (Send Email SMTP), 2 transformations — *requires Email Adapter* |
+| `itential-platform-regex-operations.json` | 4 transformations — Test Match, Find Match, Replace, Extract |
+
+**Vendor integrations — design and wiring examples**
+
+*Software upgrade patterns:*
+
+| File | What's Inside |
+|------|--------------|
+| `vendor-cisco-ios.json` | IOS Upgrade, Port Turn Up, Run Compliance, NetBox Inventory sync — 5 workflows, 6 MOP command templates, 3 JSON forms |
+| `vendor-juniper-junos.json` | JUNOS Upgrade, Port Turn Up, Run Compliance, NetBox Inventory sync — 5 workflows, 6 MOP command templates, 1 template, 2 JSON forms |
+| `vendor-arista-eos.json` | Software Upgrade, Port Turn Up, Create VLAN, Push Config, File Transfer — 7 workflows, 9 MOP command templates, 6 transformations |
+
+*DNS and IPAM:*
+
+| File | What's Inside |
+|------|--------------|
+| `vendor-infoblox-nios-ddi.json` | 20 workflows — full CRUD for Networks, Network Containers, DNS A/CNAME/PTR/NS/Fixed Address records, Assign Next IP |
+| `vendor-netbox.json` | 6 workflows (Create/Delete Prefix, Reserve/Delete IP, Assign Next IP, Onboard Device), 9 transformations, 1 JSON form |
+
+*ITSM integration:*
+
+| File | What's Inside |
+|------|--------------|
+| `vendor-servicenow.json` | 9 workflows (Create/Update/Close Incidents, Change Requests, RITMs, Get Catalog Inputs), 6 transformations |
+
+**`helpers/assets/lcm/`** — LCM resource model exports + their backing project (exported from live platform)
+
+The `lcm-*.json` files are resource model exports (import via `POST /lifecycle-manager/resources/import`).
+The project file contains the actual LCM action workflows — read it to understand how LCM workflows are structured.
+
+| File | What's Inside |
+|------|--------------|
+| `lcm-vxlan-fabric-management.json` | Resource model: 5 actions (Create Network, Re-Provision, Delete, Force Delete, Decommission) — 4 wired |
+| `lcm-vxlan-fabric-services-project.json` | **Backing project**: 6 LCM action workflows, 13 transformations, 3 JSON forms, 2 templates, 1 MOP template — the real workflow structure to learn from |
+| `lcm-fan-device-lifecycle-management.json` | Resource model: 10 actions (Device Onboarding, SW Compliance, CVE Scan, Upgrade, Decommission, etc.) — 9/10 wired |
+| `lcm-port-turn-up.json` | Resource model: 6 actions (Create, Delete, Service Verification, Update Service Policy) — 4/6 wired |
+| `lcm-ip-blocking-service.json` | Resource model: 4 actions (Create, Update, Delete, Retry) — fully wired |
+| `lcm-interface-service-provisioning.json` | Resource model: 3 actions (Create, Modify, Delete) — fully wired |
+
+**Key LCM rule:** every action workflow **must** declare and output an `instance` variable — this is what LCM uses to track resource state between actions. Read the VXLAN project workflows to see the exact pattern.
+
+**`helpers/assets/openapi-specs/`** — OpenAPI spec examples for use with the OpenAPI adapter
+
+| File | Purpose |
+|------|---------|
+| `whoami-basic-auth.json` | WhoAmI endpoint spec with Basic Auth |
+| `whoami-client-creds.json` | WhoAmI endpoint spec with Client Credentials |
+
+### Assets Library — when a vendor or pattern isn't here
+
+The full asset library lives at **https://github.com/itential/assets** (branch: `devel`). Structure: `<Vendor>/<Product>/Projects/<name>.project.json`.
+
+**When to check the repo:**
+- The use case involves a vendor not covered by the files above (AWS, Arista, Juniper, F5, Palo Alto, Alkira, Kentik, etc.)
+- You need a workflow pattern that isn't in the local helpers
+- The customer asks about supported integrations
+
+**How to pull a project from the repo:**
+```bash
+# List available projects for a vendor
+gh api repos/itential/assets/contents/<Vendor>/<Product>/Projects --jq '.[].name'
+
+# Download it into helpers/assets/
+curl -sL "https://raw.githubusercontent.com/itential/assets/devel/<Vendor>/<Product>/Projects/<encoded-name>.project.json" \
+  -o "helpers/assets/<local-name>.json"
+```
+
+**Full vendor index (has Projects/):** Alkira, Apache/Kafka, Arista/EOS, Atlassian/Jira, AWS/EC2, Cisco/ASA, Cisco/IOS, Cisco/Meraki, Cisco/NSO, Cisco/NX-OS, F5/BIG-IP, F5/BIG-IQ, GitHub, GitLab, IP Fabric, Infoblox/NIOS DDI, Juniper/JUNOS, Kentik, Microsoft/Teams, NetBox, Palo Alto/Panorama, ServiceNow, Versa/Director
 
 **`helpers/iag/`** — Automation Gateway service files
 

@@ -1,0 +1,204 @@
+{
+  "message": "Success",
+  "data": {
+    "_id": "66c5e949ffb47f855529a777",
+    "name": "Interface Service Provisioning",
+    "description": "",
+    "schema": {
+      "$id": "interface-service-provisioning",
+      "description": "Interface Service Configuration",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "examples": [
+            "Acme - Boston Office"
+          ]
+        },
+        "customerName": {
+          "type": "string",
+          "default": "Acme Solutions",
+          "examples": [
+            "Acme Solutions"
+          ]
+        },
+        "orderId": {
+          "type": "string",
+          "default": "23451245",
+          "examples": [
+            "23451245"
+          ]
+        },
+        "orderState": {
+          "type": "string",
+          "oneOf": [
+            {
+              "const": "Initial"
+            },
+            {
+              "const": "Design"
+            },
+            {
+              "const": "Generate"
+            },
+            {
+              "const": "Validate"
+            },
+            {
+              "const": "Deploy"
+            },
+            {
+              "const": "Ready"
+            },
+            {
+              "const": "Delete"
+            },
+            {
+              "const": "Removed"
+            }
+          ],
+          "default": "Initial",
+          "examples": [
+            "Design"
+          ]
+        },
+        "orderStatus": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "oneOf": [
+                {
+                  "const": "Normal"
+                },
+                {
+                  "const": "Warning"
+                },
+                {
+                  "const": "Error"
+                }
+              ],
+              "default": "Normal"
+            },
+            "intervals": {
+              "type": "number"
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        "configInfo": {
+          "type": "object",
+          "properties": {
+            "device": {
+              "type": "string",
+              "examples": [
+                "IOS-1"
+              ]
+            },
+            "interfaceType": {
+              "type": "string",
+              "examples": [
+                "0/1/1/1"
+              ]
+            },
+            "interface": {
+              "type": "string",
+              "examples": [
+                "0/1/1/1"
+              ]
+            },
+            "subInterface": {
+              "type": "integer",
+              "examples": [
+                "40"
+              ]
+            },
+            "vlan": {
+              "type": "integer",
+              "examples": [
+                30
+              ]
+            },
+            "ipAddress": {
+              "type": "string",
+              "examples": [
+                "192.168.1.1"
+              ],
+              "format": "ipv4"
+            },
+            "subnetMask": {
+              "type": "string",
+              "examples": [
+                "255.255.255.0"
+              ],
+              "format": "ipv4"
+            },
+            "description": {
+              "type": "string",
+              "examples": [
+                "Itential Interface Service"
+              ]
+            }
+          },
+          "required": [],
+          "additionalProperties": true
+        },
+        "config": {
+          "type": "string",
+          "default": "Unknown",
+          "examples": [
+            "conf t\nno interface GigabitherEthernet1.30"
+          ]
+        }
+      },
+      "required": [
+        "customerName",
+        "orderId"
+      ],
+      "additionalProperties": false
+    },
+    "actions": [
+      {
+        "_id": "b092",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66c50225c07b54ad4a4a422f: ISP - Create",
+        "name": "Create",
+        "type": "create"
+      },
+      {
+        "_id": "4518",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66c50225c07b54ad4a4a422f: ISP - Modify",
+        "name": "Modify",
+        "type": "update"
+      },
+      {
+        "_id": "4663",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66c50225c07b54ad4a4a422f: ISP- Delete",
+        "name": "Delete",
+        "type": "delete"
+      }
+    ],
+    "created": "2024-08-21T13:19:05.634Z",
+    "createdBy": {
+      "username": "dan.sullivan@itential.com",
+      "firstname": "Dan",
+      "provenance": "okta saml",
+      "_id": "680007ee269e2f8600041dbb"
+    },
+    "lastUpdated": "2025-06-30T10:35:30.636Z",
+    "lastUpdatedBy": {
+      "username": "dan.sullivan@itential.com",
+      "firstname": "Dan",
+      "provenance": "Okta SAML",
+      "_id": "67cb6e565f53c99b74f7ccd2"
+    }
+  },
+  "metadata": {}
+}

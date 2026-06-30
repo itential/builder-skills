@@ -1,0 +1,110 @@
+{
+  "message": "Success",
+  "data": {
+    "_id": "669b24fa202a933ba0d5f13f",
+    "name": "IP Blocking Service",
+    "description": "",
+    "schema": {
+      "$id": "ip-blocking-service",
+      "description": "Schema defining the possible values within instances of resource model 'IP Blocking Service'",
+      "type": "object",
+      "required": [],
+      "additionalProperties": true,
+      "properties": {
+        "ipPrefix": {
+          "type": "string",
+          "default": "192.168.1.1/32",
+          "examples": [
+            "192.168.1.1/32"
+          ]
+        },
+        "blockStart": {
+          "type": "string",
+          "examples": [
+            "time"
+          ]
+        },
+        "blockDuration": {
+          "type": "number",
+          "default": 10,
+          "examples": [
+            10
+          ]
+        },
+        "context": {
+          "type": "object",
+          "properties": {
+            "Panorama": {
+              "type": "string",
+              "default": "value",
+              "examples": [
+                "value"
+              ]
+            },
+            "AWS": {
+              "type": "integer",
+              "default": 1,
+              "examples": [
+                1
+              ]
+            }
+          },
+          "required": [
+            "Panorama",
+            "AWS"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "actions": [
+      {
+        "_id": "3779",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66992150e641c16c5e35c174: IpBlock LCM Delete",
+        "name": "Delete",
+        "type": "delete"
+      },
+      {
+        "_id": "9760",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66992150e641c16c5e35c174: IpBlock LCM Create",
+        "name": "Create",
+        "type": "create"
+      },
+      {
+        "_id": "e23f",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66c50225c07b54ad4a4a422f: ISP - Modify",
+        "name": "Update",
+        "type": "update"
+      },
+      {
+        "_id": "cd5a",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@66c50225c07b54ad4a4a422f: ISP - Retry",
+        "name": "Retry",
+        "type": "update"
+      }
+    ],
+    "created": "2024-07-20T02:46:18.339Z",
+    "createdBy": {
+      "username": "dan.sullivan@itential.com",
+      "firstname": "Dan",
+      "provenance": "okta saml",
+      "_id": "680007ee269e2f8600041dbb"
+    },
+    "lastUpdated": "2025-05-13T14:47:53.600Z",
+    "lastUpdatedBy": {
+      "username": "dan.sullivan@itential.com",
+      "firstname": "Dan",
+      "provenance": "Okta SAML",
+      "_id": "67cb6e565f53c99b74f7ccd2"
+    }
+  },
+  "metadata": {}
+}

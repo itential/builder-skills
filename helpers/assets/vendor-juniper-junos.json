@@ -1,0 +1,4555 @@
+{
+  "_id": "6a138e0000000000ffff0001",
+  "name": "Juniper JUNOS",
+  "description": "Juniper JUNOS inventory using NETCONF, software upgrade, and golden configuration",
+  "components": [
+    {
+      "iid": 22,
+      "reference": "6a13848a75bc43e3a0bf3492",
+      "type": "jsonForm",
+      "folder": "/Software Upgrade",
+      "document": {
+        "id": "6a13848a75bc43e3a0bf3492",
+        "created": "2026-05-24T23:06:50.250Z",
+        "createdBy": "mike.elrom@itential.com",
+        "lastUpdated": "2026-06-25T09:21:14.878Z",
+        "lastUpdatedBy": "mike.elrom@itential.com",
+        "name": "Upgrade Form",
+        "description": "Form input for the Juniper software upgrade automation.",
+        "struct": {
+          "type": "array",
+          "items": [
+            {
+              "nodeId": "fp-juno-001",
+              "type": "string",
+              "title": "Device",
+              "description": "Inventory device name (e.g. 'Itential Lab JUNOS::aws-lab-junos')",
+              "placeholder": "Itential Lab JUNOS::aws-lab-junos",
+              "required": true,
+              "default": "Itential Lab JUNOS::aws-lab-junos",
+              "customKey": "device"
+            },
+            {
+              "nodeId": "fp-juno-002",
+              "type": "string",
+              "title": "Target Junos Version",
+              "description": "Version string the upgrade targets, e.g. 22.4R2.8",
+              "placeholder": "22.4R2.8",
+              "required": true,
+              "customKey": "target_version",
+              "default": ""
+            },
+            {
+              "nodeId": "8454772e-f885-4a0a-8562-9ae24b741a72",
+              "type": "string",
+              "title": "Image Path on Device",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "90e2b5e7-fb50-4848-9cfc-da5d426f5802",
+                  "label": "/var/tmp/junos-install-vsrx3-x86-64-22.4R1.10.tgz",
+                  "value": "/var/tmp/junos-install-vsrx3-x86-64-22.4R1.10.tgz"
+                },
+                {
+                  "id": "b1a057bb-1b9a-42c1-8fcb-c2c0c724e8c5",
+                  "label": "/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz",
+                  "value": "/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "91b4cb0f-54fe-4a10-b38c-f25651d96247",
+                  "label": "",
+                  "value": ""
+                },
+                {
+                  "id": "408c79cc-5288-4448-9511-26c7c7e9027d",
+                  "label": "",
+                  "value": ""
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": "image_path",
+              "default": "/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz"
+            },
+            {
+              "nodeId": "200a7ad4-9906-41f2-90e5-26dc2b2f656e",
+              "type": "string",
+              "title": "Expected Image SHA-256 x",
+              "description": "Lowercase 64-char hex hash. Used by Verify Image to confirm the staged image matches.",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "32ed7b87-f41a-4eed-bdff-f410c39d22ba",
+                  "label": "9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448",
+                  "value": "9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448"
+                },
+                {
+                  "id": "4d0bde74-b59e-4c35-9dbe-a84b4cc7de9a",
+                  "label": "8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2",
+                  "value": "8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "f356a543-2657-4b20-8de8-fe6e5b68d4ce",
+                  "label": "22.4R1.10.tgz - 9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448",
+                  "value": "22.4R1.10.tgz - 9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448"
+                },
+                {
+                  "id": "7afdb25d-5e1c-4160-92da-1cf1ecf6b5b3",
+                  "label": "22.4R2.8.tgz - 8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2",
+                  "value": "22.4R2.8.tgz - 8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2"
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "default": "8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2",
+              "customKey": "image_sha256"
+            }
+          ]
+        },
+        "schema": {
+          "title": "Upgrade Form",
+          "description": "Form input for the Juniper software upgrade automation.",
+          "type": "object",
+          "required": [
+            "device",
+            "target_version",
+            "image_path",
+            "image_sha256"
+          ],
+          "properties": {
+            "device": {
+              "type": "string",
+              "title": "Device",
+              "_id": "/properties/device",
+              "description": "Inventory device name (e.g. 'Itential Lab JUNOS::aws-lab-junos')",
+              "default": "Itential Lab JUNOS::aws-lab-junos"
+            },
+            "target_version": {
+              "type": "string",
+              "title": "Target Junos Version",
+              "_id": "/properties/target_version",
+              "description": "Version string the upgrade targets, e.g. 22.4R2.8",
+              "default": ""
+            },
+            "image_path": {
+              "type": "string",
+              "title": "Image Path on Device",
+              "_id": "/properties/image_path",
+              "description": "",
+              "default": "/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz",
+              "enum": [
+                "/var/tmp/junos-install-vsrx3-x86-64-22.4R1.10.tgz",
+                "/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz"
+              ],
+              "enumNames": [
+                "",
+                ""
+              ]
+            },
+            "image_sha256": {
+              "type": "string",
+              "title": "Expected Image SHA-256 x",
+              "_id": "/properties/image_sha256",
+              "description": "Lowercase 64-char hex hash. Used by Verify Image to confirm the staged image matches.",
+              "default": "8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2",
+              "enum": [
+                "9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448",
+                "8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2"
+              ],
+              "enumNames": [
+                "22.4R1.10.tgz - 9528d02f3ce5958616d5fff140314c013b41e9d34997acd413a15761baa06448",
+                "22.4R2.8.tgz - 8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2"
+              ]
+            }
+          }
+        },
+        "uiSchema": {
+          "device": {
+            "ui:placeholder": "Itential Lab JUNOS::aws-lab-junos"
+          },
+          "target_version": {
+            "ui:placeholder": "22.4R2.8"
+          },
+          "image_path": {
+            "ui:placeholder": "Select an item"
+          },
+          "image_sha256": {
+            "ui:placeholder": "Select an item"
+          },
+          "ui:order": [
+            "device",
+            "target_version",
+            "image_path",
+            "image_sha256",
+            "*"
+          ]
+        },
+        "bindingSchema": {},
+        "validationSchema": {},
+        "version": "2020.1"
+      }
+    },
+    {
+      "iid": 42,
+      "reference": "6a1de30f62b073861f971611",
+      "type": "jsonForm",
+      "folder": "/Golden Configuration",
+      "document": {
+        "id": "6a1de30f62b073861f971611",
+        "created": "2026-06-01T19:52:47.654Z",
+        "createdBy": "mike.elrom@itential.com",
+        "lastUpdated": "2026-06-24T20:03:06.833Z",
+        "lastUpdatedBy": "mike.elrom@itential.com",
+        "name": "Compliance Form",
+        "description": "",
+        "struct": {
+          "type": "array",
+          "items": [
+            {
+              "nodeId": "95e19ca7-6692-4f15-b362-2d4c8fa0d1f4",
+              "type": "string",
+              "title": "Tree Name",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [],
+              "enumNames": [],
+              "binding": true,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": "tree_name",
+              "readOnly": false,
+              "method": "GET",
+              "uniqueItems": false,
+              "base": "/configuration_manager",
+              "href": "/configs",
+              "sourcePointer": "/",
+              "sourceKeyPointer": "/name"
+            },
+            {
+              "nodeId": "0e0602fd-c568-4f7e-81c6-5f4accaf4752",
+              "type": "string",
+              "title": "Tree Version",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": "version",
+              "default": "initial"
+            }
+          ]
+        },
+        "schema": {
+          "title": "Compliance Form",
+          "description": "",
+          "type": "object",
+          "required": [
+            "tree_name",
+            "version"
+          ],
+          "properties": {
+            "tree_name": {
+              "type": "string",
+              "title": "Tree Name",
+              "_id": "/properties/tree_name",
+              "description": "",
+              "enum": [],
+              "enumNames": []
+            },
+            "version": {
+              "type": "string",
+              "title": "Tree Version",
+              "_id": "/properties/version",
+              "description": "",
+              "default": "initial"
+            }
+          }
+        },
+        "uiSchema": {
+          "tree_name": {
+            "ui:placeholder": "Select an item"
+          },
+          "version": {
+            "ui:placeholder": "Enter text"
+          },
+          "ui:order": [
+            "tree_name",
+            "version",
+            "*"
+          ]
+        },
+        "bindingSchema": {
+          "properties": {
+            "tree_name": {
+              "binding:method": "GET",
+              "binding:link": {
+                "$ref": "/links",
+                "rel": "collection"
+              },
+              "binding:target": {
+                "propertyPointer": "/enum"
+              },
+              "binding:hyperSchema": {
+                "type": "object",
+                "base": "/configuration_manager",
+                "links": [
+                  {
+                    "rel": "collection",
+                    "href": "/configs",
+                    "targetMediaType": "application/json",
+                    "targetSchema": {
+                      "$ref": "#"
+                    },
+                    "variables": []
+                  }
+                ]
+              },
+              "binding:source": {
+                "propertyPointer": "/",
+                "keyPointer": "/name"
+              }
+            }
+          }
+        },
+        "validationSchema": {},
+        "version": "2020.1"
+      }
+    },
+    {
+      "iid": 46,
+      "reference": "6a1e325462b073861f971612",
+      "type": "jsonForm",
+      "folder": "/Port Turn Up",
+      "document": {
+        "id": "6a1e325462b073861f971612",
+        "created": "2026-06-02T01:31:00.689Z",
+        "createdBy": "mike.elrom@itential.com",
+        "lastUpdated": "2026-06-25T09:10:42.623Z",
+        "lastUpdatedBy": "mike.elrom@itential.com",
+        "name": "8021.Q Sub Interface Form",
+        "description": "",
+        "struct": {
+          "type": "array",
+          "items": [
+            {
+              "nodeId": "1ce2213f-8804-41a3-961b-4fe82d1834f5",
+              "type": "string",
+              "title": "Device",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "default": "Itential Lab JUNOS::aws-lab-junos"
+            },
+            {
+              "nodeId": "152dff76-28ec-4162-8dca-338dd7e17bb1",
+              "type": "string",
+              "title": "Interface",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "default": "ge-0/0/0"
+            },
+            {
+              "nodeId": "6b723497-01b2-46f8-b2f6-976a3ffdf714",
+              "type": "string",
+              "title": "VLAN ID",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": "vlan_id",
+              "default": "100"
+            },
+            {
+              "nodeId": "6eaf9ad6-5633-4a26-852d-a8d6be11fc88",
+              "type": "string",
+              "title": "Description",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "default": "CORP LAN"
+            },
+            {
+              "nodeId": "b73ebfd6-0dd9-4036-82b5-666bceddbde2",
+              "type": "string",
+              "title": "IP Address",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": false,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": "ip_address",
+              "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}\\/(8|16|24|2[89]|3[012])$",
+              "default": "192.168.100.1/24"
+            },
+            {
+              "nodeId": "c30b8f00-6de8-46bb-96d9-6126d117e10d",
+              "type": "string",
+              "title": "zone",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "default": "trust"
+            }
+          ]
+        },
+        "schema": {
+          "title": "8021.Q Sub Interface Form",
+          "description": "",
+          "type": "object",
+          "required": [
+            "device",
+            "interface",
+            "vlan_id",
+            "description",
+            "zone"
+          ],
+          "properties": {
+            "device": {
+              "type": "string",
+              "title": "Device",
+              "_id": "/properties/device",
+              "description": "",
+              "default": "Itential Lab JUNOS::aws-lab-junos"
+            },
+            "interface": {
+              "type": "string",
+              "title": "Interface",
+              "_id": "/properties/interface",
+              "description": "",
+              "default": "ge-0/0/0"
+            },
+            "vlan_id": {
+              "type": "string",
+              "title": "VLAN ID",
+              "_id": "/properties/vlan_id",
+              "description": "",
+              "default": "100"
+            },
+            "description": {
+              "type": "string",
+              "title": "Description",
+              "_id": "/properties/description",
+              "description": "",
+              "default": "CORP LAN"
+            },
+            "ip_address": {
+              "type": "string",
+              "title": "IP Address",
+              "_id": "/properties/ip_address",
+              "description": "",
+              "default": "192.168.100.1/24",
+              "pattern": "^(\\d{1,3}\\.){3}\\d{1,3}\\/(8|16|24|2[89]|3[012])$"
+            },
+            "zone": {
+              "type": "string",
+              "title": "zone",
+              "_id": "/properties/zone",
+              "description": "",
+              "default": "trust"
+            }
+          }
+        },
+        "uiSchema": {
+          "device": {
+            "ui:placeholder": "Enter text"
+          },
+          "interface": {
+            "ui:placeholder": "Enter text"
+          },
+          "vlan_id": {
+            "ui:placeholder": "Enter text"
+          },
+          "description": {
+            "ui:placeholder": "Enter text"
+          },
+          "ip_address": {
+            "ui:placeholder": "Enter text"
+          },
+          "zone": {
+            "ui:placeholder": "Enter text"
+          },
+          "ui:order": [
+            "device",
+            "interface",
+            "vlan_id",
+            "description",
+            "ip_address",
+            "zone",
+            "*"
+          ]
+        },
+        "bindingSchema": {},
+        "validationSchema": {},
+        "version": "2020.1"
+      }
+    },
+    {
+      "iid": 48,
+      "reference": "@6a138e0000000000ffff0001: Port Turn Up Post Check",
+      "type": "mopCommandTemplate",
+      "folder": "/Port Turn Up",
+      "document": {
+        "tags": [],
+        "name": "Port Turn Up Post Check",
+        "description": "Captures pre/post device state for a Junos device. Runs show version, show system storage, show interfaces terse, and show route summary. Rules are sanity-only \u2014 the workflow reads commands_results[].response for the actual diff inputs.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": null,
+        "commands": [
+          {
+            "command": "show configuration interfaces <!interface!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show security zones <!zone!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show route table inet.0",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          }
+        ],
+        "created": 1780367306548,
+        "createdBy": "6a0c557474e890f65883e175",
+        "lastUpdated": 1782331386951,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 47,
+      "reference": "@6a138e0000000000ffff0001: Port Turn Up Pre Check",
+      "type": "mopCommandTemplate",
+      "folder": "/Port Turn Up",
+      "document": {
+        "tags": [],
+        "name": "Port Turn Up Pre Check",
+        "description": "Captures pre/post device state for a Junos device. Runs show version, show system storage, show interfaces terse, and show route summary. Rules are sanity-only \u2014 the workflow reads commands_results[].response for the actual diff inputs.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": null,
+        "commands": [
+          {
+            "command": "show configuration interfaces <!interface!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show security zones <!zone!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show route table inet.0",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          }
+        ],
+        "created": 1780364670141,
+        "createdBy": "6a0c557474e890f65883e175",
+        "lastUpdated": 1782331387307,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 31,
+      "reference": "@6a138e0000000000ffff0001: Pre and Post Checks",
+      "type": "mopCommandTemplate",
+      "folder": "/Software Upgrade",
+      "document": {
+        "tags": [],
+        "name": "Pre and Post Checks",
+        "description": "Captures pre/post device state for a Junos device. Runs show version, show system storage, show interfaces terse, and show route summary. Rules are sanity-only \u2014 the workflow reads commands_results[].response for the actual diff inputs.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": null,
+        "commands": [
+          {
+            "command": "show version",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "Junos:",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show system storage",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "/dev/gpt/junos",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show interfaces terse",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "show route summary",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "destinations",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          }
+        ],
+        "created": 1779675515376,
+        "createdBy": "itential-02",
+        "lastUpdated": 1782331387033,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 36,
+      "reference": "@6a138e0000000000ffff0001: Reboot",
+      "type": "mopCommandTemplate",
+      "folder": "/Software Upgrade",
+      "document": {
+        "tags": [],
+        "name": "Reboot",
+        "description": "Runs request system software add <image_path> no-validate no-copy, then request system reboot. Reboot response may be partial because SSH terminates.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": null,
+        "commands": [
+          {
+            "command": "request system reboot",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "Shutdown NOW!",
+                "eval": "contains",
+                "severity": "warn"
+              }
+            ]
+          }
+        ],
+        "created": 1779719937714,
+        "createdBy": "6a0c557474e890f65883e175",
+        "lastUpdated": 1782331387198,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 32,
+      "reference": "@6a138e0000000000ffff0001: Stage Upgrade",
+      "type": "mopCommandTemplate",
+      "folder": "/Software Upgrade",
+      "document": {
+        "tags": [],
+        "name": "Stage Upgrade",
+        "description": "Runs request system software add <image_path> no-validate no-copy, then request system reboot. Reboot response may be partial because SSH terminates.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": null,
+        "commands": [
+          {
+            "command": "request system software add <!image_path!> no-validate no-copy",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "set will be activated at next reboot",
+                "eval": "contains",
+                "severity": "warn"
+              }
+            ]
+          }
+        ],
+        "created": 1779675515780,
+        "createdBy": "itential-02",
+        "lastUpdated": 1782331387095,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 27,
+      "reference": "@6a138e0000000000ffff0001: Verify Image",
+      "type": "mopCommandTemplate",
+      "folder": "/Software Upgrade",
+      "document": {
+        "tags": [],
+        "name": "Verify Image",
+        "description": "Confirms staged image exists at the specified path and sha-256 matches expected hash.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": false,
+        "commands": [
+          {
+            "command": "file list <!image_path!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "No such file",
+                "eval": "!contains",
+                "severity": "error"
+              }
+            ]
+          },
+          {
+            "command": "file checksum sha-256 <!image_path!>",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "<!image_sha256!>",
+                "eval": "contains",
+                "severity": "error"
+              }
+            ]
+          }
+        ],
+        "created": 1779674845008,
+        "createdBy": "itential-02",
+        "lastUpdated": 1782331387155,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 30,
+      "reference": "@6a138e0000000000ffff0001: Version Check",
+      "type": "mopCommandTemplate",
+      "folder": "/Software Upgrade",
+      "document": {
+        "tags": [],
+        "name": "Version Check",
+        "description": "Verifies the running Junos version matches an expected string.",
+        "os": "juniper_junos",
+        "passRule": true,
+        "ignoreWarnings": false,
+        "commands": [
+          {
+            "command": "show version",
+            "passRule": true,
+            "rules": [
+              {
+                "rule": "<!target_version!>",
+                "eval": "contains",
+                "severity": "error",
+                "evaluation": "pass"
+              },
+              {
+                "rule": "Service execution failed (exit code 1): No error output",
+                "eval": "!contains",
+                "severity": "error",
+                "evaluation": "pass"
+              }
+            ]
+          }
+        ],
+        "created": 1779674846087,
+        "createdBy": "itential-02",
+        "lastUpdated": 1782331387264,
+        "lastUpdatedBy": "mike.elrom@itential.com"
+      }
+    },
+    {
+      "iid": 33,
+      "reference": "d7825e52-44a8-4aaf-a485-341981d34e01",
+      "type": "workflow",
+      "folder": "/Software Upgrade",
+      "document": {
+        "name": "JUNOS Upgrade",
+        "description": "Sample Input\n  {\n  \"device\": \"Itential Lab JUNOS::aws-lab-junos\",\n  \"target_version\": \"22.4R2.8\",\n  \"image_path\": \"/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz\",\n  \"image_sha256\": \"8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2\"\n}",
+        "tasks": {
+          "1784": {
+            "name": "runCode",
+            "canvasName": "runCode",
+            "summary": "Check Already Upgraded",
+            "description": "Execute code (e.g. Python) on a Gateway5 cluster without requiring a pre-configured service. The code is sent directly to the gateway for execution.",
+            "location": "Application",
+            "locationType": null,
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
+            "variables": {
+              "incoming": {
+                "clusterId": "cluster-itential",
+                "language": "python",
+                "code": "import sys\nimport json\nimport re\n\n# \u2500\u2500 Read inputs from stdin (IAG runCode standard) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ndata = json.load(sys.stdin)\n\ndevice_results = data.get('device_results', {})\ntarget_version  = data.get('target_version', '')\n\n# \u2500\u2500 Extract device name and version from 'show version' output \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\ncommands    = device_results.get('commands_results', [])\ndevice_name = commands[0].get('device') if commands else None\n\nfound_version = None\nfor cmd in commands:\n    if cmd.get('raw', '').strip().lower() == 'show version':\n        response = cmd.get('response', '')\n        match = re.search(r'^Junos:\\s+(\\S+)', response, re.MULTILINE)\n        if match:\n            found_version = match.group(1)\n        break\n\n# \u2500\u2500 Build result \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif found_version is None:\n    result = {\n        'passed':  False,\n        'found':   None,\n        'target':  target_version,\n        'device':  device_name,\n        'message': \"Could not extract Junos version \u2014 'show version' output missing or malformed.\"\n    }\nelse:\n    passed = found_version == target_version\n    result = {\n        'passed':  passed,\n        'found':   found_version,\n        'target':  target_version,\n        'device':  device_name,\n        'message': (\n            f\"Device '{device_name}' is running Junos {found_version} \u2014 matches target {target_version}.\"\n            if passed else\n            f\"Device '{device_name}' is running Junos {found_version} \u2014 expected {target_version}.\"\n        )\n    }\n\n# \u2500\u2500 Emit JSON to stdout (captured as stdout_json by the platform) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nprint(json.dumps(result))",
+                "data": {
+                  "target_version": "$var.job.target_version",
+                  "device_results": "$var.a2.mop_template_results"
+                },
+                "safety": {
+                  "timeout": 1
+                },
+                "packages": []
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 144
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -300
+            }
+          },
+          "a2": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Pre Check",
+            "description": "Captures show version, system storage, interfaces, route summary",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Pre and Post Checks",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.preCheckOutput"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": -72
+            }
+          },
+          "b1": {
+            "name": "backUpDevice",
+            "canvasName": "backUpDevice",
+            "summary": "Backup Running Config (pre)",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "ConfigurationManager",
+            "type": "automatic",
+            "displayName": "ConfigurationManager",
+            "variables": {
+              "incoming": {
+                "name": "$var.job.device",
+                "options": {}
+              },
+              "outgoing": {
+                "status": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 312
+            }
+          },
+          "d1": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Verify Image",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Verify Image",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.verifyImageResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 456
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 1788
+            }
+          },
+          "d768": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Pre-check",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "a2",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 36
+            }
+          },
+          "f3ca": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Verify",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "d1",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 570
+            }
+          },
+          "c681": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Stage Upgrade",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Stage Upgrade",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.stageUpgradeResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 672
+            }
+          },
+          "6c10": {
+            "name": "reattempt",
+            "canvasName": "reattempt",
+            "summary": "Reattempt",
+            "description": "Workflow will follow reattempt task's outgoing transition after n minutes of delay.",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "job_id": "$var.job._id",
+                "attemptID": "reboot",
+                "minutes": 1,
+                "attempts": 30
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -372,
+              "y": 1224
+            }
+          },
+          "926a": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Version Check",
+            "description": "Captures show version, system storage, interfaces, route summary",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Version Check",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.versionCheckResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 1116
+            }
+          },
+          "80da": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Stage Upgrade",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "c681",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 792
+            }
+          },
+          "908f": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Version Check",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "926a",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 1224
+            }
+          },
+          "e5fb": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Reboot",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Reboot",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.rebootResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 900
+            }
+          },
+          "20d5": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Reboot",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "e5fb",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 1008
+            }
+          },
+          "f215": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Post Check",
+            "description": "Captures show version, system storage, interfaces, route summary",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Pre and Post Checks",
+                "variables": "$var.b63a.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.postCheckResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 1344
+            }
+          },
+          "6d1a": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Post-check",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "f215",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 1464
+            }
+          },
+          "0761": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Already Upgraded",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "1784",
+                          "variable": "result"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "stdout_json.passed",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 336,
+              "y": 324
+            }
+          },
+          "0193": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Response: Failed Attempts",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "{\"response\":\"failure\", \"message\": \"The software upgrade exhausted attempts, please review for more details.\"}",
+                "variables": {},
+                "castDataType": "object"
+              },
+              "outgoing": {
+                "renderedTemplate": "$var.job.response"
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -372,
+              "y": 1620
+            }
+          },
+          "e8a2": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Response: Success",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "{\"response\":\"success\", \"message\": \"The software upgrade was successful.\"}",
+                "variables": {},
+                "castDataType": "object"
+              },
+              "outgoing": {
+                "renderedTemplate": "$var.job.response"
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 1620
+            }
+          },
+          "799d": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Response: Not Needed",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "{\"response\":\"success\", \"message\": \"The software upgrade was not needed. The device version matches requested version.\"}",
+                "variables": {},
+                "castDataType": "object"
+              },
+              "outgoing": {
+                "renderedTemplate": "$var.job.response"
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 336,
+              "y": 1620
+            }
+          },
+          "b63a": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Variable Object",
+            "description": "Merge data into a single object",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "device",
+                    "value": {
+                      "task": "job",
+                      "variable": "device"
+                    }
+                  },
+                  {
+                    "key": "target_version",
+                    "value": {
+                      "task": "job",
+                      "variable": "target_version"
+                    }
+                  },
+                  {
+                    "key": "image_path",
+                    "value": {
+                      "task": "job",
+                      "variable": "image_path"
+                    }
+                  },
+                  {
+                    "key": "image_sha256",
+                    "value": {
+                      "task": "job",
+                      "variable": "image_sha256"
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -180
+            }
+          }
+        },
+        "transitions": {
+          "1784": {
+            "0761": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "b63a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "a2": {
+            "d768": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "b1": {
+            "d1": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "d1": {
+            "f3ca": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "d768": {
+            "1784": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f3ca": {
+            "c681": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "c681": {
+            "80da": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "6c10": {
+            "926a": {
+              "state": "success",
+              "type": "revert"
+            },
+            "0193": {
+              "state": "failure",
+              "type": "standard"
+            }
+          },
+          "926a": {
+            "908f": {
+              "state": "success",
+              "type": "standard"
+            },
+            "6c10": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "80da": {
+            "e5fb": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "908f": {
+            "6c10": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "f215": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "e5fb": {
+            "20d5": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "20d5": {
+            "926a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f215": {
+            "6d1a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "6d1a": {
+            "e8a2": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "0761": {
+            "b1": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "799d": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "0193": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "e8a2": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "799d": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "b63a": {
+            "a2": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "target_version": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "device": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "examples": [
+                      "Cisco ASA",
+                      "Cisco NX-OS"
+                    ]
+                  }
+                },
+                {
+                  "title": "name",
+                  "type": "string",
+                  "examples": [
+                    "xr9kv-atl"
+                  ]
+                }
+              ]
+            },
+            "_id": {
+              "title": "job_id",
+              "type": "string",
+              "examples": [
+                "12476bef62224efb97684e43"
+              ]
+            },
+            "image_path": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "image_sha256": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "target_version",
+            "device",
+            "_id",
+            "image_path",
+            "image_sha256"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "target_version": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "device": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "examples": [
+                      "Cisco ASA",
+                      "Cisco NX-OS"
+                    ]
+                  }
+                },
+                {
+                  "title": "name",
+                  "type": "string",
+                  "examples": [
+                    "xr9kv-atl"
+                  ]
+                }
+              ]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "image_path": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "image_sha256": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "preCheckOutput": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "verifyImageResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "stageUpgradeResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "versionCheckResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "rebootResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "postCheckResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "response": {
+              "title": "renderedTemplate",
+              "type": "object",
+              "examples": [
+                {
+                  "renderedTemplate": "John was born in year 2000"
+                }
+              ]
+            }
+          }
+        },
+        "scenarios": [],
+        "type": "automation",
+        "font_size": 12,
+        "createdVersion": "6.4.0",
+        "lastUpdatedVersion": "5.55.5",
+        "last_updated": "2026-06-25T10:18:09.852Z",
+        "last_updated_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "uuid": "a63333bf-5479-46a8-a3c0-1dacdfa96c03",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 8
+      }
+    },
+    {
+      "iid": 38,
+      "reference": "e12afde2-c824-492f-b76a-794d1eeda432",
+      "type": "workflow",
+      "folder": "/Golden Configuration",
+      "document": {
+        "name": "Run Compliance",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "x": 0,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": -420,
+              "y": -996
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "x": 1,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": -420,
+              "y": -336
+            }
+          },
+          "509b": {
+            "name": "runComplianceForTree",
+            "canvasName": "runComplianceForTree",
+            "summary": "Run Golden Config Tree Compliance",
+            "description": "Run Golden Config Tree Compliance",
+            "location": "Application",
+            "locationType": null,
+            "app": "ConfigurationManager",
+            "type": "automatic",
+            "displayName": "ConfigurationManager",
+            "variables": {
+              "incoming": {
+                "treeId": "$var.67fa.result#/stdout_json/tree/id",
+                "version": "$var.job.version",
+                "variables": "",
+                "grading": ""
+              },
+              "outgoing": {
+                "runComplianceBatchResult": null
+              },
+              "error": "",
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/treeId",
+                  "displayPath": ".stdout_json.tree.id"
+                }
+              ]
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -420,
+              "y": -660
+            }
+          },
+          "5f5f": {
+            "name": "getGoldenConfigTrees",
+            "canvasName": "getGoldenConfigTrees",
+            "summary": "Get All Golden Config Trees",
+            "description": "Get All Golden Config Trees",
+            "location": "Application",
+            "locationType": null,
+            "app": "ConfigurationManager",
+            "type": "automatic",
+            "displayName": "ConfigurationManager",
+            "variables": {
+              "incoming": {},
+              "outgoing": {
+                "goldenConfigTrees": null
+              }
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "nodeLocation": {
+              "x": -420,
+              "y": -876
+            }
+          },
+          "67fa": {
+            "name": "runCode",
+            "canvasName": "runCode",
+            "summary": "Get treeId",
+            "description": "Execute code (e.g. Python) on a Gateway5 cluster without requiring a pre-configured service. The code is sent directly to the gateway for execution.",
+            "location": "Application",
+            "locationType": null,
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
+            "variables": {
+              "incoming": {
+                "clusterId": "cluster-itential",
+                "language": "python",
+                "code": "import sys\nimport json\n\ndata = json.load(sys.stdin)\n\ntree_name = data.get('tree_name', '')\ntrees = data.get('golden_config_trees', [])\n\nmatched_tree = next((t for t in trees if t.get('name') == tree_name), None)\n\nif matched_tree:\n    print(f\"Matched tree: {matched_tree.get('name')} ({matched_tree.get('id')})\", file=sys.stderr)\n    print(json.dumps({\"tree\": matched_tree}))\nelse:\n    print(f\"No tree found matching name: '{tree_name}'\", file=sys.stderr)\n    print(json.dumps({\"error\": f\"No tree found with name '{tree_name}'\"}))",
+                "data": {
+                  "golden_config_trees": "$var.5f5f.goldenConfigTrees",
+                  "tree_name": "$var.job.tree_name"
+                },
+                "safety": {
+                  "timeout": 1
+                },
+                "packages": []
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -420,
+              "y": -768
+            }
+          },
+          "cad0": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Render HTML View",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "<h2 style=\"font-size:16px;font-family:Arial,sans-serif;margin:0 0 8px 0;\">Golden Config Compliance Report</h2>\n<p style=\"font-size:12px;color:#555;font-family:Arial,sans-serif;\">Batch ID: <strong>{{ batchId }}</strong> &nbsp;|&nbsp; Status: <strong>{{ status }}</strong> &nbsp;|&nbsp; {{ reports | length }} device report(s)</p>\n\n<h3 style=\"font-size:14px;font-family:Arial,sans-serif;border-bottom:1px solid #ddd;padding-bottom:4px;\">Summary</h3>\n<table style=\"border-collapse:collapse;width:100%;font-size:12px;font-family:Arial,sans-serif;margin-bottom:16px;\">\n  <thead>\n    <tr>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Device</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Node Path</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Score</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Grade</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Warnings</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Errors</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Passes</th>\n    </tr>\n  </thead>\n  <tbody>\n  {% for report in reports %}\n    {% if report.grade == 'fail' %}\n      {% set scoreColor = '#c0392b' %}\n      {% set badgeBg = '#fdecea' %}\n      {% set badgeColor = '#c0392b' %}\n      {% set badgeBorder = '#e5b4b1' %}\n    {% else %}\n      {% set scoreColor = '#27ae60' %}\n      {% set badgeBg = '#eafaf1' %}\n      {% set badgeColor = '#27ae60' %}\n      {% set badgeBorder = '#a9dfbf' %}\n    {% endif %}\n    <tr>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ report.device }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ report.nodePath }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;color:{{ scoreColor }};\">{{ report.score }}%</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">\n        <span style=\"display:inline-block;padding:2px 7px;border-radius:3px;font-size:11px;font-weight:bold;background:{{ badgeBg }};color:{{ badgeColor }};border:1px solid {{ badgeBorder }};\">{{ report.grade }}</span>\n      </td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ report.totals.warnings }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ report.totals.errors }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ report.totals.passes }}</td>\n    </tr>\n  {% endfor %}\n  </tbody>\n</table>\n\n{% for report in reports %}\n  {% if report.grade == 'fail' %}\n    {% set scoreColor = '#c0392b' %}\n    {% set badgeBg = '#fdecea' %}\n    {% set badgeColor = '#c0392b' %}\n    {% set badgeBorder = '#e5b4b1' %}\n  {% else %}\n    {% set scoreColor = '#27ae60' %}\n    {% set badgeBg = '#eafaf1' %}\n    {% set badgeColor = '#27ae60' %}\n    {% set badgeBorder = '#a9dfbf' %}\n  {% endif %}\n<h3 style=\"font-size:14px;font-family:Arial,sans-serif;border-bottom:1px solid #ddd;padding-bottom:4px;margin-top:16px;\">{{ report.device }} \u2014 {{ report.nodePath }}</h3>\n<div style=\"background:#f9f9f9;border:1px solid #ddd;border-radius:4px;padding:10px 14px;margin-bottom:12px;font-family:Arial,sans-serif;font-size:12px;\">\n  Score: <strong style=\"color:{{ scoreColor }};\">{{ report.score }}%</strong> &nbsp;|&nbsp;\n  Grade: <strong style=\"color:{{ badgeColor }};\">{{ report.grade }}</strong> &nbsp;|&nbsp;\n  Warnings: <strong>{{ report.totals.warnings }}</strong> &nbsp;|&nbsp;\n  Errors: <strong>{{ report.totals.errors }}</strong> &nbsp;|&nbsp;\n  Passes: <strong>{{ report.totals.passes }}</strong> &nbsp;|&nbsp;\n  Device Type: <strong>{{ report.deviceType }}</strong> &nbsp;|&nbsp;\n  Timestamp: <strong>{{ report.timestamp }}</strong>\n</div>\n\n{% if report.issues %}\n<table style=\"border-collapse:collapse;width:100%;font-size:12px;font-family:Arial,sans-serif;margin-bottom:16px;\">\n  <thead>\n    <tr>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Severity</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Type</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Required Config (set command)</th>\n      <th style=\"background:#f0f0f0;text-align:left;padding:6px 8px;border:1px solid #ccc;\">Fix Mode</th>\n    </tr>\n  </thead>\n  <tbody>\n  {% for issue in report.issues %}\n    <tr>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ issue.severity }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ issue.type }}</td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\"><code style=\"font-family:monospace;font-size:11px;background:#f8f8f8;padding:2px 5px;border:1px solid #e0e0e0;border-radius:2px;\">{{ issue.spec.words | join(\" \", \"value\") }}</code></td>\n      <td style=\"padding:6px 8px;border:1px solid #ddd;font-size:12px;\">{{ issue.spec.fixMode }}</td>\n    </tr>\n  {% endfor %}\n  </tbody>\n</table>\n{% else %}\n<p style=\"color:#27ae60;font-family:Arial,sans-serif;font-size:12px;\">No issues found.</p>\n{% endif %}\n\n{% endfor %}",
+                "variables": "$var.509b.runComplianceBatchResult",
+                "castDataType": "string"
+              },
+              "outgoing": {
+                "renderedTemplate": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -420,
+              "y": -552
+            }
+          },
+          "562a": {
+            "name": "ViewHTML",
+            "canvasName": "ViewHTML",
+            "summary": "View HTML",
+            "description": "Displays HTML.",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "",
+                "body": "$var.cad0.renderedTemplate",
+                "variables": "",
+                "btn_success": "",
+                "btn_failure": ""
+              },
+              "outgoing": {}
+            },
+            "view": "/workflow_engine/task/ViewHTML",
+            "groups": [],
+            "nodeLocation": {
+              "x": -420,
+              "y": -444
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "5f5f": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "509b": {
+            "cad0": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "5f5f": {
+            "67fa": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "67fa": {
+            "509b": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "cad0": {
+            "562a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "562a": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "title": "version",
+              "type": "string",
+              "examples": [
+                "initial",
+                "v2",
+                "v3",
+                "draft-v4"
+              ]
+            },
+            "tree_name": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "version",
+            "tree_name"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "title": "version",
+              "type": "string",
+              "examples": [
+                "initial",
+                "v2",
+                "v3",
+                "draft-v4"
+              ]
+            },
+            "tree_name": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        },
+        "scenarios": [],
+        "type": "automation",
+        "font_size": 12,
+        "last_updated": "2026-06-24T20:03:06.844Z",
+        "last_updated_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "lastUpdatedVersion": "4.69.69",
+        "uuid": "9d48564f-80c2-40c5-a95e-b897050c0314",
+        "created": "2026-05-31T20:05:43.869Z",
+        "created_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "createdVersion": "5.55.5",
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 8
+      }
+    },
+    {
+      "iid": 39,
+      "reference": "8d63cf1e-a93a-419f-bde8-a42a3bf20244",
+      "type": "workflow",
+      "folder": "/Inventory Management",
+      "document": {
+        "description": "Create inventory in Itential Inventory Manager from NetBox as a source of truth",
+        "tasks": {
+          "7291": {
+            "name": "populateInventory",
+            "canvasName": "populateInventory",
+            "summary": "Populate inventory with nodes (clears existing nodes first)",
+            "description": "Bulk insert nodes into an inventory. All existing nodes in the inventory are cleared before the new nodes are inserted.",
+            "location": "Application",
+            "locationType": null,
+            "app": "InventoryManager",
+            "type": "automatic",
+            "displayName": "InventoryManager",
+            "variables": {
+              "incoming": {
+                "inventory_identifier": "$var.job.inventoryName",
+                "nodes": "$var.d628.response"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -48,
+              "y": 48
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "x": 0,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": -48,
+              "y": -480
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "x": 1,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": -48,
+              "y": 180
+            }
+          },
+          "880d": {
+            "name": "dcim_devices_list",
+            "canvasName": "dcim_devices_list",
+            "summary": "Get a list of device objects",
+            "description": "Get a list of device objects.",
+            "location": "Adapter",
+            "locationType": "NetBox REST API:4.6.0 (4.6)",
+            "app": "NetBox REST API:4.6.0 (4.6)",
+            "type": "automatic",
+            "displayName": "NetBox-Itential-Lab",
+            "variables": {
+              "incoming": {
+                "airflow": "",
+                "airflow__empty": "",
+                "airflow__ic": "",
+                "airflow__ie": "",
+                "airflow__iew": "",
+                "airflow__iregex": "",
+                "airflow__isw": "",
+                "airflow__n": "",
+                "airflow__nic": "",
+                "airflow__nie": "",
+                "airflow__niew": "",
+                "airflow__nisw": "",
+                "airflow__regex": "",
+                "asset_tag": "",
+                "asset_tag__empty": "",
+                "asset_tag__ic": "",
+                "asset_tag__ie": "",
+                "asset_tag__iew": "",
+                "asset_tag__iregex": "",
+                "asset_tag__isw": "",
+                "asset_tag__n": "",
+                "asset_tag__nic": "",
+                "asset_tag__nie": "",
+                "asset_tag__niew": "",
+                "asset_tag__nisw": "",
+                "asset_tag__regex": "",
+                "cluster_group": "",
+                "cluster_group__n": "",
+                "cluster_group_id": "",
+                "cluster_group_id__n": "",
+                "cluster_id": "",
+                "cluster_id__n": "",
+                "config_template_id": "",
+                "config_template_id__n": "",
+                "console_port_count": "",
+                "console_port_count__empty": "",
+                "console_port_count__gt": "",
+                "console_port_count__gte": "",
+                "console_port_count__lt": "",
+                "console_port_count__lte": "",
+                "console_port_count__n": "",
+                "console_ports": "",
+                "console_server_port_count": "",
+                "console_server_port_count__empty": "",
+                "console_server_port_count__gt": "",
+                "console_server_port_count__gte": "",
+                "console_server_port_count__lt": "",
+                "console_server_port_count__lte": "",
+                "console_server_port_count__n": "",
+                "console_server_ports": "",
+                "contact": "",
+                "contact__n": "",
+                "contact_group": "",
+                "contact_group__n": "",
+                "contact_role": "",
+                "contact_role__n": "",
+                "created": "",
+                "created__empty": "",
+                "created__gt": "",
+                "created__gte": "",
+                "created__lt": "",
+                "created__lte": "",
+                "created__n": "",
+                "created_by_request": "",
+                "description": "",
+                "description__empty": "",
+                "description__ic": "",
+                "description__ie": "",
+                "description__iew": "",
+                "description__iregex": "",
+                "description__isw": "",
+                "description__n": "",
+                "description__nic": "",
+                "description__nie": "",
+                "description__niew": "",
+                "description__nisw": "",
+                "description__regex": "",
+                "device_bay_count": "",
+                "device_bay_count__empty": "",
+                "device_bay_count__gt": "",
+                "device_bay_count__gte": "",
+                "device_bay_count__lt": "",
+                "device_bay_count__lte": "",
+                "device_bay_count__n": "",
+                "device_bays": "",
+                "device_type": "",
+                "device_type__n": "",
+                "device_type_id": "",
+                "device_type_id__n": "",
+                "face": "",
+                "face__empty": "",
+                "face__ic": "",
+                "face__ie": "",
+                "face__iew": "",
+                "face__iregex": "",
+                "face__isw": "",
+                "face__n": "",
+                "face__nic": "",
+                "face__nie": "",
+                "face__niew": "",
+                "face__nisw": "",
+                "face__regex": "",
+                "front_port_count": "",
+                "front_port_count__empty": "",
+                "front_port_count__gt": "",
+                "front_port_count__gte": "",
+                "front_port_count__lt": "",
+                "front_port_count__lte": "",
+                "front_port_count__n": "",
+                "has_oob_ip": "",
+                "has_primary_ip": "",
+                "has_virtual_device_context": "",
+                "id": "",
+                "id__empty": "",
+                "id__gt": "",
+                "id__gte": "",
+                "id__lt": "",
+                "id__lte": "",
+                "id__n": "",
+                "interface_count": "",
+                "interface_count__empty": "",
+                "interface_count__gt": "",
+                "interface_count__gte": "",
+                "interface_count__lt": "",
+                "interface_count__lte": "",
+                "interface_count__n": "",
+                "interfaces": "",
+                "inventory_item_count": "",
+                "inventory_item_count__empty": "",
+                "inventory_item_count__gt": "",
+                "inventory_item_count__gte": "",
+                "inventory_item_count__lt": "",
+                "inventory_item_count__lte": "",
+                "inventory_item_count__n": "",
+                "is_full_depth": "",
+                "last_updated": "",
+                "last_updated__empty": "",
+                "last_updated__gt": "",
+                "last_updated__gte": "",
+                "last_updated__lt": "",
+                "last_updated__lte": "",
+                "last_updated__n": "",
+                "latitude": "",
+                "latitude__empty": "",
+                "latitude__gt": "",
+                "latitude__gte": "",
+                "latitude__lt": "",
+                "latitude__lte": "",
+                "latitude__n": "",
+                "limit": "",
+                "local_context_data": "",
+                "location": "",
+                "location__n": "",
+                "location_id": "",
+                "location_id__n": "",
+                "longitude": "",
+                "longitude__empty": "",
+                "longitude__gt": "",
+                "longitude__gte": "",
+                "longitude__lt": "",
+                "longitude__lte": "",
+                "longitude__n": "",
+                "mac_address": "",
+                "mac_address__ic": "",
+                "mac_address__ie": "",
+                "mac_address__iew": "",
+                "mac_address__iregex": "",
+                "mac_address__isw": "",
+                "mac_address__n": "",
+                "mac_address__nic": "",
+                "mac_address__nie": "",
+                "mac_address__niew": "",
+                "mac_address__nisw": "",
+                "mac_address__regex": "",
+                "manufacturer": "",
+                "manufacturer__n": "",
+                "manufacturer_id": "",
+                "manufacturer_id__n": "",
+                "model": "",
+                "model__n": "",
+                "modified_by_request": "",
+                "module_bay_count": "",
+                "module_bay_count__empty": "",
+                "module_bay_count__gt": "",
+                "module_bay_count__gte": "",
+                "module_bay_count__lt": "",
+                "module_bay_count__lte": "",
+                "module_bay_count__n": "",
+                "module_bays": "",
+                "name": "",
+                "name__empty": "",
+                "name__ic": "",
+                "name__ie": "",
+                "name__iew": "",
+                "name__iregex": "",
+                "name__isw": "",
+                "name__n": "",
+                "name__nic": "",
+                "name__nie": "",
+                "name__niew": "",
+                "name__nisw": "",
+                "name__regex": "",
+                "offset": "",
+                "oob_ip_id": "",
+                "oob_ip_id__n": "",
+                "ordering": "",
+                "owner": "",
+                "owner__n": "",
+                "owner_group": "",
+                "owner_group__n": "",
+                "owner_group_id": "",
+                "owner_group_id__n": "",
+                "owner_id": "",
+                "owner_id__n": "",
+                "parent_bay_id": "",
+                "parent_bay_id__n": "",
+                "parent_device_id": "",
+                "parent_device_id__n": "",
+                "pass_through_ports": "",
+                "platform": "",
+                "platform__n": "",
+                "platform_id": "",
+                "platform_id__n": "",
+                "position": "",
+                "position__empty": "",
+                "position__gt": "",
+                "position__gte": "",
+                "position__lt": "",
+                "position__lte": "",
+                "position__n": "",
+                "power_outlet_count": "",
+                "power_outlet_count__empty": "",
+                "power_outlet_count__gt": "",
+                "power_outlet_count__gte": "",
+                "power_outlet_count__lt": "",
+                "power_outlet_count__lte": "",
+                "power_outlet_count__n": "",
+                "power_outlets": "",
+                "power_port_count": "",
+                "power_port_count__empty": "",
+                "power_port_count__gt": "",
+                "power_port_count__gte": "",
+                "power_port_count__lt": "",
+                "power_port_count__lte": "",
+                "power_port_count__n": "",
+                "power_ports": "",
+                "primary_ip4": "",
+                "primary_ip4__n": "",
+                "primary_ip4_id": "",
+                "primary_ip4_id__n": "",
+                "primary_ip6": "",
+                "primary_ip6__n": "",
+                "primary_ip6_id": "",
+                "primary_ip6_id__n": "",
+                "q": "",
+                "rack_id": "",
+                "rack_id__n": "",
+                "rear_port_count": "",
+                "rear_port_count__empty": "",
+                "rear_port_count__gt": "",
+                "rear_port_count__gte": "",
+                "rear_port_count__lt": "",
+                "rear_port_count__lte": "",
+                "rear_port_count__n": "",
+                "region": "",
+                "region__n": "",
+                "region_id": "",
+                "region_id__n": "",
+                "role": "",
+                "role__n": "",
+                "role_id": "",
+                "role_id__n": "",
+                "serial": "",
+                "serial__empty": "",
+                "serial__ic": "",
+                "serial__ie": "",
+                "serial__iew": "",
+                "serial__iregex": "",
+                "serial__isw": "",
+                "serial__n": "",
+                "serial__nic": "",
+                "serial__nie": "",
+                "serial__niew": "",
+                "serial__nisw": "",
+                "serial__regex": "",
+                "site": "",
+                "site__n": "",
+                "site_group": "",
+                "site_group__n": "",
+                "site_group_id": "",
+                "site_group_id__n": "",
+                "site_id": "",
+                "site_id__n": "",
+                "start": "",
+                "status": "",
+                "status__empty": "",
+                "status__ic": "",
+                "status__ie": "",
+                "status__iew": "",
+                "status__iregex": "",
+                "status__isw": "",
+                "status__n": "",
+                "status__nic": "",
+                "status__nie": "",
+                "status__niew": "",
+                "status__nisw": "",
+                "status__regex": "",
+                "tag": "",
+                "tag__n": "",
+                "tag_id": "",
+                "tag_id__n": "",
+                "tenant": "",
+                "tenant__n": "",
+                "tenant_group": "",
+                "tenant_group__n": "",
+                "tenant_group_id": "",
+                "tenant_group_id__n": "",
+                "tenant_id": "",
+                "tenant_id__n": "",
+                "updated_by_request": "",
+                "vc_position": "",
+                "vc_position__empty": "",
+                "vc_position__gt": "",
+                "vc_position__gte": "",
+                "vc_position__lt": "",
+                "vc_position__lte": "",
+                "vc_position__n": "",
+                "vc_priority": "",
+                "vc_priority__empty": "",
+                "vc_priority__gt": "",
+                "vc_priority__gte": "",
+                "vc_priority__lt": "",
+                "vc_priority__lte": "",
+                "vc_priority__n": "",
+                "virtual_chassis_id": "",
+                "virtual_chassis_id__n": "",
+                "virtual_chassis_member": "",
+                "adapter_id": "NetBox-Itential-Lab"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -48,
+              "y": -336
+            }
+          },
+          "b532": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Inventory Payload",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "{#-\n  NetBox -> IAG5 Inventory Template \u2014 JUNOS / Hybrid\n  Filters: active Junos devices with an IP.\nAdjust as desired, make sure to set passwords with SECRETS\n-#}\n\n{% set junos_slugs = ['juniper-junos', 'vsrx'] %}\n\n{% set credentials = {'user': 'itential', 'password': 'password'} %}\n\n{% set device_overrides = {} %}\n\n{% set netmiko_opts = {\n    'banner_timeout':        60,\n    'session_timeout':       300,\n    'read_timeout_override': 600,\n    'conn_timeout':          60,\n    'global_delay_factor':   3,\n    'enable_fast_mode':      false\n} %}\n\n{% set netconf_opts = {\n    'port':               830,\n    'timeout':            30,\n    'lock_timeout':       60,\n    'lock_poll_interval': 2,\n    'command_timeout': 600,\n    'config_format':  'set'\n} %}\n\n[\n{%- set ns = namespace(first=true) %}\n{%- for device in body.results %}\n\n  {%- set nb_platform = (device.platform.slug if device.platform else device.device_type.slug) or '' %}\n\n  {%- if device.primary_ip4 %}\n    {%- set ip_address = device.primary_ip4.address.split('/')[0] %}\n  {%- elif device.config_context and device.config_context.ipAddress %}\n    {%- set ip_address = device.config_context.ipAddress %}\n  {%- else %}\n    {%- set ip_address = '' %}\n  {%- endif %}\n\n  {%- set creds = device_overrides.get(device.name, credentials) %}\n\n  {%- set driver_options = {'netmiko': netmiko_opts, 'netconf': netconf_opts} %}\n\n  {%- if ip_address and nb_platform in junos_slugs and device.status and device.status.value == 'active' %}\n{{ \",\" if not ns.first else \"\" }}\n{%- set ns.first = false %}\n  {\n    \"name\": \"{{ device.name }}\",\n    \"attributes\": {\n      \"itential_host\":           \"{{ ip_address }}\",\n      \"itential_port\":           22,\n      \"itential_driver\":         \"netmiko\",\n      \"itential_platform\":       \"juniper_junos\",\n      \"itential_user\":           \"{{ creds.user }}\",\n      \"itential_password\":       \"{{ creds.password }}\",\n      \"itential_driver_options\": {{ driver_options | tojson }}\n    },\n    \"tags\": [\n      \"{{ (device.role.slug if device.role else 'unknown') }}\",\n      \"{{ (device.site.slug if device.site else 'unknown') }}\",\n      \"{{ (device.status.value if device.status else 'unknown') }}\",\n      \"driver:netmiko\",\n      \"platform:juniper_junos\",\n      \"transport:cli+netconf\"\n    ]\n  }\n  {%- endif %}\n{%- endfor %}\n]\n",
+                "variables": {},
+                "castDataType": "object"
+              },
+              "outgoing": {
+                "renderedTemplate": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -48,
+              "y": -216
+            }
+          },
+          "d628": {
+            "name": "getInventoryByIdentifier",
+            "canvasName": "getInventoryByIdentifier",
+            "summary": "Get a single inventory by identifier",
+            "description": "Returns a single inventory document by ID or name",
+            "location": "Application",
+            "locationType": null,
+            "app": "InventoryManager",
+            "type": "automatic",
+            "displayName": "InventoryManager",
+            "variables": {
+              "incoming": {
+                "identifier": "$var.job.inventoryName"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -228,
+              "y": -72
+            }
+          },
+          "f091": {
+            "name": "createInventory",
+            "canvasName": "createInventory",
+            "summary": "Create a new inventory",
+            "description": "Creates a new inventory with the specified name and optional properties",
+            "location": "Application",
+            "locationType": null,
+            "app": "InventoryManager",
+            "type": "automatic",
+            "displayName": "InventoryManager",
+            "variables": {
+              "incoming": {
+                "name": "",
+                "description": "JUNOS NETCONF Inventory",
+                "groups": [
+                  "admins"
+                ],
+                "tags": [
+                  "JUNOS"
+                ],
+                "actions": [
+                  {
+                    "name": "run-command",
+                    "action_type": "iag5-service",
+                    "action_config": {
+                      "service_name": "junos-netconf-run-command",
+                      "cluster_id": "cluster-itential"
+                    },
+                    "action_parameters": {}
+                  },
+                  {
+                    "name": "get-config",
+                    "action_type": "iag5-service",
+                    "action_config": {
+                      "service_name": "junos-netconf-get-config",
+                      "cluster_id": "cluster-itential"
+                    },
+                    "action_parameters": {}
+                  },
+                  {
+                    "name": "set-config",
+                    "action_type": "iag5-service",
+                    "action_config": {
+                      "service_name": "junos-netconf-set-config",
+                      "cluster_id": "cluster-itential"
+                    },
+                    "action_parameters": {}
+                  },
+                  {
+                    "name": "is-alive",
+                    "action_type": "iag5-service",
+                    "action_config": {
+                      "service_name": "junos-netconf-is-alive",
+                      "cluster_id": "cluster-itential"
+                    },
+                    "action_parameters": {}
+                  }
+                ],
+                "createBrokerActions": true,
+                "defaultClusterId": "cluster-itential"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": -72
+            }
+          }
+        },
+        "transitions": {
+          "7291": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "880d": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "880d": {
+            "b532": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "b532": {
+            "d628": {
+              "state": "success",
+              "type": "standard"
+            },
+            "f091": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "d628": {
+            "7291": {
+              "state": "success",
+              "type": "standard"
+            },
+            "f091": {
+              "state": "error",
+              "type": "standard"
+            }
+          },
+          "f091": {
+            "7291": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "inventoryName": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The ID or name of the inventory to populate with nodes"
+            }
+          },
+          "required": [
+            "inventoryName"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "inventoryName": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The ID or name of the inventory to populate with nodes"
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        },
+        "scenarios": [],
+        "type": "automation",
+        "font_size": 12,
+        "last_updated": "2026-06-24T20:03:06.844Z",
+        "lastUpdatedVersion": "4.69.69",
+        "uuid": "512b9055-e2c8-4a17-b3f2-d34dd8f5afa5",
+        "createdVersion": "5.55.5",
+        "name": "Create & Update Inventory from NetBox",
+        "last_updated_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 8
+      }
+    },
+    {
+      "iid": 40,
+      "reference": "2494ad56-105b-44e6-96c8-6120b442f60d",
+      "type": "workflow",
+      "folder": "/Inventory Management",
+      "document": {
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "x": 0,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": 0,
+              "y": -420
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "x": 1,
+            "y": 0.5,
+            "nodeLocation": {
+              "x": 0,
+              "y": -24
+            }
+          },
+          "e29b": {
+            "name": "deleteInventory",
+            "canvasName": "deleteInventory",
+            "summary": "Delete an inventory",
+            "description": "Deletes an inventory by ID",
+            "location": "Application",
+            "locationType": null,
+            "app": "InventoryManager",
+            "type": "automatic",
+            "displayName": "InventoryManager",
+            "variables": {
+              "incoming": {
+                "identifier": "$var.job.inventoryName"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -156
+            }
+          },
+          "1c0f": {
+            "name": "clearInventory",
+            "canvasName": "clearInventory",
+            "summary": "Clear all nodes from an inventory",
+            "description": "Removes all nodes from the specified inventory",
+            "location": "Application",
+            "locationType": null,
+            "app": "InventoryManager",
+            "type": "automatic",
+            "displayName": "InventoryManager",
+            "variables": {
+              "incoming": {
+                "identifier": "$var.job.inventoryName"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -276
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "1c0f": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "e29b": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "1c0f": {
+            "e29b": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "inventoryName": {
+              "title": "inventoryIdentifier",
+              "description": "Inventory identifier - can be ObjectId or name",
+              "oneOf": [
+                {
+                  "description": "A string which is formatted like an ObjectId",
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The name of the document",
+                  "not": {
+                    "description": "A string which is formatted like an ObjectId",
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{24}$"
+                  }
+                }
+              ],
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "inventoryName"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "inventoryName": {
+              "title": "inventoryIdentifier",
+              "description": "Inventory identifier - can be ObjectId or name",
+              "oneOf": [
+                {
+                  "description": "A string which is formatted like an ObjectId",
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]{24}$"
+                },
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "The name of the document",
+                  "not": {
+                    "description": "A string which is formatted like an ObjectId",
+                    "type": "string",
+                    "pattern": "^[0-9a-fA-F]{24}$"
+                  }
+                }
+              ],
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        },
+        "scenarios": [],
+        "type": "automation",
+        "font_size": 12,
+        "last_updated": "2026-06-24T20:03:06.844Z",
+        "lastUpdatedVersion": "4.69.69",
+        "uuid": "970643a5-f94e-4bc8-a896-c93665f550c6",
+        "createdVersion": "5.55.5",
+        "name": "Clear & Delete Inventory",
+        "last_updated_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 8
+      }
+    },
+    {
+      "iid": 44,
+      "reference": "3e29ac6b-ef29-4728-b164-d4ab594526a6",
+      "type": "workflow",
+      "folder": "/Port Turn Up",
+      "document": {
+        "name": "Port Turn Up",
+        "description": "make sure when this is called that the input is an object called formData. That formData object will have the following as it's JSON object {\n  \"device\": \"aws-lab-junos\",\n  \"target_version\": \"22.4R2.8\",\n  \"image_path\": \"/var/tmp/junos-install-vsrx3-x86-64-22.4R2.8.tgz\",\n  \"image_sha256\": \"8d486921598bb89afd3ab54dcf8fa7cb80423c3977ddaa86dd15e84f13d465b2\"\n}",
+        "tasks": {
+          "6476": {
+            "name": "getDevice",
+            "canvasName": "getDevice",
+            "summary": "Get Device Details",
+            "description": "Get detailed information for a specific device, based on its device name",
+            "location": "Application",
+            "locationType": null,
+            "app": "ConfigurationManager",
+            "type": "automatic",
+            "displayName": "ConfigurationManager",
+            "variables": {
+              "incoming": {
+                "name": "$var.job.device"
+              },
+              "outgoing": {
+                "device": ""
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -360
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -576
+            }
+          },
+          "a2": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Port Turn Up Pre Check",
+            "description": "Captures show version, system storage, interfaces, route summary",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Port Turn Up Pre Check",
+                "variables": "$var.d009.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.preCheckOutput"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": -156
+            }
+          },
+          "b1": {
+            "name": "backUpDevice",
+            "canvasName": "backUpDevice",
+            "summary": "Backup Running Config (pre)",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "ConfigurationManager",
+            "type": "automatic",
+            "displayName": "ConfigurationManager",
+            "variables": {
+              "incoming": {
+                "name": "$var.job.device",
+                "options": {}
+              },
+              "outgoing": {
+                "status": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 84
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 876
+            }
+          },
+          "d768": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Pre-check",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "a2",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -36
+            }
+          },
+          "f215": {
+            "name": "RunCommandTemplate",
+            "canvasName": "RunCommandTemplate",
+            "summary": "Post Check",
+            "description": "Captures show version, system storage, interfaces, route summary",
+            "location": "Application",
+            "locationType": null,
+            "app": "MOP",
+            "type": "automatic",
+            "displayName": "MOP",
+            "variables": {
+              "incoming": {
+                "template": "@6a138e0000000000ffff0001: Port Turn Up Post Check",
+                "variables": "$var.d009.merged_object",
+                "devices": "$var.job.device"
+              },
+              "outgoing": {
+                "mop_template_results": "$var.job.postCheckResults"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 0,
+              "y": 648
+            }
+          },
+          "6d1a": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Post-check",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "f215",
+                          "variable": "mop_template_results"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": "result",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 768
+            }
+          },
+          "3cf3": {
+            "name": "runService",
+            "canvasName": "runService",
+            "summary": "Send Config",
+            "description": "Run an IAG5 service given its name and any parameters passed to the service itself.",
+            "location": "Application",
+            "locationType": null,
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
+            "variables": {
+              "incoming": {
+                "serviceName": "junos-netconf-send-config",
+                "clusterId": "cluster-itential",
+                "params": {
+                  "config": "$var.ac95.renderedTemplate",
+                  "confirm_timeout": 10,
+                  "confirmed": false,
+                  "dry_run": false,
+                  "lock_timeout": 30
+                },
+                "inventory": "$var.26a0.renderedTemplate"
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 300
+            }
+          },
+          "ac95": {
+            "name": "renderJinja2TemplateWithCast",
+            "canvasName": "renderJinja2TemplateWithCast",
+            "summary": "Render Jinja2 Template With Data Cast",
+            "description": "Renders jinja2 template output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "name": "@6a138e0000000000ffff0001: 802.1Q Sub Interface",
+                "variables": "$var.d009.merged_object",
+                "castDataType": "string"
+              },
+              "outgoing": {
+                "renderedTemplate": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 192
+            }
+          },
+          "26a0": {
+            "name": "renderJinja2ContextWithCast",
+            "canvasName": "renderJinja2ContextWithCast",
+            "summary": "Inventory Object",
+            "description": "Renders jinja2 Context output with data cast.",
+            "location": "Application",
+            "locationType": null,
+            "app": "TemplateBuilder",
+            "type": "automatic",
+            "displayName": "TemplateBuilder",
+            "variables": {
+              "incoming": {
+                "template": "[\n  { \n    \"inventory\": \"{{name.split('::')[0]}}\",\n    \"nodeNames\": [\n        \"{{name.split('::')[1]}}\"\n    ]\n  }\n]",
+                "variables": "$var.6476.device",
+                "castDataType": "object"
+              },
+              "outgoing": {
+                "renderedTemplate": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -264
+            }
+          },
+          "908f": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Eval Send Config",
+            "description": "Run an evaluation",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "962d",
+                          "variable": "textObject"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": true
+                        },
+                        "operator": "==",
+                        "query": ".success",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ],
+                "options": ""
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 540
+            }
+          },
+          "962d": {
+            "name": "parse",
+            "canvasName": "parse",
+            "summary": "Parse stdout",
+            "description": "Parses a JSON string, constructing the JavaScript value or object described by the string.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "automatic",
+            "displayName": "String",
+            "variables": {
+              "incoming": {
+                "text": "$var.3cf3.result#/result/stdout"
+              },
+              "outgoing": {
+                "textObject": ""
+              },
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/text",
+                  "displayPath": ".result.stdout"
+                }
+              ]
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 420
+            }
+          },
+          "d009": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Variables Object",
+            "description": "Merge data into a single object",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "device",
+                    "value": {
+                      "task": "job",
+                      "variable": "device"
+                    }
+                  },
+                  {
+                    "key": "interface",
+                    "value": {
+                      "task": "job",
+                      "variable": "interface"
+                    }
+                  },
+                  {
+                    "key": "vlan_id",
+                    "value": {
+                      "task": "job",
+                      "variable": "vlan_id"
+                    }
+                  },
+                  {
+                    "key": "description",
+                    "value": {
+                      "task": "job",
+                      "variable": "description"
+                    }
+                  },
+                  {
+                    "key": "ip_address",
+                    "value": {
+                      "task": "job",
+                      "variable": "ip_address"
+                    }
+                  },
+                  {
+                    "key": "zone",
+                    "value": {
+                      "task": "job",
+                      "variable": "zone"
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -468
+            }
+          }
+        },
+        "transitions": {
+          "6476": {
+            "26a0": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "d009": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "a2": {
+            "d768": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "b1": {
+            "ac95": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "d768": {
+            "b1": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f215": {
+            "6d1a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "6d1a": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "3cf3": {
+            "962d": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "ac95": {
+            "3cf3": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "26a0": {
+            "a2": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "908f": {
+            "f215": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "962d": {
+            "908f": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "d009": {
+            "6476": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "device": {
+              "anyOf": [
+                {
+                  "title": "name",
+                  "type": "string",
+                  "examples": [
+                    "xr9kv-atl"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "examples": [
+                      "Cisco ASA",
+                      "Cisco NX-OS"
+                    ]
+                  }
+                }
+              ]
+            },
+            "interface": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "vlan_id": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "description": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "ip_address": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "zone": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            }
+          },
+          "required": [
+            "device",
+            "interface",
+            "vlan_id",
+            "description",
+            "ip_address",
+            "zone"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "device": {
+              "anyOf": [
+                {
+                  "title": "name",
+                  "type": "string",
+                  "examples": [
+                    "xr9kv-atl"
+                  ]
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "examples": [
+                      "Cisco ASA",
+                      "Cisco NX-OS"
+                    ]
+                  }
+                }
+              ]
+            },
+            "interface": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "vlan_id": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "description": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "ip_address": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "zone": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "preCheckOutput": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "postCheckResults": {
+              "type": "object",
+              "properties": {
+                "raw": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "all_pass_flag": {
+                  "type": "boolean"
+                },
+                "evaluated": {
+                  "type": "string",
+                  "examples": [
+                    "show version"
+                  ]
+                },
+                "parameters": {
+                  "type": "object",
+                  "properties": {}
+                },
+                "rules": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "rule": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "eval": {
+                        "type": "string",
+                        "examples": [
+                          "contains"
+                        ]
+                      },
+                      "raw": {
+                        "type": "string",
+                        "examples": [
+                          "show version"
+                        ]
+                      },
+                      "result": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "rule",
+                      "eval"
+                    ]
+                  }
+                },
+                "device": {
+                  "type": "string",
+                  "examples": [
+                    "Nokia SR-OS"
+                  ]
+                },
+                "response": {
+                  "type": "string",
+                  "examples": [
+                    "version: 10.0.0"
+                  ]
+                },
+                "result": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "scenarios": [],
+        "type": "automation",
+        "font_size": 12,
+        "createdVersion": "6.4.0",
+        "lastUpdatedVersion": "5.55.5",
+        "last_updated": "2026-06-25T09:16:13.314Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "uuid": "9769f0c9-2da1-4061-a009-1c1459849733",
+        "last_updated_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 8
+      }
+    },
+    {
+      "iid": 45,
+      "reference": "6a1e30c698f25fd9d4056ca4",
+      "type": "template",
+      "folder": "/Port Turn Up",
+      "document": {
+        "_id": "6a1e30c698f25fd9d4056ca4",
+        "name": "802.1Q Sub Interface",
+        "type": "jinja2",
+        "command": "",
+        "template": "set interfaces {{ interface }} vlan-tagging\nset interfaces {{ interface }} unit {{ vlan_id }} description \"{{ description }}\"\nset interfaces {{ interface }} unit {{ vlan_id }} vlan-id {{ vlan_id }}\nset interfaces {{ interface }} unit {{ vlan_id }} family inet address {{ ip_address }}\nset security zones security-zone {{ zone }} interfaces {{ interface }}.{{ vlan_id }}\n",
+        "data": "{\n  \"interface\": \"ge-0/0/0\",\n  \"vlan_id\": 100,\n  \"description\": \"CORP LAN\",\n  \"ip_address\": \"192.168.100.1/24\",\n  \"zone\": \"trust\"\n}\n",
+        "group": "Juniper JUNOS",
+        "description": "",
+        "version": 1,
+        "created": "2026-06-02T01:24:22.337Z",
+        "lastUpdated": "2026-06-24T20:03:06.837Z",
+        "createdBy": {
+          "_id": "6a3c303cdd8730559c46dc8b",
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false,
+          "email": "mike.elrom@itential.com"
+        },
+        "lastUpdatedBy": {
+          "_id": "6a3c303cdd8730559c46dc8b",
+          "provenance": "CloudAAA",
+          "username": "mike.elrom@itential.com",
+          "firstname": "Mike",
+          "inactive": false,
+          "email": "mike.elrom@itential.com"
+        }
+      }
+    }
+  ],
+  "created": "2026-05-24T23:30:00.000Z",
+  "createdBy": {
+    "_id": "6a3c303cdd8730559c46dc8b",
+    "provenance": "CloudAAA",
+    "username": "mike.elrom@itential.com"
+  },
+  "lastUpdated": "2026-06-30T12:03:25.471Z",
+  "lastUpdatedBy": {
+    "_id": "6a3c303cdd8730559c46dc8b",
+    "provenance": "CloudAAA",
+    "username": "mike.elrom@itential.com"
+  },
+  "folders": [
+    {
+      "nodeType": "folder",
+      "name": "Inventory Management",
+      "children": [
+        {
+          "iid": 39,
+          "nodeType": "component"
+        },
+        {
+          "iid": 40,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Software Upgrade",
+      "children": [
+        {
+          "iid": 22,
+          "nodeType": "component"
+        },
+        {
+          "iid": 33,
+          "nodeType": "component"
+        },
+        {
+          "iid": 31,
+          "nodeType": "component"
+        },
+        {
+          "iid": 27,
+          "nodeType": "component"
+        },
+        {
+          "iid": 32,
+          "nodeType": "component"
+        },
+        {
+          "iid": 36,
+          "nodeType": "component"
+        },
+        {
+          "iid": 30,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Golden Configuration",
+      "children": [
+        {
+          "iid": 42,
+          "nodeType": "component"
+        },
+        {
+          "iid": 38,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Port Turn Up",
+      "children": [
+        {
+          "iid": 46,
+          "nodeType": "component"
+        },
+        {
+          "iid": 44,
+          "nodeType": "component"
+        },
+        {
+          "iid": 47,
+          "nodeType": "component"
+        },
+        {
+          "iid": 45,
+          "nodeType": "component"
+        },
+        {
+          "iid": 48,
+          "nodeType": "component"
+        }
+      ]
+    }
+  ],
+  "iid": 5,
+  "thumbnail": "",
+  "backgroundColor": "#FFFFFF",
+  "referencedComponentHashes": [
+    {
+      "type": "automation",
+      "reference": "6a13a94c84f0ff3625737607",
+      "name": "JUNOS Software Upgrade",
+      "hash": "4f4a11f259a6f112431a7b3a82b5165a3ad46805"
+    },
+    {
+      "type": "automation",
+      "reference": "6a1de1efc48aa7c8f6876601",
+      "name": "JUNOS Compliance",
+      "hash": "ea95339ad5a4a9f6d040347ad59742160403c756"
+    },
+    {
+      "type": "trigger",
+      "reference": "6a13a94c84f0ff3625737608",
+      "name": "JUNOS Upgrade",
+      "hash": "5e9c74418df6c7b1c6ce201e119b61694ff2157a"
+    },
+    {
+      "type": "automation",
+      "reference": "6a1e409ac48aa7c8f6876603",
+      "name": "JUNOS Port Turn Up",
+      "hash": "0c05f69e55ccb75738d500b9dbf81ccdd24bec5f"
+    },
+    {
+      "type": "trigger",
+      "reference": "6a1de360c48aa7c8f6876602",
+      "name": "Version",
+      "hash": "01132025fff4f6049f1a0adf4f89f5fcf7602dd7"
+    },
+    {
+      "type": "trigger",
+      "reference": "6a1e40afc48aa7c8f6876604",
+      "name": "Port Turn Up",
+      "hash": "b9658d1ae385811dde0be0a47d6f55f13a642237"
+    }
+  ]
+}

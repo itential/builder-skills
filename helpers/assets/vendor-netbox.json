@@ -1,0 +1,5793 @@
+{
+  "_id": "67341ceda1c9aed687bfdcdc",
+  "name": "NetBox",
+  "description": "Netbox Project has assets form Creating Prefix, Delete Prefix, Reserve IP Address, Delete IP Address, Assign Next IP (in Previx), Onboard Device",
+  "components": [
+    {
+      "iid": 0,
+      "reference": "643bc63e-2607-4e06-9765-24f2f196c707",
+      "type": "workflow",
+      "folder": "/Create Prefix",
+      "document": {
+        "name": "Create Prefix",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 444,
+              "y": 804
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 444,
+              "y": 1128
+            }
+          },
+          "c504": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered creating prefix in NetBox. See error response below. Select 'Retry' to retry creating prefix or 'End Job' to end the job.\n\n\n",
+                "body": "$var.2cd3.error",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 132,
+              "y": 1020
+            }
+          },
+          "6f52": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build NetBox Prefix Creation Payload",
+            "description": "Build NetBox prefix creation payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "61b0c093df69ba016dffc47f",
+                "variableMap": {
+                  "prefix": "$var.job.prefix",
+                  "prefixStatus": "$var.job.prefixStatus",
+                  "prefixDescription": "$var.job.prefixDescription"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "prefixCreationPayload": null
+              }
+            },
+            "groups": [],
+            "task_name": "Build Netbox Prefix Creation Payload",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": 444,
+              "y": 912
+            }
+          },
+          "2cd3": {
+            "name": "postIpamPrefixes",
+            "canvasName": "postIpamPrefixes",
+            "summary": "Create Prefix",
+            "description": "Create Prefix",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "data": "$var.6f52.prefixCreationPayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.createdPrefix"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 444,
+              "y": 1020
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "6f52": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "c504": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "2cd3": {
+              "state": "success",
+              "type": "revert"
+            }
+          },
+          "6f52": {
+            "2cd3": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "2cd3": {
+            "c504": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "565e": {}
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "prefix": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixStatus": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixDescription": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": [
+            "prefix",
+            "prefixStatus",
+            "prefixDescription",
+            "adapterId"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "prefix": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixStatus": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixDescription": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "createdPrefix": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "netboxError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.19.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:03:15.603Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 1,
+      "reference": "2ad66a69-c0a5-44b2-ba0a-1df9ec708680",
+      "type": "workflow",
+      "folder": "/Delete Prefix",
+      "document": {
+        "name": "Delete Prefix",
+        "tasks": {
+          "6036": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "NetBox error encountered getting IP addresses of prefix, see error response below. Select 'Retry' to retry getting IP addresses of prefix or 'End Job' to end the job.\n\n\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -1128,
+              "y": 1476
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 936
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -996,
+              "y": 2220
+            }
+          },
+          "c504": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "NetBox error encountered deleting prefix, see the error response below. Select 'Retry' to retry deleting prefix or select 'End Job' to end the job.\n\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -1416,
+              "y": 2220
+            }
+          },
+          "aa1b": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Prefix found?",
+            "description": "Prefix found?",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "response.count",
+                        "operand_1": {
+                          "variable": "result",
+                          "task": "084d"
+                        },
+                        "operator": "==",
+                        "operand_2": {
+                          "variable": 1,
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1260
+            }
+          },
+          "722f": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Prefix Not Found",
+            "description": "Prefix Not Found",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Prefix Not Found",
+                "message": "Prefix not found in NetBox. See response below.\n\n\n",
+                "body": "$var.084d.result",
+                "variables": {},
+                "btn_success": "Continue",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -924,
+              "y": 1296
+            }
+          },
+          "1bd8": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Delete Prefix NetBox",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "61b22fdadf69ba016dffc481",
+                "variableMap": {
+                  "prefixResponse": "$var.084d.result",
+                  "ipAddressResponse": "$var.1db2.result",
+                  "adapterId": "$var.job.adapterId"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "prefixId": null,
+                "prefixHasIps": null,
+                "ipsInPrefix": null,
+                "ipMessage": null
+              },
+              "decorators": []
+            },
+            "groups": [],
+            "task_name": "Delete Prefix Netbox",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1608
+            }
+          },
+          "de2b": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Confirm IP Deletion",
+            "description": "Confirm IP Deletion",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Confirm IP Deletion",
+                "message": "Select YES to delete the IP, select NO to not delete",
+                "body": "$var.1bd8.ipMessage",
+                "variables": {},
+                "btn_success": "Yes",
+                "btn_failure": "No"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -1620,
+              "y": 1824
+            }
+          },
+          "3ace": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Prefix has IPs?",
+            "description": "Prefix has IPs?",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "",
+                        "operand_1": {
+                          "variable": "prefixHasIps",
+                          "task": "1bd8"
+                        },
+                        "operator": "==",
+                        "operand_2": {
+                          "variable": true,
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1716
+            }
+          },
+          "4b5c": {
+            "name": "childJob",
+            "canvasName": "childJob",
+            "summary": "Delete IP Address",
+            "description": "Runs a child job inside a workflow.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "task": "",
+                "workflow": "Delete IP Address - NetBox",
+                "variables": {},
+                "data_array": "$var.1bd8.ipsInPrefix",
+                "transformation": "",
+                "loopType": "sequential"
+              },
+              "outgoing": {
+                "job_details": null
+              }
+            },
+            "groups": [],
+            "actor": "job",
+            "nodeLocation": {
+              "x": -1620,
+              "y": 1932
+            }
+          },
+          "084d": {
+            "name": "getIpamPrefixes",
+            "canvasName": "getIpamPrefixes",
+            "summary": "Find Prefix",
+            "description": "Find Prefix",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "$var.fb34.numToString",
+                "isPool": "",
+                "markUtilized": "",
+                "description": "",
+                "created": "",
+                "lastUpdated": "",
+                "q": "",
+                "tag": "",
+                "tenantGroupId": "",
+                "tenantGroup": "",
+                "tenantId": "",
+                "tenant": "",
+                "family": "",
+                "prefix": "",
+                "within": "",
+                "withinInclude": "",
+                "contains": "",
+                "depth": "",
+                "children": "",
+                "maskLength": "",
+                "maskLengthGte": "",
+                "maskLengthLte": "",
+                "vrfId": "",
+                "vrf": "",
+                "presentInVrfId": "",
+                "presentInVrf": "",
+                "regionId": "",
+                "region": "",
+                "siteGroupId": "",
+                "siteGroup": "",
+                "siteId": "",
+                "site": "",
+                "vlanId": "",
+                "vlanVid": "",
+                "roleId": "",
+                "role": "",
+                "status": "",
+                "idN": "",
+                "idLte": "",
+                "idLt": "",
+                "idGte": "",
+                "idGt": "",
+                "descriptionN": "",
+                "descriptionIc": "",
+                "descriptionNic": "",
+                "descriptionIew": "",
+                "descriptionNiew": "",
+                "descriptionIsw": "",
+                "descriptionNisw": "",
+                "descriptionIe": "",
+                "descriptionNie": "",
+                "createdN": "",
+                "createdLte": "",
+                "createdLt": "",
+                "createdGte": "",
+                "createdGt": "",
+                "lastUpdatedN": "",
+                "lastUpdatedLte": "",
+                "lastUpdatedLt": "",
+                "lastUpdatedGte": "",
+                "lastUpdatedGt": "",
+                "tagN": "",
+                "tenantGroupIdN": "",
+                "tenantGroupN": "",
+                "tenantIdN": "",
+                "tenantN": "",
+                "depthN": "",
+                "depthLte": "",
+                "depthLt": "",
+                "depthGte": "",
+                "depthGt": "",
+                "childrenN": "",
+                "childrenLte": "",
+                "childrenLt": "",
+                "childrenGte": "",
+                "childrenGt": "",
+                "vrfIdN": "",
+                "vrfN": "",
+                "regionIdN": "",
+                "regionN": "",
+                "siteGroupIdN": "",
+                "siteGroupN": "",
+                "siteIdN": "",
+                "siteN": "",
+                "vlanIdN": "",
+                "vlanVidN": "",
+                "vlanVidLte": "",
+                "vlanVidLt": "",
+                "vlanVidGte": "",
+                "vlanVidGt": "",
+                "roleIdN": "",
+                "roleN": "",
+                "statusN": "",
+                "ordering": "",
+                "limit": "",
+                "offset": "",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.prefixSearchResult"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1152
+            }
+          },
+          "1db2": {
+            "name": "getIpamIpAddresses",
+            "canvasName": "getIpamIpAddresses",
+            "summary": "Find IP Addresses in Prefix",
+            "description": "Find IP Addresses in Prefix",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "",
+                "dnsName": "",
+                "description": "",
+                "created": "",
+                "lastUpdated": "",
+                "q": "",
+                "tag": "",
+                "tenantGroupId": "",
+                "tenantGroup": "",
+                "tenantId": "",
+                "tenant": "",
+                "family": "",
+                "parent": "$var.4e27.return_data",
+                "address": "",
+                "maskLength": "",
+                "vrfId": "",
+                "vrf": "",
+                "presentInVrfId": "",
+                "presentInVrf": "",
+                "device": "",
+                "deviceId": "",
+                "virtualMachine": "",
+                "virtualMachineId": "",
+                "interfaceParam": "",
+                "interfaceId": "",
+                "vminterface": "",
+                "vminterfaceId": "",
+                "fhrpgroupId": "",
+                "assignedToInterface": "",
+                "status": "",
+                "role": "",
+                "idN": "",
+                "idLte": "",
+                "idLt": "",
+                "idGte": "",
+                "idGt": "",
+                "dnsNameN": "",
+                "dnsNameIc": "",
+                "dnsNameNic": "",
+                "dnsNameIew": "",
+                "dnsNameNiew": "",
+                "dnsNameIsw": "",
+                "dnsNameNisw": "",
+                "dnsNameIe": "",
+                "dnsNameNie": "",
+                "descriptionN": "",
+                "descriptionIc": "",
+                "descriptionNic": "",
+                "descriptionIew": "",
+                "descriptionNiew": "",
+                "descriptionIsw": "",
+                "descriptionNisw": "",
+                "descriptionIe": "",
+                "descriptionNie": "",
+                "createdN": "",
+                "createdLte": "",
+                "createdLt": "",
+                "createdGte": "",
+                "createdGt": "",
+                "lastUpdatedN": "",
+                "lastUpdatedLte": "",
+                "lastUpdatedLt": "",
+                "lastUpdatedGte": "",
+                "lastUpdatedGt": "",
+                "tagN": "",
+                "tenantGroupIdN": "",
+                "tenantGroupN": "",
+                "tenantIdN": "",
+                "tenantN": "",
+                "vrfIdN": "",
+                "vrfN": "",
+                "interfaceN": "",
+                "interfaceIdN": "",
+                "vminterfaceN": "",
+                "vminterfaceIdN": "",
+                "fhrpgroupIdN": "",
+                "statusN": "",
+                "roleN": "",
+                "ordering": "",
+                "limit": "",
+                "offset": "",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.prefixIPAddresses"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1476
+            }
+          },
+          "e13a": {
+            "name": "deleteIpamPrefixesId",
+            "canvasName": "deleteIpamPrefixesId",
+            "summary": "Delete Prefix",
+            "description": "Delete Prefix",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "$var.1bd8.prefixId",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.deletePrefixResult"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1272,
+              "y": 1956
+            }
+          },
+          "3dd6": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "NetBox error encountered getting prefix, see error response below. Select 'Retry' to retry getting prefix or 'End Job' to end the job.\n\n\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -684,
+              "y": 1152
+            }
+          },
+          "4e27": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query prefix",
+            "description": "Query prefix from search results by prefix Id",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "response.results[0].prefix",
+                "obj": "$var.084d.result"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1368
+            }
+          },
+          "fb34": {
+            "name": "numberToString",
+            "canvasName": "toString",
+            "summary": "Convert prefix ID to string",
+            "description": "Convert prefix ID to string",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "automatic",
+            "displayName": "Number",
+            "variables": {
+              "incoming": {
+                "num": "$var.job.prefixId",
+                "radix": 10
+              },
+              "outgoing": {
+                "numToString": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1452,
+              "y": 1044
+            }
+          },
+          "82ca": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Delete IP Addresses Result",
+            "description": "Query result of deleting IP addresses",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "loop",
+                "obj": "$var.4b5c.job_details"
+              },
+              "outgoing": {
+                "return_data": "$var.job.deleteIPAddressResult"
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -1620,
+              "y": 2076
+            }
+          }
+        },
+        "transitions": {
+          "2577": {},
+          "6036": {
+            "1db2": {
+              "state": "success",
+              "type": "revert"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "workflow_start": {
+            "fb34": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "c504": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "e13a": {
+              "state": "success",
+              "type": "revert"
+            }
+          },
+          "aa1b": {
+            "722f": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "4e27": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "722f": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "1bd8": {
+            "3ace": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "de2b": {
+            "4b5c": {
+              "type": "standard",
+              "state": "success"
+            },
+            "e13a": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "3ace": {
+            "de2b": {
+              "type": "standard",
+              "state": "success"
+            },
+            "e13a": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "4b5c": {
+            "82ca": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "084d": {
+            "aa1b": {
+              "state": "success",
+              "type": "standard"
+            },
+            "3dd6": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "1db2": {
+            "6036": {
+              "type": "standard",
+              "state": "error"
+            },
+            "1bd8": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "e13a": {
+            "c504": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "3dd6": {
+            "084d": {
+              "state": "success",
+              "type": "revert"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "4e27": {
+            "1db2": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "fb34": {
+            "084d": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "82ca": {
+            "e13a": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "565e": {},
+          "97f6": {}
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixId": {
+              "title": "num",
+              "type": "number",
+              "examples": [124]
+            }
+          },
+          "required": ["adapterId", "prefixId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixId": {
+              "title": "num",
+              "type": "number",
+              "examples": [124]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "netboxError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixSearchResult": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixIPAddresses": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "deletePrefixResult": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "deleteIPAddressResult": {
+              "title": "return_data",
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "object"
+                },
+                {
+                  "type": "array"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "examples": ["value"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.19.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:03:15.604Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 2,
+      "reference": "4afe6804-8703-42b0-ac9a-554ff3bc6493",
+      "type": "workflow",
+      "folder": "/",
+      "document": {
+        "name": "Reserve IP Address",
+        "tasks": {
+          "9262": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build IP Reservation Payload",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "address",
+                    "value": {
+                      "task": "job",
+                      "variable": "ipAddress",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "nat_outside",
+                    "value": {
+                      "task": "job",
+                      "variable": "natOutside",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "description",
+                    "value": {
+                      "task": "job",
+                      "variable": "description",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 1188,
+              "y": 996
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 1188,
+              "y": 900
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 1188,
+              "y": 1200
+            }
+          },
+          "4ce5": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered reserving IP address, see error response below. Select 'Retry' to retry reserving IP address or select 'End Job' to end the job.\n\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 876,
+              "y": 1092
+            }
+          },
+          "5bed": {
+            "name": "postIpamIpAddresses",
+            "canvasName": "postIpamIpAddresses",
+            "summary": "Reserve IP Address",
+            "description": "Reserve IP Address",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "data": "$var.9262.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.reserveIPAddressResult"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 1188,
+              "y": 1092
+            }
+          }
+        },
+        "transitions": {
+          "9262": {
+            "5bed": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "9262": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "4ce5": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "5bed": {
+              "state": "success",
+              "type": "revert"
+            }
+          },
+          "5bed": {
+            "4ce5": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ipAddress": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "natOutside": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "description": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["ipAddress", "natOutside", "description", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "ipAddress": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "natOutside": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "description": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "netboxError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "reserveIPAddressResult": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.19.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:03:15.606Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 3,
+      "reference": "60f4909e-fbc2-43b4-8da0-210a2e06ea4f",
+      "type": "workflow",
+      "folder": "/",
+      "document": {
+        "name": "Delete IP Address",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -624,
+              "y": 900
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -624,
+              "y": 1656
+            }
+          },
+          "c504": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered deleting the IP address. See error response below. Select 'Retry' to retry deleting the IP address or select 'End Job' to end the job.\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -108,
+              "y": 1344
+            }
+          },
+          "aa1b": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "IP address found?",
+            "description": "IP address found?",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "response.count",
+                        "operand_1": {
+                          "variable": "result",
+                          "task": "f624"
+                        },
+                        "operator": "==",
+                        "operand_2": {
+                          "variable": 1,
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -624,
+              "y": 1104
+            }
+          },
+          "722f": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "IP Address Not Found",
+            "description": "IP Address Not Found",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "IP Address Not Found",
+                "message": "The IP address was not found in NetBox. See response below.\n\n",
+                "body": "$var.f624.result",
+                "variables": {},
+                "btn_success": "End Job",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -804,
+              "y": 1224
+            }
+          },
+          "7b0a": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Get IP Address ID",
+            "description": "",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "response.results[0].id",
+                "obj": "$var.f624.result"
+              },
+              "outgoing": {
+                "return_data": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -432,
+              "y": 1224
+            }
+          },
+          "f624": {
+            "name": "getIpamIpAddresses",
+            "canvasName": "getIpamIpAddresses",
+            "summary": "Find IP Address",
+            "description": "Find IP Address",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "",
+                "dnsName": "",
+                "description": "",
+                "created": "",
+                "lastUpdated": "",
+                "q": "",
+                "tag": "",
+                "tenantGroupId": "",
+                "tenantGroup": "",
+                "tenantId": "",
+                "tenant": "",
+                "family": "",
+                "parent": "",
+                "address": "$var.job.ipAddress",
+                "maskLength": "",
+                "vrfId": "",
+                "vrf": "",
+                "presentInVrfId": "",
+                "presentInVrf": "",
+                "device": "",
+                "deviceId": "",
+                "virtualMachine": "",
+                "virtualMachineId": "",
+                "interfaceParam": "",
+                "interfaceId": "",
+                "vminterface": "",
+                "vminterfaceId": "",
+                "fhrpgroupId": "",
+                "assignedToInterface": "",
+                "status": "",
+                "role": "",
+                "idN": "",
+                "idLte": "",
+                "idLt": "",
+                "idGte": "",
+                "idGt": "",
+                "dnsNameN": "",
+                "dnsNameIc": "",
+                "dnsNameNic": "",
+                "dnsNameIew": "",
+                "dnsNameNiew": "",
+                "dnsNameIsw": "",
+                "dnsNameNisw": "",
+                "dnsNameIe": "",
+                "dnsNameNie": "",
+                "descriptionN": "",
+                "descriptionIc": "",
+                "descriptionNic": "",
+                "descriptionIew": "",
+                "descriptionNiew": "",
+                "descriptionIsw": "",
+                "descriptionNisw": "",
+                "descriptionIe": "",
+                "descriptionNie": "",
+                "createdN": "",
+                "createdLte": "",
+                "createdLt": "",
+                "createdGte": "",
+                "createdGt": "",
+                "lastUpdatedN": "",
+                "lastUpdatedLte": "",
+                "lastUpdatedLt": "",
+                "lastUpdatedGte": "",
+                "lastUpdatedGt": "",
+                "tagN": "",
+                "tenantGroupIdN": "",
+                "tenantGroupN": "",
+                "tenantIdN": "",
+                "tenantN": "",
+                "vrfIdN": "",
+                "vrfN": "",
+                "interfaceN": "",
+                "interfaceIdN": "",
+                "vminterfaceN": "",
+                "vminterfaceIdN": "",
+                "fhrpgroupIdN": "",
+                "statusN": "",
+                "roleN": "",
+                "ordering": "",
+                "limit": "",
+                "offset": "",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.ipAddressSearchResult"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -624,
+              "y": 996
+            }
+          },
+          "0910": {
+            "name": "deleteIpamIpAddressesId",
+            "canvasName": "deleteIpamIpAddressesId",
+            "summary": "Delete IP Address",
+            "description": "Delete IP Address",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "$var.7b0a.return_data",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.deleteIPAddressResult"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -432,
+              "y": 1344
+            }
+          },
+          "ddcb": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered getting IP address. See error response below. Select 'Retry' to retry getting IP address or select 'End Job' to end the job.\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -1080,
+              "y": 1128
+            }
+          }
+        },
+        "transitions": {
+          "2577": {},
+          "workflow_start": {
+            "f624": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "c504": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "0910": {
+              "state": "success",
+              "type": "revert"
+            }
+          },
+          "aa1b": {
+            "722f": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "7b0a": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "722f": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "7b0a": {
+            "0910": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f624": {
+            "aa1b": {
+              "state": "success",
+              "type": "standard"
+            },
+            "ddcb": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "0910": {
+            "c504": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "ddcb": {
+            "f624": {
+              "state": "success",
+              "type": "revert"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "565e": {},
+          "97f6": {}
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ipAddress": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["ipAddress", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "ipAddress": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "netboxError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "ipAddressSearchResult": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "deleteIPAddressResult": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.19.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:03:15.605Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 4,
+      "reference": "329c0adc-4136-403e-ae33-af7ee6fd141d",
+      "type": "workflow",
+      "folder": "/Assign Next IP (in Prefix)",
+      "document": {
+        "name": "Assign Next IP Address In Prefix",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": 984
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": 1548
+            }
+          },
+          "c504": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered getting available IPs for provided Prefix ID. Select Retry to retry call to get available IPs or End Job to end the job.\n\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 876,
+              "y": 1188
+            }
+          },
+          "48bc": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build NetBox IP Assignment Payload",
+            "description": "Build NetBox IP assignment payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "61b0ed26df69ba016dffc480",
+                "variableMap": {
+                  "ipStatus": "$var.job.ipStatus",
+                  "dnsName": "$var.job.dnsName",
+                  "netboxIpResponse": "$var.4b9c.result"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "nextIpFound": null,
+                "ipAssignmentPayload": null
+              }
+            },
+            "groups": [],
+            "task_name": "Netbox Extract Next Available IP",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": 132,
+              "y": 1176
+            }
+          },
+          "b8ac": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Next IP Found?",
+            "description": "Next IP Found?",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "",
+                        "operand_1": {
+                          "variable": "nextIpFound",
+                          "task": "48bc"
+                        },
+                        "operator": "==",
+                        "operand_2": {
+                          "variable": true,
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": 1272
+            }
+          },
+          "aeef": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "NetBox Prefix Exhausted",
+            "description": "NetBox Prefix Exhausted",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Prefix Exhausted",
+                "message": "Requested prefix has been exhausted in NetBox. See prefix data below.\n\n",
+                "body": "$var.4b9c.result",
+                "variables": {},
+                "btn_success": "End Job",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 444,
+              "y": 1272
+            }
+          },
+          "4b9c": {
+            "name": "getIpamPrefixesIdAvailableIps",
+            "canvasName": "getIpamPrefixesIdAvailableIps",
+            "summary": " Get Available IPs for Prefix",
+            "description": "",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "id": "$var.job.prefixId",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": 1080
+            }
+          },
+          "7fab": {
+            "name": "postIpamIpAddresses",
+            "canvasName": "postIpamIpAddresses",
+            "summary": "Create IP Address",
+            "description": "ipam_ip-addresses_create",
+            "location": "Adapter",
+            "locationType": "NetboxV33",
+            "app": "NetboxV33",
+            "type": "automatic",
+            "displayName": "NetBoxV33",
+            "variables": {
+              "incoming": {
+                "data": "$var.48bc.ipAssignmentPayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.assignedIPAddress"
+              },
+              "error": "$var.job.netboxError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 132,
+              "y": 1380
+            }
+          },
+          "d107": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "View NetBox Error",
+            "description": "View NetBox Error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "NetBox Error",
+                "message": "Error encountered creating IP Address. Select Retry to retry creating IP Address or End Job to end the job.\n\n",
+                "body": "$var.job.netboxError",
+                "variables": {},
+                "btn_success": "Retry",
+                "btn_failure": "End Job"
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -192,
+              "y": 1392
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "4b9c": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "c504": {
+            "4b9c": {
+              "state": "success",
+              "type": "revert"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "48bc": {
+            "b8ac": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "b8ac": {
+            "aeef": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "7fab": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "aeef": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "4b9c": {
+            "c504": {
+              "type": "standard",
+              "state": "error"
+            },
+            "48bc": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "7fab": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            },
+            "d107": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "d107": {
+            "7fab": {
+              "state": "success",
+              "type": "revert"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "565e": {},
+          "97f6": {}
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ipStatus": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "dnsName": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["ipStatus", "dnsName", "prefixId", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "ipStatus": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "dnsName": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "prefixId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "netboxError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "assignedIPAddress": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.19.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:03:15.605Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 8,
+      "reference": "453f35ad-1392-4f88-9685-3e8da5b297c5",
+      "type": "workflow",
+      "folder": "/Sample Use Cases/Onboard Device in Branch",
+      "document": {
+        "name": "Onboard Device",
+        "tasks": {
+          "5630": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Mgmt Interface ID",
+            "description": "Query data using a dot/bracket notation string and a matching key/value pair.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "$var.bbc3.deviceInterfaceQuery",
+                "obj": "$var.30af.response"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 324
+            }
+          },
+          "9147": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Device ID",
+            "description": "Query data using a dot/bracket notation string and a matching key/value pair.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "body.id",
+                "obj": "$var.8c57.response"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -60
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -708
+            },
+            "x": 0,
+            "y": 0.5
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 984
+            },
+            "x": 1,
+            "y": 0.5
+          },
+          "84e8": {
+            "name": "plugins_branching_branches_create",
+            "canvasName": "plugins_branching_branches_create",
+            "summary": "Create Branch",
+            "description": "Post a list of branch objects.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.51ac.payload",
+                "X-NetBox-Branch": "",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -480
+            }
+          },
+          "1de4": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Branch Schema ID",
+            "description": "Query data using a dot/bracket notation string and a matching key/value pair.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "body.schema_id",
+                "obj": "$var.84e8.response"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -372
+            }
+          },
+          "8c57": {
+            "name": "dcim_devices_create",
+            "canvasName": "dcim_devices_create",
+            "summary": "Create Device",
+            "description": "Post a list of device objects.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.f7d6.payload",
+                "X-NetBox-Branch": "$var.1de4.return_data",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -156
+            }
+          },
+          "400b": {
+            "name": "delay",
+            "canvasName": "delay",
+            "summary": "Branch Pending",
+            "description": "Delay a Job for a duration by Job ID and number of seconds.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "time": 5
+              },
+              "outgoing": {
+                "time_in_milliseconds": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -312,
+              "y": -276
+            }
+          },
+          "30af": {
+            "name": "dcim_interfaces_create",
+            "canvasName": "dcim_interfaces_create",
+            "summary": "Create Device Interfaces",
+            "description": "Post a list of interface objects.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.a6ca.interfaceList",
+                "X-NetBox-Branch": "$var.1de4.return_data",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 132
+            }
+          },
+          "bd41": {
+            "name": "ipam_prefixes_available_ips_create",
+            "canvasName": "ipam_prefixes_available_ips_create",
+            "summary": "Assign Mgmt IP",
+            "description": "Post a IP address object.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "id": 1,
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.4e80.payload",
+                "X-NetBox-Branch": "$var.1de4.return_data",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 540
+            }
+          },
+          "a6ca": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Device Interface List",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "67341cedfaaef76ad59b308a",
+                "variableMap": {
+                  "deviceId": "$var.9147.return_data",
+                  "interfacePrefix": "$var.job.interfacePrefix",
+                  "interfaceConcatenator": "",
+                  "interfaceType": "$var.job.interfaceType",
+                  "enabled": true,
+                  "interfaceCount": "$var.job.interfaceCount"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "interfaceList": null
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 36
+            }
+          },
+          "4e80": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "IP Assignment",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "67341cedfaaef76ad59b308c",
+                "variableMap": {
+                  "status": "active",
+                  "description": "management",
+                  "comments": "$var.job._id",
+                  "interfaceID": "$var.5630.return_data"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "payload": null
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 420
+            }
+          },
+          "2f14": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Merge Branch",
+            "description": "Displays a message and runtime data to an operator. This can be used to request a decision, or used for acknowledgement only.",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Merge Branch?",
+                "message": "",
+                "body": "<p>Please click <a href=\"https://demo.netbox.dev/plugins/branching/branches/<!id!>\"target=\"_blank\">here</a> to review the branch and decide if to merge or delete it.</p>",
+                "variables": "$var.7fc6.return_data",
+                "btn_success": "Merge",
+                "btn_failure": "Delete"
+              },
+              "outgoing": {}
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 744
+            }
+          },
+          "cb9c": {
+            "name": "plugins_branching_branches_merge_create",
+            "canvasName": "plugins_branching_branches_merge_create",
+            "summary": "Merge Branch",
+            "description": "Enqueue a background job to merge a branch.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "id": "$var.e561.return_data",
+                "bodyContentType": "application/json",
+                "requestBodyPayload": {
+                  "commit": true
+                },
+                "X-NetBox-Branch": "",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -180,
+              "y": 864
+            }
+          },
+          "0a68": {
+            "name": "plugins_branching_branches_destroy",
+            "canvasName": "plugins_branching_branches_destroy",
+            "summary": "Delete Branch",
+            "description": "Delete a branch object.",
+            "location": "Adapter",
+            "locationType": "NetBox:4.1",
+            "app": "NetBox:4.1",
+            "type": "automatic",
+            "displayName": "NetBox",
+            "variables": {
+              "incoming": {
+                "id": "$var.e561.return_data",
+                "X-NetBox-Branch": "",
+                "adapter_id": "NetBox"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 156,
+              "y": 864
+            }
+          },
+          "51ac": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Branch Payload",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "67341cedfaaef76ad59b308d",
+                "variableMap": {
+                  "name": "$var.job._id",
+                  "branchDescription": "$var.job.branchDescription",
+                  "comments": "$var.job._id"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "payload": null
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -576
+            }
+          },
+          "f7d6": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Device Payload",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "67341cedfaaef76ad59b308f",
+                "variableMap": {
+                  "name": "$var.job.deviceName",
+                  "deviceTypeId": "$var.job.deviceTypeId",
+                  "deviceRoleId": "$var.job.deviceRoleId",
+                  "siteId": "$var.job.siteId",
+                  "deviceStatus": "active",
+                  "deviceDescription": "$var.job.deviceDescription",
+                  "comments": "$var.job._id"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": false,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "payload": null
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -276
+            }
+          },
+          "bbc3": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Device Interface Query",
+            "description": "Perform a JSON Transformation using the JST library.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "67341cedfaaef76ad59b3090",
+                "variableMap": {
+                  "interfacePrefix": "$var.job.interfacePrefix",
+                  "interfaceConcatenator": ""
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "deviceInterfaceQuery": null
+              },
+              "decorators": []
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 228
+            }
+          },
+          "7fc6": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Branch Body",
+            "description": "Query data using a dot/bracket notation string and a matching key/value pair.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "body",
+                "obj": "$var.84e8.response"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -156,
+              "y": 636
+            }
+          },
+          "e561": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Query Branch ID",
+            "description": "Query data using a dot/bracket notation string and a matching key/value pair.",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": false,
+                "query": "body.id",
+                "obj": "$var.84e8.response"
+              },
+              "outgoing": {
+                "return_data": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 156,
+              "y": 636
+            }
+          }
+        },
+        "transitions": {
+          "5630": {
+            "4e80": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "9147": {
+            "a6ca": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "51ac": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "84e8": {
+            "1de4": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "1de4": {
+            "f7d6": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "8c57": {
+            "9147": {
+              "state": "success",
+              "type": "standard"
+            },
+            "400b": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "400b": {
+            "1de4": {
+              "state": "success",
+              "type": "revert"
+            }
+          },
+          "30af": {
+            "bbc3": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "bd41": {
+            "7fc6": {
+              "state": "success",
+              "type": "standard"
+            },
+            "e561": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "a6ca": {
+            "30af": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "4e80": {
+            "bd41": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "2f14": {
+            "cb9c": {
+              "state": "success",
+              "type": "standard"
+            },
+            "0a68": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "cb9c": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "0a68": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "51ac": {
+            "84e8": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f7d6": {
+            "8c57": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "bbc3": {
+            "5630": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "7fc6": {
+            "2f14": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "e561": {
+            "2f14": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "interfacePrefix": {
+              "type": "string",
+              "examples": ["eth0/0/"]
+            },
+            "interfaceType": {
+              "type": "string",
+              "examples": ["1000base-t"]
+            },
+            "interfaceCount": {
+              "type": "number",
+              "examples": [10]
+            },
+            "_id": {
+              "type": "string",
+              "examples": ["comments test"]
+            },
+            "branchDescription": {
+              "type": "string",
+              "examples": ["description"]
+            },
+            "deviceName": {
+              "type": "string",
+              "examples": ["device-name"]
+            },
+            "deviceTypeId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "deviceRoleId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "siteId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "deviceDescription": {
+              "type": "string",
+              "examples": ["my descr"]
+            }
+          },
+          "required": [
+            "interfacePrefix",
+            "interfaceType",
+            "interfaceCount",
+            "_id",
+            "branchDescription",
+            "deviceName",
+            "deviceTypeId",
+            "deviceRoleId",
+            "siteId",
+            "deviceDescription"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "interfacePrefix": {
+              "type": "string",
+              "examples": ["eth0/0/"]
+            },
+            "interfaceType": {
+              "type": "string",
+              "examples": ["1000base-t"]
+            },
+            "interfaceCount": {
+              "type": "number",
+              "examples": [10]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "branchDescription": {
+              "type": "string",
+              "examples": ["description"]
+            },
+            "deviceName": {
+              "type": "string",
+              "examples": ["device-name"]
+            },
+            "deviceTypeId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "deviceRoleId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "siteId": {
+              "type": "number",
+              "examples": [1]
+            },
+            "deviceDescription": {
+              "type": "string",
+              "examples": ["my descr"]
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        },
+        "type": "automation",
+        "font_size": 12,
+        "last_updated": "2025-01-24T11:03:15.607Z",
+        "lastUpdatedVersion": "4.69.3-2023.2.146",
+        "createdVersion": "5.55.2-2023.2.5",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "2024-11-13T03:12:29.075Z",
+        "created_by": {
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "canvasVersion": 3,
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 5,
+      "reference": "67341cedfaaef76ad59b308e",
+      "type": "transformation",
+      "folder": "/Assign Next IP (in Prefix)",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308e",
+        "name": "Build IP Assignment Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "netboxIpResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array"
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "ipStatus",
+            "type": "string"
+          },
+          {
+            "$id": "dnsName",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "nextIpFound",
+            "type": "boolean"
+          },
+          {
+            "$id": "ipAssignmentPayload",
+            "type": "object",
+            "properties": {
+              "address": {
+                "type": "string",
+                "examples": ["50%2E1%2E0%2E3/20"]
+              },
+              "status": {
+                "type": "string",
+                "examples": ["active"]
+              },
+              "dns_name": {
+                "type": "string",
+                "examples": ["host%2Eone%2Elocal"]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 2,
+              "col": 1
+            }
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "netboxIpResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 4,
+            "type": "method",
+            "library": "Array",
+            "method": "length",
+            "args": [null],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 5,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "netboxIpResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 4,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 6,
+            "type": "declaration",
+            "library": "Boolean",
+            "method": "new Boolean",
+            "args": [null],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 7,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 4,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "declaration",
+              "name": 6,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 12,
+            "type": "method",
+            "library": "Object",
+            "method": "optional chaining",
+            "args": [null, "address"],
+            "view": {
+              "row": 2,
+              "col": 2
+            }
+          },
+          {
+            "id": 13,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 12,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 16,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "dnsName",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ipAssignmentPayload",
+              "ptr": "/dns_name"
+            }
+          },
+          {
+            "id": 17,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "ipStatus",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ipAssignmentPayload",
+              "ptr": "/status"
+            }
+          },
+          {
+            "id": 18,
+            "type": "assign",
+            "from": {
+              "location": "declaration",
+              "name": 6,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "nextIpFound",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 19,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 12,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ipAssignmentPayload",
+              "ptr": "/address"
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.270Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.606Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 6,
+      "reference": "67341cedfaaef76ad59b3088",
+      "type": "transformation",
+      "folder": "/Create Prefix",
+      "document": {
+        "_id": "67341cedfaaef76ad59b3088",
+        "name": "Build Prefix Creation Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "prefix",
+            "type": "string"
+          },
+          {
+            "$id": "prefixStatus",
+            "type": "string"
+          },
+          {
+            "$id": "prefixDescription",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "prefixCreationPayload",
+            "type": "object",
+            "properties": {
+              "prefix": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "prefix",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "prefixCreationPayload",
+              "ptr": "/prefix"
+            }
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "prefixStatus",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "prefixCreationPayload",
+              "ptr": "/status"
+            }
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "prefixDescription",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "prefixCreationPayload",
+              "ptr": "/description"
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.269Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.607Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 7,
+      "reference": "67341cedfaaef76ad59b3089",
+      "type": "transformation",
+      "folder": "/Delete Prefix",
+      "document": {
+        "_id": "67341cedfaaef76ad59b3089",
+        "name": "Delete Prefix",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "prefixResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "object",
+                "properties": {
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": []
+                    }
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "ipAddressResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "object",
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  },
+                  "results": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "address": {
+                          "type": "string"
+                        }
+                      },
+                      "required": []
+                    }
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "adapterId",
+            "type": "string",
+            "examples": ["NetBox"]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "prefixId",
+            "type": "string"
+          },
+          {
+            "$id": "prefixHasIps",
+            "type": "boolean"
+          },
+          {
+            "$id": "ipsInPrefix",
+            "type": "array"
+          },
+          {
+            "$id": "ipMessage",
+            "type": "string"
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "declaration",
+            "library": "Boolean",
+            "method": "new Boolean",
+            "args": [null],
+            "view": {
+              "row": 2,
+              "col": 1
+            }
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "ipAddressResponse",
+              "ptr": "/response/count"
+            },
+            "to": {
+              "location": "declaration",
+              "name": 1,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "declaration",
+              "name": 1,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "prefixHasIps",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 4,
+            "type": "method",
+            "library": "Array",
+            "method": "map",
+            "args": [null, "getIpStrings"],
+            "view": {
+              "row": 4,
+              "col": 1
+            }
+          },
+          {
+            "id": 5,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "ipAddressResponse",
+              "ptr": "/response/results"
+            },
+            "to": {
+              "location": "method",
+              "name": 4,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 7,
+            "type": "method",
+            "library": "Array",
+            "method": "join",
+            "args": [null, "\n"],
+            "view": {
+              "row": 4,
+              "col": 2
+            }
+          },
+          {
+            "id": 8,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 4,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 7,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 10,
+            "type": "method",
+            "library": "String",
+            "method": "concat",
+            "args": [
+              "The following IP addresses exist in this prefix.  Delete them as well?",
+              "\n",
+              null
+            ],
+            "view": {
+              "row": 4,
+              "col": 3
+            }
+          },
+          {
+            "id": 12,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 10,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ipMessage",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 13,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 7,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 10,
+              "ptr": "/args/2/value"
+            }
+          },
+          {
+            "id": 15,
+            "type": "method",
+            "library": "Array",
+            "method": "map",
+            "args": [null, "getIpObjects", null],
+            "view": {
+              "row": 3,
+              "col": 1
+            }
+          },
+          {
+            "id": 16,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "ipAddressResponse",
+              "ptr": "/response/results"
+            },
+            "to": {
+              "location": "method",
+              "name": 15,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 17,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 15,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ipsInPrefix",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 18,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 19,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "prefixResponse",
+              "ptr": "/response/results"
+            },
+            "to": {
+              "location": "method",
+              "name": 18,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 20,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 21,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 18,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 20,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 22,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 20,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "prefixId",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 23,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "adapterId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 15,
+              "ptr": "/args/2/value"
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [
+          {
+            "incoming": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "address": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "$id": "currentValue"
+              },
+              {
+                "title": "index",
+                "type": "number",
+                "optional": true,
+                "$id": "index"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "address": {
+                      "type": "string"
+                    }
+                  },
+                  "required": []
+                },
+                "$id": "array",
+                "optional": true
+              }
+            ],
+            "outgoing": [
+              {
+                "title": "newValue",
+                "type": [
+                  "array",
+                  "boolean",
+                  "number",
+                  "integer",
+                  "string",
+                  "object",
+                  "null"
+                ],
+                "editable": true,
+                "$id": "newValue"
+              }
+            ],
+            "steps": [
+              {
+                "id": 1,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/address"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "newValue",
+                  "ptr": ""
+                }
+              }
+            ],
+            "functions": [],
+            "name": "getIpStrings",
+            "view": {
+              "col": 1,
+              "row": 5
+            },
+            "id": "getIpStrings",
+            "comments": []
+          },
+          {
+            "incoming": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "address": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "$id": "currentValue"
+              },
+              {
+                "title": "index",
+                "type": "number",
+                "optional": true,
+                "$id": "index"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "address": {
+                      "type": "string"
+                    }
+                  },
+                  "required": []
+                },
+                "$id": "array",
+                "optional": true
+              },
+              {
+                "$id": "constantValue1",
+                "type": "string",
+                "isConstValue": true
+              }
+            ],
+            "outgoing": [
+              {
+                "$id": "newValue",
+                "type": "object",
+                "properties": {
+                  "ipAddress": {
+                    "type": "string",
+                    "examples": ["0.0.0.0"]
+                  },
+                  "adapterId": {
+                    "type": "string",
+                    "examples": ["NetBox"]
+                  }
+                },
+                "required": []
+              }
+            ],
+            "steps": [
+              {
+                "id": 1,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/address"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "newValue",
+                  "ptr": "/ipAddress"
+                },
+                "context": "#"
+              },
+              {
+                "id": 2,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "constantValue1",
+                  "ptr": ""
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "newValue",
+                  "ptr": "/adapterId"
+                },
+                "context": "#"
+              }
+            ],
+            "functions": [],
+            "name": "getIpObjects",
+            "view": {
+              "col": 2,
+              "row": 5
+            },
+            "id": "getIpObjects",
+            "comments": []
+          }
+        ],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.273Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.625Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 11,
+      "reference": "67341cedfaaef76ad59b308b",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308b",
+        "name": "Device Interface",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "deviceId",
+            "type": "number"
+          },
+          {
+            "$id": "interfaceName",
+            "type": "string"
+          },
+          {
+            "$id": "interfaceType",
+            "type": "string"
+          },
+          {
+            "$id": "enabled",
+            "type": "boolean"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "payload",
+            "type": "object",
+            "properties": {
+              "device": {
+                "type": "number",
+                "examples": [2]
+              },
+              "name": {
+                "type": "string",
+                "examples": ["eth0/0/[0-23]"]
+              },
+              "type": {
+                "type": "string",
+                "examples": ["1000base-t"]
+              },
+              "enabled": {
+                "type": "boolean",
+                "examples": [true, false]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "enabled",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/enabled"
+            },
+            "context": "#"
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceType",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/type"
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceName",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/name"
+            },
+            "context": "#"
+          },
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/device"
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 2,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.274Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.608Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 12,
+      "reference": "67341cedfaaef76ad59b308a",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308a",
+        "name": "Device Interface List",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "deviceId",
+            "type": "number",
+            "examples": [2]
+          },
+          {
+            "$id": "interfacePrefix",
+            "type": "string",
+            "examples": ["eth0/0/"]
+          },
+          {
+            "$id": "interfaceConcatenator",
+            "type": "string",
+            "examples": [""]
+          },
+          {
+            "$id": "interfaceType",
+            "type": "string",
+            "examples": ["1000base-t"]
+          },
+          {
+            "$id": "enabled",
+            "type": "boolean",
+            "examples": [true, false]
+          },
+          {
+            "$id": "interfaceCount",
+            "type": "number",
+            "examples": [10]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "interfaceList",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "integer",
+                  "examples": [2]
+                },
+                "name": {
+                  "type": "string",
+                  "examples": ["eth0/0/[0-23]"]
+                },
+                "type": {
+                  "type": "string",
+                  "examples": ["1000base-t"]
+                },
+                "enabled": {
+                  "type": "boolean",
+                  "examples": [true, false]
+                }
+              },
+              "required": []
+            }
+          }
+        ],
+        "steps": [
+          {
+            "id": 17,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 18,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfacePrefix",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/args/1/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 19,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceConcatenator",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/args/2/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 20,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceType",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/args/3/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 21,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "enabled",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/args/4/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 27,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceCount",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/args/3/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 30,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceCount",
+              "ptr": ""
+            },
+            "to": {
+              "location": "declaration",
+              "name": 29,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 29,
+            "type": "declaration",
+            "library": "Array",
+            "method": "new Array",
+            "args": [null],
+            "view": {
+              "row": 1,
+              "col": 2
+            },
+            "context": "#",
+            "polymorphIndex": 1
+          },
+          {
+            "id": 31,
+            "type": "assign",
+            "from": {
+              "location": "declaration",
+              "name": 29,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 16,
+            "type": "template",
+            "library": "String",
+            "method": "templateLiteral",
+            "template": "{\n    \"device\": ${deviceId},\n    \"name\": \"${interfacePrefix}${interfaceConcatenator}\",\n    \"type\": \"${interfaceType}\",\n    \"enabled\": ${enabled}\n}",
+            "args": [null, null, null, null, null],
+            "view": {
+              "row": 1,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 24,
+            "type": "assign",
+            "from": {
+              "location": "template",
+              "name": 16,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 23,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 23,
+            "type": "method",
+            "library": "JSON",
+            "method": "parse",
+            "args": [null, null],
+            "view": {
+              "row": 2,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 26,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 23,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/args/1/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 25,
+            "type": "method",
+            "library": "Array",
+            "method": "fill",
+            "args": [null, null, 0, null],
+            "view": {
+              "row": 2,
+              "col": 2
+            },
+            "context": "#"
+          },
+          {
+            "id": 33,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 32,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 32,
+            "type": "method",
+            "library": "Array",
+            "method": "map",
+            "args": [null, "ƒ_map_1"],
+            "view": {
+              "row": 3,
+              "col": 2
+            },
+            "context": "#"
+          },
+          {
+            "id": 34,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 32,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "interfaceList",
+              "ptr": ""
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [
+          {
+            "incoming": [
+              {
+                "type": [
+                  "array",
+                  "boolean",
+                  "number",
+                  "integer",
+                  "string",
+                  "object",
+                  "null"
+                ],
+                "$id": "currentValue"
+              },
+              {
+                "title": "index",
+                "type": "number",
+                "optional": true,
+                "$id": "index"
+              },
+              {
+                "type": "array",
+                "$id": "array",
+                "optional": true
+              }
+            ],
+            "outgoing": [
+              {
+                "$id": "interface",
+                "type": "object",
+                "properties": {
+                  "device": {
+                    "type": "number",
+                    "examples": [2]
+                  },
+                  "name": {
+                    "type": "string",
+                    "examples": ["eth0/0/0"]
+                  },
+                  "type": {
+                    "type": "string",
+                    "examples": ["1000base-t"]
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  }
+                },
+                "required": []
+              }
+            ],
+            "steps": [
+              {
+                "id": 5,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": ""
+                },
+                "to": {
+                  "location": "method",
+                  "name": 4,
+                  "ptr": "/args/0/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 8,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "index",
+                  "ptr": ""
+                },
+                "to": {
+                  "location": "method",
+                  "name": 7,
+                  "ptr": "/args/0/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 11,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": ""
+                },
+                "to": {
+                  "location": "method",
+                  "name": 10,
+                  "ptr": "/args/0/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 4,
+                "type": "method",
+                "library": "Object",
+                "method": "getProperty",
+                "args": [null, "name"],
+                "view": {
+                  "row": 1,
+                  "col": 1
+                },
+                "context": "#"
+              },
+              {
+                "id": 7,
+                "type": "method",
+                "library": "Number",
+                "method": "toString",
+                "args": [null, null],
+                "view": {
+                  "row": 2,
+                  "col": 1
+                },
+                "context": "#"
+              },
+              {
+                "id": 6,
+                "type": "assign",
+                "from": {
+                  "location": "method",
+                  "name": 4,
+                  "ptr": "/return"
+                },
+                "to": {
+                  "location": "method",
+                  "name": 3,
+                  "ptr": "/args/0/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 9,
+                "type": "assign",
+                "from": {
+                  "location": "method",
+                  "name": 7,
+                  "ptr": "/return"
+                },
+                "to": {
+                  "location": "method",
+                  "name": 3,
+                  "ptr": "/args/1/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 3,
+                "type": "method",
+                "library": "String",
+                "method": "concat",
+                "args": [null, null],
+                "view": {
+                  "row": 3,
+                  "col": 1
+                },
+                "context": "#"
+              },
+              {
+                "id": 12,
+                "type": "assign",
+                "from": {
+                  "location": "method",
+                  "name": 3,
+                  "ptr": "/return"
+                },
+                "to": {
+                  "location": "method",
+                  "name": 10,
+                  "ptr": "/args/2/value"
+                },
+                "context": "#"
+              },
+              {
+                "id": 10,
+                "type": "method",
+                "library": "Object",
+                "method": "setProperty",
+                "args": [null, "name", null],
+                "view": {
+                  "row": 2,
+                  "col": 2
+                },
+                "context": "#"
+              },
+              {
+                "id": 13,
+                "type": "assign",
+                "from": {
+                  "location": "method",
+                  "name": 10,
+                  "ptr": "/return"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "interface",
+                  "ptr": ""
+                },
+                "context": "#"
+              }
+            ],
+            "functions": [],
+            "name": "ƒ_map_1",
+            "view": {
+              "col": 2,
+              "row": 4
+            },
+            "id": "ƒ_map_1",
+            "comments": []
+          }
+        ],
+        "comments": [],
+        "view": {
+          "col": 2,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.276Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.611Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 13,
+      "reference": "67341cedfaaef76ad59b308c",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308c",
+        "name": "IP Assignment",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "status",
+            "type": "string",
+            "examples": ["active"]
+          },
+          {
+            "$id": "description",
+            "type": "string",
+            "examples": ["description test"]
+          },
+          {
+            "$id": "comments",
+            "type": "string",
+            "examples": ["comments test"]
+          },
+          {
+            "$id": "interfaceID",
+            "type": "number",
+            "examples": [9223372036854776000]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "payload",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "examples": ["active"]
+                },
+                "description": {
+                  "type": "string",
+                  "examples": ["management"]
+                },
+                "comments": {
+                  "type": "string",
+                  "examples": ["set from IAP"]
+                },
+                "interface": {
+                  "type": "number",
+                  "examples": [9223372036854776000]
+                }
+              },
+              "required": []
+            }
+          }
+        ],
+        "steps": [
+          {
+            "id": 7,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "status",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 6,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 8,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "description",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 6,
+              "ptr": "/args/1/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 9,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 6,
+              "ptr": "/args/2/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 10,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceID",
+              "ptr": ""
+            },
+            "to": {
+              "location": "template",
+              "name": 6,
+              "ptr": "/args/3/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 6,
+            "type": "template",
+            "library": "String",
+            "method": "templateLiteral",
+            "template": "  {\n    \"status\": \"${status}\",\n    \"description\": \"${description}\",\n    \"comments\": \"${comments}\",\n    \"interface\": ${objectid}\n  }\n",
+            "args": [null, null, null, null],
+            "view": {
+              "row": 1,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 15,
+            "type": "assign",
+            "from": {
+              "location": "template",
+              "name": 6,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 14,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 14,
+            "type": "method",
+            "library": "JSON",
+            "method": "parse",
+            "args": [null, null],
+            "view": {
+              "row": 2,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 16,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 14,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 11,
+              "ptr": "/args/1/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 11,
+            "type": "method",
+            "library": "Array",
+            "method": "push",
+            "args": [[], null],
+            "view": {
+              "row": 1,
+              "col": 2
+            },
+            "context": "#"
+          },
+          {
+            "id": 13,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 11,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": ""
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 2,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.277Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.608Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 14,
+      "reference": "67341cedfaaef76ad59b308d",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308d",
+        "name": "Branch Creation",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "name",
+            "type": "string",
+            "examples": ["branch1-new"]
+          },
+          {
+            "$id": "branchDescription",
+            "type": "string",
+            "examples": ["description"]
+          },
+          {
+            "$id": "comments",
+            "type": "string",
+            "examples": ["comments"]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "payload",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "examples": ["branch1-new"]
+              },
+              "description": {
+                "type": "string",
+                "examples": ["string"]
+              },
+              "comments": {
+                "type": "string",
+                "examples": ["string"]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "name",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/name"
+            },
+            "context": "#"
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "branchDescription",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/description"
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/comments"
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 1,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.275Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.610Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 15,
+      "reference": "67341cedfaaef76ad59b308f",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341cedfaaef76ad59b308f",
+        "name": "Device Create",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "name",
+            "type": "string",
+            "examples": ["device-name"]
+          },
+          {
+            "$id": "deviceTypeId",
+            "type": "number",
+            "examples": [1]
+          },
+          {
+            "$id": "deviceRoleId",
+            "type": "number",
+            "examples": [1]
+          },
+          {
+            "$id": "siteId",
+            "type": "number",
+            "examples": [1]
+          },
+          {
+            "$id": "deviceStatus",
+            "type": "string",
+            "examples": ["offline"]
+          },
+          {
+            "$id": "deviceDescription",
+            "type": "string",
+            "examples": ["my descr"]
+          },
+          {
+            "$id": "comments",
+            "type": "string",
+            "examples": ["my comments"]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "payload",
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "examples": ["new3"]
+              },
+              "device_type": {
+                "type": "number",
+                "examples": [1]
+              },
+              "role": {
+                "type": "number",
+                "examples": [1]
+              },
+              "site": {
+                "type": "number",
+                "examples": [1]
+              },
+              "status": {
+                "type": "string",
+                "examples": ["offline"]
+              },
+              "description": {
+                "type": "string",
+                "examples": ["my descr"]
+              },
+              "comments": {
+                "type": "string",
+                "examples": ["my comments"]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "name",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/name"
+            },
+            "context": "#"
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceTypeId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/device_type"
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceRoleId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/role"
+            },
+            "context": "#"
+          },
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "siteId",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/site"
+            },
+            "context": "#"
+          },
+          {
+            "id": 5,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceStatus",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/status"
+            },
+            "context": "#"
+          },
+          {
+            "id": 6,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "deviceDescription",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/description"
+            },
+            "context": "#"
+          },
+          {
+            "id": 7,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "payload",
+              "ptr": "/comments"
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 2,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.279Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.612Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 16,
+      "reference": "67341cedfaaef76ad59b3090",
+      "type": "transformation",
+      "folder": "/Sample Use Cases/Onboard Device in Branch",
+      "document": {
+        "_id": "67341cedfaaef76ad59b3090",
+        "name": "Device Interface Query",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "interfacePrefix",
+            "type": "string",
+            "examples": ["eth0/1/"]
+          },
+          {
+            "$id": "interfaceConcatenator",
+            "type": "string",
+            "examples": [""]
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "deviceInterfaceQuery",
+            "type": "string",
+            "examples": ["body[display="]
+          }
+        ],
+        "steps": [
+          {
+            "id": 1,
+            "type": "method",
+            "library": "String",
+            "method": "concat",
+            "args": ["body[display=", null, null, "0].id"],
+            "view": {
+              "row": 1,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfacePrefix",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/args/1/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "interfaceConcatenator",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/args/2/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "deviceInterfaceQuery",
+              "ptr": ""
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 1,
+          "row": 5
+        },
+        "created": "2025-01-23T14:21:33.278Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:03:15.612Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 9,
+      "reference": "67341ced1ef8108b32e9cb0c",
+      "type": "jsonForm",
+      "folder": "/Sample Use Cases/Onboard Device in Branch",
+      "document": {
+        "id": "67341ced1ef8108b32e9cb0c",
+        "created": "2024-11-13T03:12:29.071Z",
+        "createdBy": "admin@itential",
+        "lastUpdated": "2025-01-24T11:03:15.611Z",
+        "lastUpdatedBy": "admin@itential",
+        "description": "",
+        "struct": {
+          "type": "array",
+          "items": [
+            {
+              "nodeId": "810cd84a-03ce-42cf-94e4-a2aacef24a3c",
+              "type": "string",
+              "title": "Branch Description",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default"
+            },
+            {
+              "nodeId": "bc7b1f83-9384-4e41-aa85-e2376950875a",
+              "type": "string",
+              "title": "Site",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "47985962-7987-4feb-b0dd-78ec07e19bfc",
+                  "label": "1",
+                  "value": "1"
+                },
+                {
+                  "id": "b83a3261-755f-41dd-8448-972c24a5d5a1",
+                  "label": "2",
+                  "value": "2"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "2ea614fe-722c-4aef-8d02-7bac71b7ad84",
+                  "label": "Nice",
+                  "value": "Nice"
+                },
+                {
+                  "id": "93fbf586-5f46-452d-9d54-2671d766912c",
+                  "label": "Manchester",
+                  "value": "Manchester"
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": "siteId"
+            },
+            {
+              "nodeId": "349c6bf8-78c9-4846-a6ac-e1d64d4d163f",
+              "type": "string",
+              "title": "Device Name",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": "deviceName"
+            },
+            {
+              "nodeId": "c16f25e8-63a1-47e4-bd61-d6b5a452f078",
+              "type": "string",
+              "title": "Device Role",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "eae77f38-0503-4238-b0ba-9725fc04c39a",
+                  "label": "1",
+                  "value": "1"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "abac6483-dc13-4154-837f-5a5cacbddbd3",
+                  "label": "Switch",
+                  "value": "Switch"
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": "deviceRoleId",
+              "default": "1"
+            },
+            {
+              "nodeId": "f54509d7-1869-4453-935f-16262877146f",
+              "type": "string",
+              "title": "Device Type",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "83922597-761e-4d91-b34b-92a427ac7ff4",
+                  "label": "1",
+                  "value": "1"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "81006f91-ba77-4af0-9c88-c1fc7fc0a5dc",
+                  "label": "Cisco 8000",
+                  "value": "Cisco 8000"
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": "deviceTypeId",
+              "default": "1"
+            },
+            {
+              "nodeId": "cf02d743-7c24-423b-97cc-586d3d367b16",
+              "type": "string",
+              "title": "Device Description",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": false
+            },
+            {
+              "nodeId": "29650859-082f-40c8-85c6-1af83c301b95",
+              "type": "string",
+              "title": "Interface Prefix",
+              "description": "",
+              "placeholder": "Enter text",
+              "required": true,
+              "readOnly": false,
+              "binding": false,
+              "rel": "item",
+              "targetPointer": "/default",
+              "customKey": "interfacePrefix",
+              "default": "eth0/0/"
+            },
+            {
+              "nodeId": "8c1cbea8-4b4c-4ecd-96bb-f11b051535c3",
+              "type": "string",
+              "title": "Interface Type",
+              "description": "",
+              "placeholder": "Select an item",
+              "required": true,
+              "enum": [
+                {
+                  "id": "3be1fe96-0868-4922-a5d6-d9e5ecaf14d5",
+                  "label": "1000base-t",
+                  "value": "1000base-t"
+                }
+              ],
+              "enumNames": [
+                {
+                  "id": "a4375a57-4ad7-4417-88c7-689a6cc19957",
+                  "label": "",
+                  "value": ""
+                }
+              ],
+              "binding": false,
+              "rel": "collection",
+              "targetPointer": "/enum",
+              "customKey": false,
+              "default": "1000base-t"
+            },
+            {
+              "nodeId": "02f1ac9d-5905-4e00-8dca-870d6aec2737",
+              "type": "number",
+              "widget": "updown",
+              "title": "Interface Count",
+              "description": "",
+              "placeholder": "Enter a number",
+              "required": true,
+              "minimum": 1,
+              "maximum": 48,
+              "default": 24
+            }
+          ]
+        },
+        "schema": {
+          "title": "Onboard Device",
+          "description": "",
+          "type": "object",
+          "required": [
+            "branchDescription",
+            "siteId",
+            "deviceName",
+            "deviceRoleId",
+            "deviceTypeId",
+            "deviceDescription",
+            "interfacePrefix",
+            "interfaceType",
+            "interfaceCount"
+          ],
+          "properties": {
+            "branchDescription": {
+              "type": "string",
+              "title": "Branch Description",
+              "_id": "/properties/branchDescription",
+              "description": ""
+            },
+            "siteId": {
+              "type": "string",
+              "title": "Site",
+              "_id": "/properties/siteId",
+              "description": "",
+              "enum": ["1", "2"],
+              "enumNames": ["Nice", "Manchester"]
+            },
+            "deviceName": {
+              "type": "string",
+              "title": "Device Name",
+              "_id": "/properties/deviceName",
+              "description": ""
+            },
+            "deviceRoleId": {
+              "type": "string",
+              "title": "Device Role",
+              "_id": "/properties/deviceRoleId",
+              "description": "",
+              "default": "1",
+              "enum": ["1"],
+              "enumNames": ["Switch"]
+            },
+            "deviceTypeId": {
+              "type": "string",
+              "title": "Device Type",
+              "_id": "/properties/deviceTypeId",
+              "description": "",
+              "default": "1",
+              "enum": ["1"],
+              "enumNames": ["Cisco 8000"]
+            },
+            "deviceDescription": {
+              "type": "string",
+              "title": "Device Description",
+              "_id": "/properties/deviceDescription",
+              "description": ""
+            },
+            "interfacePrefix": {
+              "type": "string",
+              "title": "Interface Prefix",
+              "_id": "/properties/interfacePrefix",
+              "description": "",
+              "default": "eth0/0/"
+            },
+            "interfaceType": {
+              "type": "string",
+              "title": "Interface Type",
+              "_id": "/properties/interfaceType",
+              "description": "",
+              "default": "1000base-t",
+              "enum": ["1000base-t"],
+              "enumNames": [""]
+            },
+            "interfaceCount": {
+              "type": "number",
+              "title": "Interface Count",
+              "_id": "/properties/interfaceCount",
+              "description": "",
+              "default": 24,
+              "minimum": 1,
+              "maximum": 48
+            }
+          }
+        },
+        "uiSchema": {
+          "branchDescription": {
+            "ui:placeholder": "Enter text"
+          },
+          "siteId": {
+            "ui:placeholder": "Select an item"
+          },
+          "deviceName": {
+            "ui:placeholder": "Enter text"
+          },
+          "deviceRoleId": {
+            "ui:placeholder": "Select an item"
+          },
+          "deviceTypeId": {
+            "ui:placeholder": "Select an item"
+          },
+          "deviceDescription": {
+            "ui:placeholder": "Enter text"
+          },
+          "interfacePrefix": {
+            "ui:placeholder": "Enter text"
+          },
+          "interfaceType": {
+            "ui:placeholder": "Select an item"
+          },
+          "interfaceCount": {
+            "ui:placeholder": "Enter a number",
+            "ui:widget": "updown"
+          }
+        },
+        "bindingSchema": {},
+        "validationSchema": {},
+        "version": "2020.1",
+        "name": "Onboard Device"
+      }
+    },
+    {
+      "iid": 10,
+      "reference": "67341ceda1c9aed687bfdcdd",
+      "type": "template",
+      "folder": "/Sample Use Cases/Onboard Device in Branch/Templates",
+      "document": {
+        "_id": "67341ceda1c9aed687bfdcdd",
+        "type": "jinja2",
+        "command": "",
+        "template": "[\n {% for i in range(0,interfaceCount) %}\n  {\n    \"device\": {{deviceId}},\n    \"name\": \"{{interfacePrefix}}{{i}}\",\n    \"type\": \"{{interfaceType}}\",\n    \"enabled\": {{enabled | lower}}\n  }{{ \",\" if not loop.last }}\n {% endfor %}\n]",
+        "name": "Device Interface List",
+        "version": 1,
+        "data": "{\n    \"deviceId\": 2,\n    \"interfaceType\": \"1000base-t\",\n    \"interfacePrefix\": \"eth0/0/\",\n    \"interfaceCount\": 24,\n    \"enabled\": true\n}",
+        "group": "J2",
+        "description": "",
+        "created": "2024-11-13T03:12:29.077Z",
+        "lastUpdated": "2025-01-24T11:03:15.625Z",
+        "createdBy": {
+          "_id": "6786b32af921f091fd105007",
+          "provenance": "Local AAA",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": true
+        },
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false
+        }
+      }
+    }
+  ],
+  "folders": [
+    {
+      "nodeType": "folder",
+      "name": "Create Prefix",
+      "children": [
+        {
+          "iid": 0,
+          "nodeType": "component"
+        },
+        {
+          "iid": 6,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Delete Prefix",
+      "children": [
+        {
+          "iid": 1,
+          "nodeType": "component"
+        },
+        {
+          "iid": 7,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "iid": 2,
+      "nodeType": "component"
+    },
+    {
+      "iid": 3,
+      "nodeType": "component"
+    },
+    {
+      "nodeType": "folder",
+      "name": "Assign Next IP (in Prefix)",
+      "children": [
+        {
+          "iid": 5,
+          "nodeType": "component"
+        },
+        {
+          "iid": 4,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Sample Use Cases",
+      "children": [
+        {
+          "nodeType": "folder",
+          "name": "Onboard Device in Branch",
+          "children": [
+            {
+              "iid": 9,
+              "nodeType": "component"
+            },
+            {
+              "iid": 8,
+              "nodeType": "component"
+            },
+            {
+              "nodeType": "folder",
+              "name": "Templates",
+              "children": [
+                {
+                  "iid": 10,
+                  "nodeType": "component"
+                },
+                {
+                  "iid": 11,
+                  "nodeType": "component"
+                },
+                {
+                  "iid": 12,
+                  "nodeType": "component"
+                },
+                {
+                  "iid": 13,
+                  "nodeType": "component"
+                },
+                {
+                  "iid": 14,
+                  "nodeType": "component"
+                },
+                {
+                  "iid": 15,
+                  "nodeType": "component"
+                }
+              ]
+            },
+            {
+              "iid": 16,
+              "nodeType": "component"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "created": "2024-08-29T17:59:45.726Z",
+  "createdBy": {
+    "_id": "6786b32af921f091fd105007",
+    "provenance": "Local AAA",
+    "username": "admin@itential"
+  },
+  "lastUpdated": "2025-01-24T11:03:15.574Z",
+  "lastUpdatedBy": {
+    "_id": "66d1e2b552e6dc384b5d6626",
+    "provenance": "Okta",
+    "username": "admin@itential"
+  },
+  "iid": 52,
+  "thumbnail": "data:image/png;base64,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",
+  "backgroundColor": "#FFFFFF"
+}

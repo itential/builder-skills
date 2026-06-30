@@ -1,0 +1,4741 @@
+{
+  "_id": "66d0b88221161b4df271749d",
+  "name": "ServiceNow",
+  "description": "ServiceNow Project has assets for Create Change Request, Update Change Request, Close Change Request, Update Incident, Create Request Item, Create Incident, Approve Change Request,  Update Request Item",
+  "components": [
+    {
+      "iid": 0,
+      "reference": "36a32c57-042c-49af-8d6c-6e614a632d71",
+      "type": "workflow",
+      "folder": "/Close Change Request",
+      "document": {
+        "name": "Close Change Request",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -444,
+              "y": 720
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -444,
+              "y": 1284
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show ServiceNow Error",
+            "description": "Show close change request error and decision options",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "ServiceNow Error",
+                "message": "",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -144,
+              "y": 1056
+            }
+          },
+          "2ad1": {
+            "name": "updateChangeRequest",
+            "canvasName": "updateChangeRequest",
+            "summary": "Update Change Request",
+            "description": "Update change request to close it",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "changeId": "$var.e4c7.crSysId",
+                "body": "$var.e4c7.crClosePayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.updatedCR"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -444,
+              "y": 1164
+            }
+          },
+          "fd22": {
+            "name": "getChangeRequests",
+            "canvasName": "getChangeRequests",
+            "summary": "Get Change Request",
+            "description": "Get change request with query parameters provided",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "sysparmQuery": "$var.ade8.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -444,
+              "y": 936
+            }
+          },
+          "ade8": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build sysparmQuery",
+            "description": "Build sysparmQuery",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "number",
+                    "value": {
+                      "task": "job",
+                      "variable": "crNumber",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -444,
+              "y": 816
+            }
+          },
+          "e4c7": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build CR Close Payload - ServiceNow",
+            "description": "Build change request close payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "63d1a03fa15c2401e9a6143c",
+                "variableMap": {
+                  "changeRequestResponse": "$var.fd22.result",
+                  "closeCode": "$var.job.closeCode",
+                  "closeNotes": "$var.job.closeNotes"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": false,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "crSysId": null,
+                "crClosePayload": null
+              }
+            },
+            "groups": [],
+            "task_name": "Build CR Close Payload - ServiceNow",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": -444,
+              "y": 1056
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "ade8": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "2ad1": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            },
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "fd22": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "e4c7": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "ade8": {
+            "fd22": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "e4c7": {
+            "2ad1": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "closeCode": {
+              "type": "string"
+            },
+            "closeNotes": {
+              "type": "string"
+            }
+          },
+          "required": ["adapterId", "crNumber", "closeCode", "closeNotes"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "closeCode": {
+              "type": "string"
+            },
+            "closeNotes": {
+              "type": "string"
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "updatedCR": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.72.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.886Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 1,
+      "reference": "60abc503-6007-4e68-8470-2c103ad9b417",
+      "type": "workflow",
+      "folder": "/Update Request Item",
+      "document": {
+        "name": "Update Request Item (RITM)",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -96,
+              "y": 612
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -96,
+              "y": 1176
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show ServiceNow Error",
+            "description": "Show ServiceNow request item update error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "ServiceNow Error",
+                "message": "",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 300,
+              "y": 948
+            }
+          },
+          "ade8": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Request Item Search Query",
+            "description": "Build request item search query",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "number",
+                    "value": {
+                      "task": "job",
+                      "variable": "ritmNumber",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -96,
+              "y": 732
+            }
+          },
+          "e4c7": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build Request Item Update Payload",
+            "description": "Build request item update payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "62279f8c7858d601db6606f9",
+                "variableMap": {
+                  "requestItemResponse": "$var.cb96.result",
+                  "comments": "$var.job.comments",
+                  "state": "$var.job.state"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": false,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "ritmSysId": null,
+                "ritmUpdatePayload": null
+              },
+              "decorators": []
+            },
+            "groups": [],
+            "task_name": "Build RITM Update Payload - ServiceNow",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": -96,
+              "y": 948
+            }
+          },
+          "cb96": {
+            "name": "getRequestItems",
+            "canvasName": "getRequestItems",
+            "summary": "Get Request Item",
+            "description": "Get request item from ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "sysparmQuery": "$var.ade8.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -96,
+              "y": 840
+            }
+          },
+          "ba05": {
+            "name": "updateRequestItems",
+            "canvasName": "updateRequestItems",
+            "summary": "Update Request Item",
+            "description": "Update request item in ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "itemId": "$var.e4c7.ritmSysId",
+                "body": "$var.e4c7.ritmUpdatePayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.updatedRequestItem"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -96,
+              "y": 1056
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "ade8": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "ade8": {
+            "cb96": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "e4c7": {
+            "ba05": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "cb96": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "e4c7": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "ba05": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "ritmNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["ritmNumber", "comments", "state", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "ritmNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "updatedRequestItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.52.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.888Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 2,
+      "reference": "235a66e6-b944-4f0c-9cff-d960fd341584",
+      "type": "workflow",
+      "folder": "/Create Request Item (RITM)",
+      "document": {
+        "name": "Create Request Item",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 732,
+              "y": 600
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 732,
+              "y": 1020
+            }
+          },
+          "12f6": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Verify Request Item Creation Successful",
+            "description": "Verify if incident creation is successful",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "response.number",
+                        "operand_1": {
+                          "variable": "result",
+                          "task": "a683"
+                        },
+                        "operator": "contains",
+                        "operand_2": {
+                          "variable": "RITM",
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 732,
+              "y": 900
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "ServiceNow Error",
+            "description": "Show ServiceNow request item creation error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Create Request Item Error",
+                "message": "Unable to create request item",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 1080,
+              "y": 888
+            }
+          },
+          "aab9": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Request Item Creation Payload",
+            "description": "Build incident creation payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "summary",
+                    "value": {
+                      "task": "job",
+                      "variable": "summary",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "comments",
+                    "value": {
+                      "task": "job",
+                      "variable": "comments",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 732,
+              "y": 696
+            }
+          },
+          "a683": {
+            "name": "createRequestItems",
+            "canvasName": "createRequestItems",
+            "summary": "Create Request Item",
+            "description": "Create request item in ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "ServiceNow",
+            "variables": {
+              "incoming": {
+                "body": "$var.aab9.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.createdRequestItem"
+              },
+              "error": "$var.job.serviceNowError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 732,
+              "y": 792
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "aab9": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "12f6": {
+            "c345": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "aab9": {
+            "a683": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "a683": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "12f6": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["summary", "comments", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "createdRequestItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.46.0-2023.1.15.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated": "2025-01-24T11:06:05.889Z",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 3,
+      "reference": "ab5419b3-4bc8-4955-9539-20adcf71c4b7",
+      "type": "workflow",
+      "folder": "/Create Change Request",
+      "document": {
+        "name": "Create Change Request",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 780,
+              "y": 780
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 780,
+              "y": 1236
+            }
+          },
+          "cc49": {
+            "name": "createChangeRequest",
+            "canvasName": "createChangeRequest",
+            "summary": "Create Change Request",
+            "description": "Create the change with the information provided and return the change number for future reference.",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "body": "$var.aab9.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.createdCR"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 780,
+              "y": 996
+            }
+          },
+          "12f6": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Verify CR Creation Successful",
+            "description": "CR Creation Successful?",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "response.number",
+                        "operand_1": {
+                          "variable": "result",
+                          "task": "cc49"
+                        },
+                        "operator": "contains",
+                        "operand_2": {
+                          "variable": "CHG",
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 780,
+              "y": 1104
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show ServiceNow Error",
+            "description": "Show create change request error and decision options",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Create Change Request Error",
+                "message": "Unable to create change request",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 456,
+              "y": 1104
+            }
+          },
+          "aab9": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build CR Creation Payload",
+            "description": "Build CR Creation Payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "title",
+                    "value": {
+                      "task": "job",
+                      "variable": "title",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "summary",
+                    "value": {
+                      "task": "job",
+                      "variable": "summary",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "description",
+                    "value": {
+                      "task": "job",
+                      "variable": "description",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "comments",
+                    "value": {
+                      "task": "job",
+                      "variable": "comments",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "assignment_group",
+                    "value": {
+                      "task": "job",
+                      "variable": "assignmentGroup",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 780,
+              "y": 888
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "aab9": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "cc49": {
+            "12f6": {
+              "type": "standard",
+              "state": "success"
+            },
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "12f6": {
+            "c345": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "aab9": {
+            "cc49": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "title": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "description": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "assignmentGroup": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": [
+            "adapterId",
+            "title",
+            "summary",
+            "description",
+            "comments",
+            "assignmentGroup"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "title": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "description": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "assignmentGroup": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "createdCR": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.52.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.889Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 5,
+      "reference": "33977fa9-428d-4476-a9a3-fd006780bb92",
+      "type": "workflow",
+      "folder": "/Approve Change Request",
+      "document": {
+        "name": "Approve Change Request",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -708,
+              "y": -384
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -708,
+              "y": 84
+            }
+          },
+          "ca34": {
+            "name": "autoApproveChangeRequest",
+            "canvasName": "autoApproveChangeRequest",
+            "summary": "Approve Change Request",
+            "description": "Approve change request",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "ServiceNow",
+            "variables": {
+              "incoming": {
+                "changeId": "$var.job.changeId",
+                "approval": "$var.job.approval",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.result"
+              },
+              "error": "$var.job.error"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -708,
+              "y": -48
+            }
+          },
+          "a8f4": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show ServiceNow Error",
+            "description": "Show approve change request error and decision options",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "ServiceNow Error",
+                "message": "",
+                "body": "$var.ca34.error",
+                "variables": "",
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {}
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "nodeLocation": {
+              "x": -384,
+              "y": -48
+            }
+          },
+          "350a": {
+            "name": "getChangeRequests",
+            "canvasName": "getChangeRequests",
+            "summary": "Get Change Request",
+            "description": "Get change request with query parameters provided",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "ServiceNow",
+            "variables": {
+              "incoming": {
+                "sysparmQuery": "$var.16cd.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "error": "$var.job.error"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -708,
+              "y": -168
+            }
+          },
+          "16cd": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Query for Search",
+            "description": "Build Query for Search",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "number",
+                    "value": {
+                      "task": "job",
+                      "variable": "crNumber"
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": -708,
+              "y": -276
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "16cd": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "ca34": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            },
+            "a8f4": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "a8f4": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "350a": {
+            "ca34": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "16cd": {
+            "350a": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "changeId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "approval": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["changeId", "approval", "adapterId", "crNumber"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "changeId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "approval": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "result": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "error": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "type": "automation",
+        "font_size": 12,
+        "errorHandler": null,
+        "preAutomationTime": 0,
+        "sla": 0,
+        "last_updated": "2025-01-24T11:06:05.890Z",
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "createdVersion": "5.46.0-2023.1.15.0",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 6,
+      "reference": "79639555-5bb6-4ea8-8f25-7d11b269ca54",
+      "type": "workflow",
+      "folder": "/Update Change Request",
+      "document": {
+        "name": "Update Change Request",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": -156,
+              "y": 684
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": -156,
+              "y": 1308
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show ServiceNow Error",
+            "description": "Show update change request error and decision options",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "ServiceNow Error",
+                "message": "",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 180,
+              "y": 1044
+            }
+          },
+          "2ad1": {
+            "name": "updateChangeRequest",
+            "canvasName": "updateChangeRequest",
+            "summary": "Update Change Request",
+            "description": "Update change request state",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "changeId": "$var.e4c7.crSysId",
+                "body": "$var.e4c7.crUpdatePayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.updatedCR"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -156,
+              "y": 1164
+            }
+          },
+          "fd22": {
+            "name": "getChangeRequests",
+            "canvasName": "getChangeRequests",
+            "summary": "Get Change Request",
+            "description": "Get change request with query parameters provided",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "sysparmQuery": "$var.ade8.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -156,
+              "y": 924
+            }
+          },
+          "ade8": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build sysparmQuery",
+            "description": "Build sysparmQuery",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "number",
+                    "value": {
+                      "task": "job",
+                      "variable": "crNumber",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": -156,
+              "y": 804
+            }
+          },
+          "e4c7": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build CR Update Payload - ServiceNow",
+            "description": "Build change request update payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "621a5d367393d9019373d137",
+                "variableMap": {
+                  "changeRequestResponse": "$var.fd22.result",
+                  "comments": "$var.job.comments",
+                  "state": "$var.job.state"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": false,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "crSysId": null,
+                "crUpdatePayload": null
+              }
+            },
+            "groups": [],
+            "task_name": "Build CR Update Payload - ServiceNow",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": -156,
+              "y": 1044
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "ade8": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "2ad1": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            },
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            }
+          },
+          "fd22": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "e4c7": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "ade8": {
+            "fd22": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "e4c7": {
+            "2ad1": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "state": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["adapterId", "crNumber", "comments", "state"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "crNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "state": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "updatedCR": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.52.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.891Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 7,
+      "reference": "0c6ebd87-0e53-43f8-8810-9decfa5e3077",
+      "type": "workflow",
+      "folder": "/Update Incident",
+      "document": {
+        "name": "Update Incident",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 120,
+              "y": 624
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 120,
+              "y": 1212
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "ServiceNow Error",
+            "description": "Show ServiceNow incident update error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "ServiceNow Error",
+                "message": "",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 432,
+              "y": 960
+            }
+          },
+          "ade8": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Incident Search Query",
+            "description": "Build search query for incident in Service Now",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "number",
+                    "value": {
+                      "task": "job",
+                      "variable": "incNumber",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 120,
+              "y": 744
+            }
+          },
+          "e4c7": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Build INC Update Payload - ServiceNow",
+            "description": "Build INC Update Payload - ServiceNow",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "622785287858d601db6606f8",
+                "variableMap": {
+                  "incidentResponse": "$var.b6d3.result",
+                  "comments": "$var.job.comments",
+                  "state": "$var.job.state"
+                },
+                "options": {
+                  "extractOutput": false,
+                  "validateIncoming": false,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "incSysId": null,
+                "incUpdatePayload": null
+              },
+              "decorators": []
+            },
+            "groups": [],
+            "task_name": "Build INC Update Payload - ServiceNow",
+            "retrySettings": null,
+            "nodeLocation": {
+              "x": 120,
+              "y": 972
+            }
+          },
+          "b6d3": {
+            "name": "getIncidents",
+            "canvasName": "getIncidents",
+            "summary": "Get Incident",
+            "description": "Get incident from ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "sysparmQuery": "$var.ade8.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 120,
+              "y": 864
+            }
+          },
+          "a002": {
+            "name": "updateIncident",
+            "canvasName": "updateIncident",
+            "summary": "Update Incident",
+            "description": "Update incident in ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "incidentId": "$var.e4c7.incSysId",
+                "body": "$var.e4c7.incUpdatePayload",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.updatedIncident"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 120,
+              "y": 1080
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "ade8": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "ade8": {
+            "b6d3": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "e4c7": {
+            "a002": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "b6d3": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "e4c7": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "a002": {
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "incNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["incNumber", "comments", "state", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "incNumber": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "updatedIncident": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.52.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.890Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 8,
+      "reference": "aab43a79-fafb-4bb6-9ed7-bc4a21a70666",
+      "type": "workflow",
+      "folder": "/Create Incident",
+      "document": {
+        "name": "Create Incident",
+        "tasks": {
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 636,
+              "y": 636
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 636,
+              "y": 1056
+            }
+          },
+          "12f6": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Verify Incident Creation Successful",
+            "description": "Verify if incident creation is successful",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "query": "response.number",
+                        "operand_1": {
+                          "variable": "result",
+                          "task": "bb2d"
+                        },
+                        "operator": "contains",
+                        "operand_2": {
+                          "variable": "INC",
+                          "task": "static"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 636,
+              "y": 948
+            }
+          },
+          "c345": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "ServiceNow Error",
+            "description": "Show ServiceNow incident creation error",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "Tools",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "Create Incident Error",
+                "message": "Unable to create incident",
+                "body": "$var.job.serviceNowError",
+                "variables": {},
+                "btn_success": "OK",
+                "btn_failure": ""
+              },
+              "outgoing": {},
+              "error": "",
+              "decorators": []
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 288,
+              "y": 948
+            }
+          },
+          "aab9": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Incident Creation Payload",
+            "description": "Build incident creation payload",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "summary",
+                    "value": {
+                      "task": "job",
+                      "variable": "summary",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "comments",
+                    "value": {
+                      "task": "job",
+                      "variable": "comments",
+                      "editable": true
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 636,
+              "y": 732
+            }
+          },
+          "bb2d": {
+            "name": "createIncident",
+            "canvasName": "createIncident",
+            "summary": "Create Incident",
+            "description": "Create incident in ServiceNow",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "body": "$var.aab9.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": "$var.job.createdIncident"
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 636,
+              "y": 840
+            }
+          }
+        },
+        "transitions": {
+          "workflow_start": {
+            "aab9": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "12f6": {
+            "c345": {
+              "type": "standard",
+              "state": "failure"
+            },
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "c345": {
+            "workflow_end": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "aab9": {
+            "bb2d": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "bb2d": {
+            "12f6": {
+              "type": "standard",
+              "state": "success"
+            },
+            "c345": {
+              "type": "standard",
+              "state": "error"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": ["summary", "comments", "adapterId"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "comments": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "createdIncident": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          }
+        },
+        "createdVersion": "5.40.5-2021.1.52.0",
+        "font_size": 12,
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "last_updated": "2025-01-24T11:06:05.891Z",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "type": "automation",
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 9,
+      "reference": "ea1c7752-7206-4f52-8eea-629f9bec5386",
+      "type": "workflow",
+      "folder": "/Get Service Catalog Inputs",
+      "document": {
+        "name": "Get Service Catalog Inputs",
+        "description": "Gets variables of Service Catalog in ServiceNow as provided by its name.",
+        "tasks": {
+          "3866": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Filter Service Catalog by Name and State",
+            "description": "Filter for name",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "name",
+                    "value": {
+                      "task": "job",
+                      "variable": "nameOfServiceCatalogItem",
+                      "editable": true
+                    }
+                  },
+                  {
+                    "key": "state",
+                    "value": {
+                      "task": "job",
+                      "variable": "stateOfServiceCatalogItem"
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              }
+            },
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 624
+            }
+          },
+          "4228": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Get ID of Service Catalog Found",
+            "description": "Gets ID of Service Catalog matching search",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "64ff61c85449f701414638da",
+                "variableMap": {
+                  "serviceCatalogResults": "$var.eee7.result"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "serviceCatalogId": "$var.job.serviceCatalogId"
+              },
+              "decorators": [],
+              "error": "$var.job.serviceNowError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 840
+            }
+          },
+          "5900": {
+            "name": "transformation",
+            "canvasName": "transformation",
+            "summary": "Get Variables of Service Catalog",
+            "description": "Get Variables of Service Catalog",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "tr_id": "64ff6ad65449f701414638db",
+                "variableMap": {
+                  "serviceCatalogDetails": "$var.474d.result"
+                },
+                "options": {
+                  "extractOutput": true,
+                  "validateIncoming": true,
+                  "revertToDefaultValue": true
+                }
+              },
+              "outgoing": {
+                "serviceCatalogInputVariables": "$var.job.serviceCatalogInputVariables"
+              },
+              "decorators": [],
+              "error": "$var.job.serviceNowError"
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 1152
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 504
+            }
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 1284
+            }
+          },
+          "eee7": {
+            "name": "queryTableByName",
+            "canvasName": "queryTableByName",
+            "summary": "Search the Service Catalog Table",
+            "description": "Search the Service Catalog table by name and state",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "tableName": "sc_cat_item",
+                "sysparmQuery": "$var.3866.merged_object",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 948,
+              "y": 732
+            }
+          },
+          "474d": {
+            "name": "getServiceCatalogItemById",
+            "canvasName": "getServiceCatalogItemById",
+            "summary": "Retrieves a specified catalog item.",
+            "description": "Retrieves a specified catalog item.",
+            "location": "Adapter",
+            "locationType": "Servicenow",
+            "app": "Servicenow",
+            "type": "automatic",
+            "displayName": "Servicenow",
+            "variables": {
+              "incoming": {
+                "sysparmLimit": 1,
+                "catalogId": "$var.4228.serviceCatalogId",
+                "adapter_id": "$var.job.adapterId"
+              },
+              "outgoing": {
+                "result": null
+              },
+              "error": "$var.job.serviceNowError",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 948,
+              "y": 1056
+            }
+          },
+          "5cb1": {
+            "name": "evaluation",
+            "canvasName": "evaluation",
+            "summary": "Verify Service Catalog Item Found",
+            "description": "Verify Service Catalog Item Found",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "all_true_flag": false,
+                "evaluation_groups": [
+                  {
+                    "all_true_flag": false,
+                    "evaluations": [
+                      {
+                        "operand_1": {
+                          "task": "4228",
+                          "variable": "serviceCatalogId"
+                        },
+                        "operand_2": {
+                          "task": "static",
+                          "variable": "No match found"
+                        },
+                        "operator": "!=",
+                        "query": "",
+                        "rightQuery": ""
+                      }
+                    ]
+                  }
+                ]
+              },
+              "outgoing": {
+                "return_value": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 948,
+              "y": 948
+            }
+          },
+          "7f08": {
+            "name": "ViewData",
+            "canvasName": "ViewData",
+            "summary": "Show Form for No Service Catalog Found",
+            "description": "Display option when no matching Service Catalog item found",
+            "location": "Application",
+            "app": "WorkFlowEngine",
+            "displayName": "WorkFlowEngine",
+            "type": "manual",
+            "variables": {
+              "incoming": {
+                "header": "No Service Catalog Found",
+                "message": "No Service Catalog item matching search parameters found.",
+                "body": "$var.3866.merged_object",
+                "variables": "",
+                "btn_success": "End Job",
+                "btn_failure": ""
+              },
+              "outgoing": {}
+            },
+            "view": "/workflow_engine/task/ViewData",
+            "groups": [],
+            "nodeLocation": {
+              "x": 600,
+              "y": 936
+            }
+          }
+        },
+        "transitions": {
+          "3866": {
+            "eee7": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "4228": {
+            "5cb1": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "5900": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "3866": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "workflow_end": {},
+          "eee7": {
+            "4228": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "474d": {
+            "5900": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "5cb1": {
+            "474d": {
+              "state": "success",
+              "type": "standard"
+            },
+            "7f08": {
+              "type": "standard",
+              "state": "failure"
+            }
+          },
+          "7f08": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "f38e": {},
+          "22ce": {},
+          "7b17": {}
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "nameOfServiceCatalogItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "stateOfServiceCatalogItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            }
+          },
+          "required": [
+            "nameOfServiceCatalogItem",
+            "stateOfServiceCatalogItem",
+            "adapterId"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "nameOfServiceCatalogItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "stateOfServiceCatalogItem": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "adapterId": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            },
+            "serviceCatalogId": {
+              "$id": "serviceCatalogId",
+              "type": "string",
+              "examples": ["id"]
+            },
+            "serviceNowError": {
+              "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "serviceCatalogInputVariables": {
+              "$id": "serviceCatalogInputVariables",
+              "type": "array"
+            }
+          }
+        },
+        "font_size": 12,
+        "createdVersion": "5.46.0-2023.1.15.0",
+        "last_updated": "2025-01-24T11:06:05.892Z",
+        "lastUpdatedVersion": "5.55.2-2023.2.13",
+        "type": "automation",
+        "preAutomationTime": 0,
+        "sla": 0,
+        "last_updated_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "created": "1970-01-01T00:00:00.000Z",
+        "canvasVersion": 3,
+        "created_by": {
+          "provenance": "Okta",
+          "username": "admin@itential",
+          "firstname": "admin@itential",
+          "inactive": false,
+          "sso": true,
+          "nameID": "admin@itential"
+        },
+        "tags": [],
+        "groups": [],
+        "migrationVersion": 3
+      }
+    },
+    {
+      "iid": 10,
+      "reference": "64ff6ad65449f701414638db",
+      "type": "transformation",
+      "folder": "/Get Service Catalog Inputs",
+      "document": {
+        "_id": "64ff6ad65449f701414638db",
+        "name": "Get Variables of Service Catalog",
+        "description": "Gets variables required for Service Catalog in ServiceNow",
+        "incoming": [
+          {
+            "$id": "serviceCatalogDetails",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "examples": ["186d917a6fab7980575967ddbb3ee4f2"]
+                  },
+                  "summary": {
+                    "type": "string",
+                    "examples": ["New Email Creation"]
+                  },
+                  "variables": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "boolean",
+                          "examples": [true, false]
+                        },
+                        "label": {
+                          "type": "string",
+                          "examples": ["Preferred Email address"]
+                        },
+                        "type": {
+                          "type": "integer",
+                          "examples": [26]
+                        },
+                        "mandatory": {
+                          "type": "boolean",
+                          "examples": [true, false]
+                        },
+                        "render_label": {
+                          "type": "boolean",
+                          "examples": [true, false]
+                        },
+                        "read_only": {
+                          "type": "boolean",
+                          "examples": [true, false]
+                        },
+                        "name": {
+                          "type": "string",
+                          "examples": ["new_email"]
+                        },
+                        "value": {
+                          "type": "string"
+                        },
+                        "help_text": {
+                          "type": "string"
+                        }
+                      },
+                      "required": []
+                    }
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": []
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "serviceCatalogInputVariables",
+            "type": "array"
+          }
+        ],
+        "steps": [
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "serviceCatalogDetails",
+              "ptr": "/response/variables"
+            },
+            "to": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 1,
+            "type": "method",
+            "library": "Array",
+            "method": "map",
+            "args": [null, "mapInputVariables"],
+            "view": {
+              "row": 1,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "serviceCatalogInputVariables",
+              "ptr": ""
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [
+          {
+            "incoming": [
+              {
+                "type": "object",
+                "properties": {
+                  "active": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "label": {
+                    "type": "string",
+                    "examples": ["Preferred Email address"]
+                  },
+                  "type": {
+                    "type": "integer",
+                    "examples": [26]
+                  },
+                  "mandatory": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "displayvalue": {
+                    "type": "string"
+                  },
+                  "friendly_type": {
+                    "type": "string",
+                    "examples": ["email"]
+                  },
+                  "display_type": {
+                    "type": "string",
+                    "examples": ["Email"]
+                  },
+                  "render_label": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "read_only": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "name": {
+                    "type": "string",
+                    "examples": ["new_email"]
+                  },
+                  "id": {
+                    "type": "string",
+                    "examples": ["65865e474fbb4200086eeed18110c7dd"]
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "help_text": {
+                    "type": "string"
+                  },
+                  "max_length": {
+                    "type": "integer",
+                    "examples": [0]
+                  },
+                  "order": {
+                    "type": "integer",
+                    "examples": [-1]
+                  }
+                },
+                "required": [],
+                "$id": "currentValue"
+              },
+              {
+                "title": "index",
+                "type": "number",
+                "optional": true,
+                "$id": "index"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "active": {
+                      "type": "boolean",
+                      "examples": [true, false]
+                    },
+                    "label": {
+                      "type": "string",
+                      "examples": ["Preferred Email address"]
+                    },
+                    "type": {
+                      "type": "integer",
+                      "examples": [26]
+                    },
+                    "mandatory": {
+                      "type": "boolean",
+                      "examples": [true, false]
+                    },
+                    "displayvalue": {
+                      "type": "string"
+                    },
+                    "friendly_type": {
+                      "type": "string",
+                      "examples": ["email"]
+                    },
+                    "display_type": {
+                      "type": "string",
+                      "examples": ["Email"]
+                    },
+                    "render_label": {
+                      "type": "boolean",
+                      "examples": [true, false]
+                    },
+                    "read_only": {
+                      "type": "boolean",
+                      "examples": [true, false]
+                    },
+                    "name": {
+                      "type": "string",
+                      "examples": ["new_email"]
+                    },
+                    "id": {
+                      "type": "string",
+                      "examples": ["65865e474fbb4200086eeed18110c7dd"]
+                    },
+                    "value": {
+                      "type": "string"
+                    },
+                    "help_text": {
+                      "type": "string"
+                    },
+                    "max_length": {
+                      "type": "integer",
+                      "examples": [0]
+                    },
+                    "order": {
+                      "type": "integer",
+                      "examples": [-1]
+                    }
+                  },
+                  "required": []
+                },
+                "$id": "array",
+                "optional": true
+              }
+            ],
+            "outgoing": [
+              {
+                "$id": "mappedInput",
+                "type": "object",
+                "properties": {
+                  "input_name": {
+                    "type": "string"
+                  },
+                  "input_is_active": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "input_is_read_only": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "input_is_mandatory": {
+                    "type": "boolean",
+                    "examples": [true, false]
+                  },
+                  "input_label": {
+                    "type": "string",
+                    "examples": ["Label"]
+                  }
+                },
+                "required": []
+              }
+            ],
+            "steps": [
+              {
+                "id": 1,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/name"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "mappedInput",
+                  "ptr": "/input_name"
+                },
+                "context": "#"
+              },
+              {
+                "id": 2,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/active"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "mappedInput",
+                  "ptr": "/input_is_active"
+                },
+                "context": "#"
+              },
+              {
+                "id": 3,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/read_only"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "mappedInput",
+                  "ptr": "/input_is_read_only"
+                },
+                "context": "#"
+              },
+              {
+                "id": 4,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/mandatory"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "mappedInput",
+                  "ptr": "/input_is_mandatory"
+                },
+                "context": "#"
+              },
+              {
+                "id": 5,
+                "type": "assign",
+                "from": {
+                  "location": "incoming",
+                  "name": "currentValue",
+                  "ptr": "/label"
+                },
+                "to": {
+                  "location": "outgoing",
+                  "name": "mappedInput",
+                  "ptr": "/input_label"
+                },
+                "context": "#"
+              }
+            ],
+            "functions": [],
+            "name": "mapInputVariables",
+            "view": {
+              "col": 1,
+              "row": 4
+            },
+            "id": "mapInputVariables",
+            "comments": []
+          }
+        ],
+        "comments": [],
+        "view": {
+          "col": 1,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.488Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.892Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 11,
+      "reference": "64ff61c85449f701414638da",
+      "type": "transformation",
+      "folder": "/Get Service Catalog Inputs",
+      "document": {
+        "_id": "64ff61c85449f701414638da",
+        "name": "Get ID of Service Catalog Found",
+        "description": "Gets ID of Service Catalog matching search",
+        "incoming": [
+          {
+            "$id": "serviceCatalogResults",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "examples": ["186d917a6fab7980575967ddbb3ee4f2"]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            },
+            "required": []
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "serviceCatalogId",
+            "type": "string",
+            "examples": ["id"]
+          }
+        ],
+        "steps": [
+          {
+            "id": 2,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "serviceCatalogResults",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 1,
+            "type": "method",
+            "library": "Array",
+            "method": "shift",
+            "args": [null],
+            "view": {
+              "row": 1,
+              "col": 1
+            },
+            "context": "#"
+          },
+          {
+            "id": 7,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 1,
+              "ptr": "/return/value"
+            },
+            "to": {
+              "location": "method",
+              "name": 6,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 6,
+            "type": "method",
+            "library": "Logical",
+            "method": "nullish",
+            "args": [
+              null,
+              {
+                "id": "No match found"
+              }
+            ],
+            "view": {
+              "row": 1,
+              "col": 2
+            },
+            "context": "#"
+          },
+          {
+            "id": 8,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 6,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 3,
+              "ptr": "/args/0/value"
+            },
+            "context": "#"
+          },
+          {
+            "id": 3,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 3
+            },
+            "context": "#"
+          },
+          {
+            "id": 5,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 3,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "serviceCatalogId",
+              "ptr": ""
+            },
+            "context": "#"
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.502Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.903Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 12,
+      "reference": "62279f8c7858d601db6606f9",
+      "type": "transformation",
+      "folder": "/Create Request Item (RITM)",
+      "document": {
+        "_id": "62279f8c7858d601db6606f9",
+        "name": "Build RITM Update Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "requestItemResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "examples": ["a68d46e49712011015c5b4b3f153af9e"]
+                    },
+                    "current_state": {
+                      "type": "string",
+                      "examples": ["-5"]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "comments",
+            "type": "string"
+          },
+          {
+            "$id": "state",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "ritmSysId",
+            "type": "string"
+          },
+          {
+            "$id": "ritmUpdatePayload",
+            "type": "object",
+            "properties": {
+              "comments": {
+                "type": "string"
+              },
+              "state": {
+                "type": "integer",
+                "examples": [0]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ritmUpdatePayload",
+              "ptr": "/comments"
+            }
+          },
+          {
+            "id": 5,
+            "type": "method",
+            "library": "String",
+            "method": "toLowerCase",
+            "args": [null],
+            "view": {
+              "row": 3,
+              "col": 1
+            }
+          },
+          {
+            "id": 6,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "state",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 7,
+            "type": "method",
+            "library": "JSON",
+            "method": "parse",
+            "args": [
+              "{   \"pending\": 0,   \"open\": 1,   \"work in progress\": 2,   \"closed Complete\": 3,   \"closed incomplete\": 4,   \"closed skipped\": 5 }",
+              null
+            ],
+            "view": {
+              "row": 4,
+              "col": 1
+            }
+          },
+          {
+            "id": 8,
+            "type": "method",
+            "library": "Object",
+            "method": "optional chaining",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 2
+            }
+          },
+          {
+            "id": 9,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 7,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 10,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 17,
+            "type": "method",
+            "library": "Logical",
+            "method": "nullish",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 3
+            }
+          },
+          {
+            "id": 18,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 20,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ritmUpdatePayload",
+              "ptr": "/state"
+            }
+          },
+          {
+            "id": 21,
+            "type": "method",
+            "library": "Number",
+            "method": "parseInt",
+            "args": [null, null],
+            "view": {
+              "row": 2,
+              "col": 2
+            }
+          },
+          {
+            "id": 23,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 24,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 25,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 26,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "current_state"],
+            "view": {
+              "row": 2,
+              "col": 1
+            }
+          },
+          {
+            "id": 27,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 28,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "requestItemResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 29,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 25,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "ritmSysId",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 30,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 31,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/args/0/value"
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.505Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.904Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 13,
+      "reference": "622785287858d601db6606f8",
+      "type": "transformation",
+      "folder": "/Update Incident",
+      "document": {
+        "_id": "622785287858d601db6606f8",
+        "name": "Build Incident Update Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "incidentResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "examples": ["a68d46e49712011015c5b4b3f153af9e"]
+                    },
+                    "current_state": {
+                      "type": "string",
+                      "examples": ["-5"]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "comments",
+            "type": "string"
+          },
+          {
+            "$id": "state",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "incSysId",
+            "type": "string"
+          },
+          {
+            "$id": "incUpdatePayload",
+            "type": "object",
+            "properties": {
+              "comments": {
+                "type": "string"
+              },
+              "state": {
+                "type": "integer",
+                "examples": [0]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "incUpdatePayload",
+              "ptr": "/comments"
+            }
+          },
+          {
+            "id": 5,
+            "type": "method",
+            "library": "String",
+            "method": "toLowerCase",
+            "args": [null],
+            "view": {
+              "row": 3,
+              "col": 1
+            }
+          },
+          {
+            "id": 6,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "state",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 7,
+            "type": "method",
+            "library": "JSON",
+            "method": "parse",
+            "args": [
+              "{   \"new\": 1,   \"in progress\": 2,   \"on hold\": 3,   \"resolved\": 6,   \"closed\": 7,   \"canceled\": 8 }",
+              null
+            ],
+            "view": {
+              "row": 4,
+              "col": 1
+            }
+          },
+          {
+            "id": 8,
+            "type": "method",
+            "library": "Object",
+            "method": "optional chaining",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 2
+            }
+          },
+          {
+            "id": 9,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 7,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 10,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 17,
+            "type": "method",
+            "library": "Logical",
+            "method": "nullish",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 3
+            }
+          },
+          {
+            "id": 18,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 20,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "incUpdatePayload",
+              "ptr": "/state"
+            }
+          },
+          {
+            "id": 21,
+            "type": "method",
+            "library": "Number",
+            "method": "parseInt",
+            "args": [null, null],
+            "view": {
+              "row": 2,
+              "col": 2
+            }
+          },
+          {
+            "id": 23,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 24,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 25,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "incidentResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 26,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 27,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 28,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "incSysId",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 29,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "current_state"],
+            "view": {
+              "row": 2,
+              "col": 1
+            }
+          },
+          {
+            "id": 30,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 31,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/args/0/value"
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.506Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.904Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 14,
+      "reference": "66d0b852cddf0c8da2752c6d",
+      "type": "transformation",
+      "folder": "/Update Change Request",
+      "document": {
+        "_id": "66d0b852cddf0c8da2752c6d",
+        "name": "Build CR Update Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "changeRequestResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "examples": ["a68d46e49712011015c5b4b3f153af9e"]
+                    },
+                    "current_state": {
+                      "type": "string",
+                      "examples": ["-5"]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "comments",
+            "type": "string"
+          },
+          {
+            "$id": "state",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "crSysId",
+            "type": "string"
+          },
+          {
+            "$id": "crUpdatePayload",
+            "type": "object",
+            "properties": {
+              "comments": {
+                "type": "string"
+              },
+              "state": {
+                "type": "integer",
+                "examples": [0]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 4,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "comments",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crUpdatePayload",
+              "ptr": "/comments"
+            }
+          },
+          {
+            "id": 5,
+            "type": "method",
+            "library": "String",
+            "method": "toLowerCase",
+            "args": [null],
+            "view": {
+              "row": 3,
+              "col": 1
+            }
+          },
+          {
+            "id": 6,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "state",
+              "ptr": ""
+            },
+            "to": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 7,
+            "type": "method",
+            "library": "JSON",
+            "method": "parse",
+            "args": [
+              "{    \"new\": -5,   \"assess\": -4,   \"authorize\": -3,   \"scheduled\": -2,   \"implement\": -1,   \"review\": 0,   \"closed\": -6,   \"canceled\": -7 }",
+              null
+            ],
+            "view": {
+              "row": 4,
+              "col": 1
+            }
+          },
+          {
+            "id": 8,
+            "type": "method",
+            "library": "Object",
+            "method": "optional chaining",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 2
+            }
+          },
+          {
+            "id": 9,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 7,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 10,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 5,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 17,
+            "type": "method",
+            "library": "Logical",
+            "method": "nullish",
+            "args": [null, null],
+            "view": {
+              "row": 3,
+              "col": 3
+            }
+          },
+          {
+            "id": 18,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 8,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 20,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crUpdatePayload",
+              "ptr": "/state"
+            }
+          },
+          {
+            "id": 21,
+            "type": "method",
+            "library": "Number",
+            "method": "parseInt",
+            "args": [null, null],
+            "view": {
+              "row": 2,
+              "col": 2
+            }
+          },
+          {
+            "id": 23,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 17,
+              "ptr": "/args/1/value"
+            }
+          },
+          {
+            "id": 24,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 25,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "changeRequestResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 26,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "current_state"],
+            "view": {
+              "row": 2,
+              "col": 1
+            }
+          },
+          {
+            "id": 27,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 28,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 26,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 21,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 29,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 30,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 31,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crSysId",
+              "ptr": ""
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 3,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.504Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.903Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    },
+    {
+      "iid": 15,
+      "reference": "63d1a03fa15c2401e9a6143c",
+      "type": "transformation",
+      "folder": "/Close Change Request",
+      "document": {
+        "_id": "63d1a03fa15c2401e9a6143c",
+        "name": "Build CR Close Payload",
+        "description": "",
+        "incoming": [
+          {
+            "$id": "changeRequestResponse",
+            "type": "object",
+            "properties": {
+              "response": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "examples": ["a68d46e49712011015c5b4b3f153af9e"]
+                    },
+                    "current_state": {
+                      "type": "string",
+                      "examples": ["-5"]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            },
+            "required": []
+          },
+          {
+            "$id": "closeCode",
+            "type": "string"
+          },
+          {
+            "$id": "closeNotes",
+            "type": "string"
+          }
+        ],
+        "outgoing": [
+          {
+            "$id": "crSysId",
+            "type": "string"
+          },
+          {
+            "$id": "crClosePayload",
+            "type": "object",
+            "properties": {
+              "close_code": {
+                "type": "string"
+              },
+              "close_notes": {
+                "type": "string"
+              },
+              "state": {
+                "type": "number",
+                "examples": [0]
+              }
+            },
+            "required": []
+          }
+        ],
+        "steps": [
+          {
+            "id": 24,
+            "type": "method",
+            "library": "Array",
+            "method": "getIndex",
+            "args": [null, 0],
+            "view": {
+              "row": 1,
+              "col": 1
+            }
+          },
+          {
+            "id": 25,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "changeRequestResponse",
+              "ptr": "/response"
+            },
+            "to": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 29,
+            "type": "method",
+            "library": "Object",
+            "method": "getProperty",
+            "args": [null, "id"],
+            "view": {
+              "row": 1,
+              "col": 2
+            }
+          },
+          {
+            "id": 30,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 24,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/args/0/value"
+            }
+          },
+          {
+            "id": 31,
+            "type": "assign",
+            "from": {
+              "location": "method",
+              "name": 29,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crSysId",
+              "ptr": ""
+            }
+          },
+          {
+            "id": 32,
+            "type": "declaration",
+            "library": "Number",
+            "method": "new Number",
+            "args": [3],
+            "view": {
+              "row": 3,
+              "col": 1
+            }
+          },
+          {
+            "id": 33,
+            "type": "assign",
+            "from": {
+              "location": "declaration",
+              "name": 32,
+              "ptr": "/return"
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crClosePayload",
+              "ptr": "/state"
+            }
+          },
+          {
+            "id": 34,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "closeCode",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crClosePayload",
+              "ptr": "/close_code"
+            }
+          },
+          {
+            "id": 35,
+            "type": "assign",
+            "from": {
+              "location": "incoming",
+              "name": "closeNotes",
+              "ptr": ""
+            },
+            "to": {
+              "location": "outgoing",
+              "name": "crClosePayload",
+              "ptr": "/close_notes"
+            }
+          }
+        ],
+        "functions": [],
+        "comments": [],
+        "view": {
+          "col": 2,
+          "row": 5
+        },
+        "created": "2025-01-23T14:23:31.509Z",
+        "createdBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "lastUpdated": "2025-01-24T11:06:05.905Z",
+        "lastUpdatedBy": {
+          "_id": "66d1e2b552e6dc384b5d6626",
+          "provenance": "Okta",
+          "username": "admin@itential"
+        },
+        "version": "4.3.6-2023.2.5",
+        "tags": []
+      }
+    }
+  ],
+  "folders": [
+    {
+      "nodeType": "folder",
+      "name": "Update Change Request",
+      "children": [
+        {
+          "iid": 14,
+          "nodeType": "component"
+        },
+        {
+          "iid": 6,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Close Change Request",
+      "children": [
+        {
+          "iid": 0,
+          "nodeType": "component"
+        },
+        {
+          "iid": 15,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Update Incident",
+      "children": [
+        {
+          "iid": 7,
+          "nodeType": "component"
+        },
+        {
+          "iid": 13,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Create Request Item (RITM)",
+      "children": [
+        {
+          "iid": 2,
+          "nodeType": "component"
+        },
+        {
+          "iid": 12,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Get Service Catalog Inputs",
+      "children": [
+        {
+          "iid": 9,
+          "nodeType": "component"
+        },
+        {
+          "iid": 11,
+          "nodeType": "component"
+        },
+        {
+          "iid": 10,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Create Change Request",
+      "children": [
+        {
+          "iid": 3,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Create Incident",
+      "children": [
+        {
+          "iid": 8,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Approve Change Request",
+      "children": [
+        {
+          "iid": 5,
+          "nodeType": "component"
+        }
+      ]
+    },
+    {
+      "nodeType": "folder",
+      "name": "Update Request Item",
+      "children": [
+        {
+          "iid": 1,
+          "nodeType": "component"
+        }
+      ]
+    }
+  ],
+  "created": "2024-08-29T18:05:54.354Z",
+  "createdBy": {
+    "_id": "6786b32af921f091fd105007",
+    "provenance": "Local AAA",
+    "username": "admin@itential"
+  },
+  "lastUpdated": "2025-01-24T11:06:05.874Z",
+  "lastUpdatedBy": {
+    "_id": "66d1e2b552e6dc384b5d6626",
+    "provenance": "Okta",
+    "username": "admin@itential"
+  },
+  "iid": 53,
+  "thumbnail": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAdYAAAEsCAMAAABJzWIXAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAaVBMVEX///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABi2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E5i2E4AAABi2E7///9rzh2VAAAAIHRSTlMAAECAUN/vYJ9wEL8gj8+vMCBgn7/fgFAQcM/vQDCPrwH8eukAAAABYktHRACIBR1IAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAB3RJTUUH6AcSEgkLJ0FllAAADHxJREFUeNrtnOmWmkwQhiPIIqAya2ZL4tz/TX7qCFRVF5tOjt8xz/MrE9pe6q3eqht+/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIC/xeL/TRTH8fLalbgutyfrMtkdSLNrV+Sa3Jys2a4hv3ZVrsitybrcdayuXZnrcWuyJkLWtLh2ba7GjckqO+tu9+9Orzcma6xk/Xdn15uWtbx2da7GTctKb70RWTMl67+7FL4xWYtUylpduzpX48ZkVaPw+tqVuR63JuuibFXd/Lvb1tuTdbE+qbr9h1W9QVkX1bosy3V97WpclRuUFZD1RkHWmwRZb5KLZV2uT1uKpIyjnkKKLD8lKvMsWKAWUcspflBncb5f9cT7P6vuYU/uIkGt/yyGarLb5KuBcEUdl6dbFmVcD5RZayOU6/HbNnf3D4+fR54en3+aYgdqX/UborYmvEzWKldRnV2aO62KtirNLjfWjLpH8SHPdXtmGumTNvecLTIJxJ9B85emJruNf3RXxIlKlthk6jTBpE7zoeDWy+vbp+L94UM8zgcC2nlvw2RsLbpY1mK9C7EmqMowTa48UclaiYYdqyhMtvHsJJQ6Hpv3yxolYU3cK0+rNEiWaHeVsjqp131b5pfn98+Qx05YYYvUatevuIiEJ4tLZa09Mx2sL83pNPpQZZlEyqqTR7rKO2cYrsTjWFtcJy+2O5+NGWM9P7SuKH7tpk78XfOrJ+pR2LsmibCpcThhCKu4qMPqUllrV7BjU7sC8740os7SQ3Wioy7i/7ahpWQBxYCs/bU19utNKGORu1GcQeDl8bOX9/umG/S2tuzNXbp2caGsVb+dOnP2qiprFg1nJIP3wawlZ5XcWlzImg2oqga1AfmFruOyhrr+ev8c4uHUoL7WSu2M4sJCTUvOlnXT26Du4GRAVdHuEVlD5fwWnazgyprthmnzHerUQtcJstoZY0TVva4v1marvpYaxZOw0HNl7TdU0jZ+tRsibeafEVllQ4O7hKJF28DirWEHxTpycsUiGUzVqj9FVl3XUVWb/iqskfS01Ci+dH5xrqz97W+NWY0Ys5mCx2QNVkUdznrKqUkxqmpTl/VIsmY9PEVWNbTcjava6Or0vdBIclPg9e8zZa11Ies4zk+jcjfsqzVistrXMVopb1hNk1XWWzmwmgma62iOrNvdGKdDPF2TfFktqqWaSJoeOEnWXbccfnmboOrn570ZbYVj5L15u7PxmbLK8XVzyqw6bMu7oUfaqNsdyh+mnjFPeZZl2epiIw6uCzcPQllt/sl6FS3jrTNlS0fcNiaq5Coi7pE1yeMoWpngTKfK70mqfr7f6cGpM2Yw4HQLGHftfKaswqUSMYfEu27bLmyUim2cHDdXvqxNqKquwqxUd906/x/KqueLsh2as+ZBM7LLioiOUghdU1fWLk9/YfNrmqr7/atpVevEwVKm27qK2nXGv1xWNd11K7Ra1EFtzoV3JZ6seRiikSnEfCMn3dYAQVJlERVUKnL9U2FPtYMoghiBtrCMQEWyWzVTXbBhffp9//Hx8fwn0PUQIhZLoNKpmpFQ2Fm4/Df01oWLWH2YdY4wUh3ImrqhcvETcaXbXSIHssqRNTXRn0wWWHjZWc/YBrKaK1NyljnV9cNo99bG94Ng4pNpbTO/Baq2w4lv58tl7bk01NXN7kqEkdZW1tSPuske1w4Icr7pWmRlVRYJfCYWBWZedoFb2VBWcBFOutHX/5jO+ipT35nF1CE8HA6F3lbxVK4wgtjMnimreoUpXYdnFsKaef+j0sradwMpcbKLwzY6skqPcG75i5rn/dXITaa2EMnSPrzTy6IPk/4h2OQIAyVB81sy64ty4jhT1sKUsbFnl2NxHeHOkfnbw5PQkzq0+Nb55ajrDDB4nmBrcDT9azB7anRnftF1PmZfexX5GuFFUjkUnSmrExfcrKTV4t0k6omyOgOuOzCHFvfF95hW4+2orGIUjgPZfoflvrxb2Zemzn4Q9tDosGNfJqsbQsojr21DRBNllSuD09peLOzl8GMtLv4evrjQHxVRlKOyig50lFUtiV6cku8D3YVxC/3nTmcuJl31DsO5spoXhNtGO1vNIZZTZQ02Mz2bHmtx+bvhV3ImyrqZK6taBz+7RT/Zratw4kyb2mzVw0XzhbL2zZ6rWbLGU2UNIoiifeo1VmPxaZnPkHU3KqsZhFVfvHOLlkGod+PEG91U6aa1rLN+l/d8WftuR+R/R9Zam1I2Tw2u/ztZn+WO1S9adWibRyWXp5mce3Lp6/p89wJZD7u+Xl2/exBWOZYD4f+/Lev4IDwg64Nf9EvQoeXeXsyfaaHuvoiFpLkHc5Gsi2Ll9djVdFlnWF4mMx48IGvvbYNzZR1fMhlZZYTwuadsG5CQq6RE9U/VIFGSeenzMlkP1siDLnsIK4kSowGKGR1KblXE/sn4qbW4+HvySjgfqHE9V9aHs2T1T34PhfXvdr5T1oVz/XYVxmUmdpOhdHKN5sYNXVm1rw9gg19DzJH1eaasd7Y2Hcfpxt2C2Bp/h6zBYLzp31BdIKsfBrIRZ2tx6dzDo7DZLP4NWR/97NTB3en/vLtica8Z7IW475HVnjT2X8m5RFY3cmW7oLW47OPehdSus3vnnN8gq4wdvvvZvTqyevvHL7d0xufgjtd3yapPGSLl+yMfXJksq3snyfZAa3EVvQ7k2huvbEwiD4JHuuscWdXu5aeb3ZvToZ3Gni4wDZzSfYOsmV2B6LbKw9DwXCYXFZm+B1lPaFBgcbXE8G7KN68YVEPZ7nfp9UAhA7KqidMdhZXwbdA4XBo1lQ/H58DAZ8tapfZVE93WWrqZdf5cGm66rI6fBlYNnumNi1xgte9vnIYTufKz/bpOpXfOkvVtrLs+ugnqnaWxYjA+hy8nnS3rofJppu4xae+RO1f9Tkq9UR1iuqyhB4dr1tDiegudNHWuRDDl6yaAcgC90Ds2rtN1lqxq5jzeQtPINdXXwdwXtlO2BrOnosIH6zjOqgtkPU1E7ZuP6k234Bh138DWAercVHOGrIEHh1vR0OLBj8p1HG/Nq4514ADdS3LtOr/VdZasd0q2N3uGo2LGn3+6B7ZTdm01G8p2wVSUyTrOD6WeKas8l0vKstSeVXpdaxtHhzuX4fnnDFlt8MpZZDsWH7vUfeSgmDltTNZZFC1j5wrlLFnNOfnTr4G+Kgdps2gSbTVb17Ybb47/qjbxubIOxwa/BoVi9LpBPlvWyCtoTNaB94U6pzsmXI0lO+k6T1Z7Re1312E/zFWmJ5mR7hdyVtCCN2PIqlxkZbneL0Gq82Qdbn7jV+OvvkRzZdUKpU4Cz+Ljb2s0i7p8LGF5hqzhhdI/rx+/Xj5+/n6yD+5lRrUqWe7k1PjTLpjK5SIuqyRa5KuzZB15u6adBMYuNGWze6vOMnYSuBYfc7Buqb6ZlHCmrLa79mL2P3K4U6tdJXgbFthbL07WabWI47NkXQ42XYwWw6+VnobQWbLKprrf4vctXg9OCGIDVpRTEs6UderLGp962lWDop5vpPd1LrkXNCn308mZsi7qgcarnfxAN2k/NDBP1lVPScOyDsql3yNYT0g4V9bg1arHh+fn50c7Br+anOROpveSeWeFPD4MwvvpP4nOXDItsh73t5/Y6P1kQ+6+gzUuq5gn3ch9r8XjHg8L3iNY9iQUnwWZK6t6vVV82+XuXk674SF7N9UbFy68CuwVrepFXcWbS4KH3jTkfLwm8vpJKawxT9Yu7OGfs/VbvPLWQ2kcjuSF5wEq4WxZu0Oa92e9cf1ohXVuxHSmsb7X9ha5x8sOlay3SXVRqL9ea2W92/3Hyhl7JvrzoTNlrfoNOmbxynxvabfJ/Jh+cOtjm00uxJd18fOrv3bfdAmeeHdNm2oEa/52eaPOUeptuksO/neJrAdDLeNtWaZpWearoU+97jf1ZXr4JNlIur9Ola3LY9yzLL/CbP0J82OQZbNPuPyOTxPfPTy9P977T956npzNWbICAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAFP4DiSXcAIXfUFEAAAAldEVYdGRhdGU6Y3JlYXRlADIwMjQtMDctMThUMTc6MjQ6MzIrMDA6MDBGXcLqAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDI0LTA3LTE4VDE3OjI0OjMyKzAwOjAwNwB6VgAAAABJRU5ErkJggg==",
+  "backgroundColor": "#FFFFFF"
+}

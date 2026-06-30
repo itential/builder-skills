@@ -1,0 +1,495 @@
+{
+  "message": "Success",
+  "data": {
+    "_id": "6645d3148e2ada028299a96f",
+    "name": "Port Turn Up",
+    "description": "",
+    "schema": {
+      "$id": "port-turn-up",
+      "description": "Schema defining the possible values within instances of resource model 'Port Turn Up'",
+      "type": "object",
+      "required": [],
+      "additionalProperties": true,
+      "properties": {
+        "serviceDetails": {}
+      }
+    },
+    "actions": [
+      {
+        "_id": "7c1b",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": null,
+        "name": "Empty Delete",
+        "type": "delete"
+      },
+      {
+        "_id": "bfaa",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": null,
+        "name": "Ops Manager Create",
+        "type": "create"
+      },
+      {
+        "_id": "218c",
+        "preWorkflowJst": "68011c562df484f6d0162549",
+        "postWorkflowJst": null,
+        "workflow": "Port Turn Up E2E",
+        "name": "Create",
+        "type": "create"
+      },
+      {
+        "_id": "cb40",
+        "preWorkflowJst": "6645bba85784730274a80348",
+        "postWorkflowJst": null,
+        "workflow": "Port Turn Up Delete E2E",
+        "name": "Delete",
+        "type": "delete"
+      },
+      {
+        "_id": "ba4a",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "Port Turn Up - Service Verification",
+        "name": "Service Verification",
+        "type": "update"
+      },
+      {
+        "_id": "16d6",
+        "preWorkflowJst": "6852994964863cd06a852ab5",
+        "postWorkflowJst": "6852c92864863cd06a852ab6",
+        "workflow": "Port Turn Up - Update Service-Policy",
+        "name": "Update Service Policy",
+        "type": "update",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "formData"
+          ],
+          "properties": {
+            "formData": {
+              "type": "object",
+              "properties": {
+                "autoApprove": {
+                  "type": "boolean",
+                  "examples": [
+                    true,
+                    false
+                  ]
+                },
+                "servicePolicyOutput": {
+                  "type": "string",
+                  "examples": [
+                    "traffic-shape-bronze"
+                  ],
+                  "enum": [
+                    "traffic-shape-bronze",
+                    "traffic-shape-silver",
+                    "traffic-shape-gold"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "formData": {
+              "title": "formData",
+              "type": "object",
+              "properties": {},
+              "examples": [
+                {
+                  "name": "value"
+                }
+              ]
+            },
+            "instance": {
+              "type": "object",
+              "properties": {
+                "serviceDetails": {
+                  "type": "object",
+                  "properties": {
+                    "formData": {
+                      "type": "object",
+                      "properties": {
+                        "autoApprove": {
+                          "type": "boolean",
+                          "examples": [
+                            true,
+                            false
+                          ]
+                        },
+                        "crApprovalRequired": {
+                          "type": "boolean",
+                          "examples": [
+                            true,
+                            false
+                          ]
+                        },
+                        "device": {
+                          "type": "string",
+                          "examples": [
+                            "IOS-CSR-AWS-1"
+                          ]
+                        },
+                        "interfaceDescription": {
+                          "type": "string",
+                          "examples": [
+                            "Dummy Interface 9876"
+                          ]
+                        },
+                        "servicePolicyOutput": {
+                          "type": "string",
+                          "examples": [
+                            "traffic-shape-gold"
+                          ]
+                        }
+                      },
+                      "required": []
+                    },
+                    "serviceData": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "examples": [
+                            "complete"
+                          ]
+                        },
+                        "autoApprove": {
+                          "type": "boolean",
+                          "examples": [
+                            true,
+                            false
+                          ]
+                        },
+                        "interface": {
+                          "type": "integer",
+                          "examples": [
+                            1
+                          ]
+                        },
+                        "subInterface": {
+                          "type": "integer",
+                          "examples": [
+                            186
+                          ]
+                        },
+                        "vlan": {
+                          "type": "integer",
+                          "examples": [
+                            186
+                          ]
+                        },
+                        "device": {
+                          "type": "string",
+                          "examples": [
+                            "IOS-CSR-AWS-1"
+                          ]
+                        },
+                        "servicePolicyOutput": {
+                          "type": "string",
+                          "examples": [
+                            "traffic-shape-gold"
+                          ]
+                        },
+                        "description": {
+                          "type": "string",
+                          "examples": [
+                            "Dummy Interface 9876"
+                          ]
+                        },
+                        "_id": {
+                          "type": "string",
+                          "examples": [
+                            "9529bdea58624b23ad3949f4"
+                          ]
+                        },
+                        "templateData": {
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "type": "string",
+                              "examples": [
+                                "Dummy Interface 9876"
+                              ]
+                            },
+                            "interface": {
+                              "type": "integer",
+                              "examples": [
+                                1
+                              ]
+                            },
+                            "ipAddress": {
+                              "type": "string",
+                              "examples": [
+                                "11.1.3.237"
+                              ],
+                              "format": "ipv4"
+                            },
+                            "servicePolicyOutput": {
+                              "type": "string",
+                              "examples": [
+                                "traffic-shape-gold"
+                              ]
+                            },
+                            "subInterface": {
+                              "type": "integer",
+                              "examples": [
+                                186
+                              ]
+                            },
+                            "subnetMask": {
+                              "type": "string",
+                              "examples": [
+                                "255.255.255.252"
+                              ],
+                              "format": "ipv4"
+                            },
+                            "type": {
+                              "type": "string",
+                              "examples": [
+                                "GigabitEthernet"
+                              ]
+                            },
+                            "vlan": {
+                              "type": "integer",
+                              "examples": [
+                                186
+                              ]
+                            }
+                          },
+                          "required": []
+                        },
+                        "ipAddress": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "examples": [
+                              "11.1.3.237"
+                            ],
+                            "format": "ipv4"
+                          }
+                        },
+                        "subnetMask": {
+                          "type": "string",
+                          "examples": [
+                            "255.255.255.252"
+                          ],
+                          "format": "ipv4"
+                        },
+                        "type": {
+                          "type": "string",
+                          "examples": [
+                            "GigabitEthernet"
+                          ]
+                        },
+                        "initiator": {
+                          "type": "string",
+                          "examples": [
+                            "dafydd.parry@itential.com"
+                          ],
+                          "format": "email"
+                        },
+                        "netboxAdapter": {
+                          "type": "string",
+                          "examples": [
+                            "netbox-selab"
+                          ]
+                        },
+                        "vlanData": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "examples": [
+                                "complete"
+                              ]
+                            },
+                            "vid": {
+                              "type": "integer",
+                              "examples": [
+                                186
+                              ]
+                            },
+                            "netboxVlanAllocationId": {
+                              "type": "integer",
+                              "examples": [
+                                308
+                              ]
+                            },
+                            "vlanName": {
+                              "type": "string",
+                              "examples": [
+                                "VLAN"
+                              ]
+                            },
+                            "allocatedVlan": {
+                              "type": "object",
+                              "properties": {
+                                "assigned": {
+                                  "type": "integer",
+                                  "examples": [
+                                    186
+                                  ]
+                                }
+                              },
+                              "required": []
+                            },
+                            "initiator": {
+                              "type": "string",
+                              "examples": [
+                                "dafydd.parry@itential.com"
+                              ],
+                              "format": "email"
+                            },
+                            "adapter_id": {
+                              "type": "string",
+                              "examples": [
+                                "netbox-selab"
+                              ]
+                            },
+                            "vlanDescription": {
+                              "type": "string",
+                              "examples": [
+                                "Dummy Interface 9876"
+                              ]
+                            },
+                            "_id": {
+                              "type": "string",
+                              "examples": [
+                                "0897d921fdc4470b94c92f07"
+                              ]
+                            },
+                            "vlanGroup": {
+                              "type": "string",
+                              "examples": [
+                                "TEST"
+                              ]
+                            }
+                          },
+                          "required": []
+                        },
+                        "ipData": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "examples": [
+                                "complete"
+                              ]
+                            },
+                            "cidr": {
+                              "type": "integer",
+                              "examples": [
+                                30
+                              ]
+                            },
+                            "numberOfIps": {
+                              "type": "integer",
+                              "examples": [
+                                2
+                              ]
+                            },
+                            "allocatedPrefixId": {
+                              "type": "integer",
+                              "examples": [
+                                485
+                              ]
+                            },
+                            "initiator": {
+                              "type": "string",
+                              "examples": [
+                                "dafydd.parry@itential.com"
+                              ],
+                              "format": "email"
+                            },
+                            "_id": {
+                              "type": "string",
+                              "examples": [
+                                "05ef203249b747aa84c95b37"
+                              ]
+                            },
+                            "netboxAdapter": {
+                              "type": "string",
+                              "examples": [
+                                "netbox-selab"
+                              ]
+                            },
+                            "description": {
+                              "type": "string",
+                              "examples": [
+                                "Dummy Interface 9876"
+                              ]
+                            },
+                            "prefixParent": {
+                              "type": "string",
+                              "examples": [
+                                "11.1.0.0/16"
+                              ]
+                            },
+                            "allocatedIps": {
+                              "type": "array",
+                              "items": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "examples": [
+                                    "11.1.3.237",
+                                    "11.1.3.238",
+                                    "30"
+                                  ],
+                                  "format": "ipv4"
+                                }
+                              }
+                            },
+                            "allocatedPrefix": {
+                              "type": "string",
+                              "examples": [
+                                "11.1.3.236/30"
+                              ]
+                            }
+                          },
+                          "required": []
+                        }
+                      },
+                      "required": []
+                    }
+                  },
+                  "required": []
+                }
+              },
+              "required": []
+            },
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "created": "2024-05-16T09:34:12.497Z",
+    "createdBy": {
+      "username": "admin@itential",
+      "firstname": "admin@itential",
+      "provenance": "ldap",
+      "_id": "67c89312e753354a720f1aca"
+    },
+    "lastUpdated": "2025-06-18T10:03:11.034Z",
+    "lastUpdatedBy": {
+      "username": "dafydd.parry@itential.com",
+      "firstname": "Dafydd",
+      "provenance": "Okta SAML",
+      "_id": "67e1650e93bafb5dc99ab1d9"
+    }
+  },
+  "metadata": {}
+}
