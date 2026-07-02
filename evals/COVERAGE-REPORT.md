@@ -13,9 +13,11 @@
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
 | builder-agent | 27 | 82 | 39 | 40 | 3 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
-| flowagent | 6 | 18 | 4 | 13 | 1 |
+| flowagent | 1 | 1 | 0 | 0 | 1 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **60** | **194** | **78** | **107** | **10** |
+| **Total** | **55** | **177** | **74** | **94** | **10** |
+
+**2026-07-02 update:** Removed flowagent evals 1–5 and the "FlowAgent" domain-coverage rows (issues #49–52) — both were built against the deprecated prototype FlowAI API (`//`-format tool identifiers, `{details: {...}}` request wrapper, `/flowai/missions`, `/flowai/adhoc_agent`). The flowagent skill was rewritten against the current Agent Project Service / Model Registry Service / Tools Service / Agent Session Manager APIs; only the skill-trigger negative eval survived (renumbered to id 1). Fresh evals against the current API are a separate follow-up, not yet written.
 
 **2026-06-30 update:** Added 8 builder-agent evals (ids 20-27) covering issues #46-49, #51-54 (childJob query extraction, `{task:"job"}` inputSchema pollution, ViewData schema, makeData+childJob-merge, restCall response shape, childJob loop enrichment, forEach constraints, LCM Create completeness). Ran the official skill-creator executor→grader pipeline (`evals/workspace/iteration-3/`) old-skill-vs-new-skill: **new skill 100% pass rate, old (pre-fix) skill 71.8%, zero regressions** on the 5 pre-existing evals re-run alongside the 8 new ones. See `evals/workspace/iteration-3/benchmark.md` and `review.html` for the full breakdown. One pre-existing assertion (builder-agent eval 4, "makeData outputType is 'json'") was corrected after the grader flagged it as encoding an incorrect platform-semantics assumption — the task asks for a JSON *string*, and `outputType: "string"` is the platform-correct choice, not `"json"`.
 
@@ -104,15 +106,6 @@
 | 46 | Missing variable = skip = PASS (silent) | mop:3 |
 | 47 | MOP is read-only — never push config | mop:4 |
 | 48 | MOP update is full replacement | mop:5 |
-
-### FlowAgent
-
-| # | Gotcha | Eval |
-|---|--------|------|
-| 49 | Tool identifiers use // format | flowagent:1 |
-| 50 | Body wrapped in {details: {...}} | flowagent:1 |
-| 51 | Adhoc agents use /flowai/adhoc_agent endpoint | flowagent:4 |
-| 52 | Duplicate tool names cause "must be unique" error | flowagent:5 |
 
 ### IAG
 
