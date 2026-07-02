@@ -150,6 +150,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 | `/itential-builder:itential-golden-config` | Builds golden config trees and node-level config specs that define the expected configuration standard for your devices. Runs compliance plans, grades results, and generates remediation configs for violations. |
 | `/itential-builder:itential-inventory` | Builds and manages device inventories in Itential Inventory Manager. Populates nodes in bulk, assigns tags, runs actions against inventory devices, and manages inventory-level access and grouping. |
 | `/itential-builder:itential-lcm` | Defines reusable service resource models in Itential Lifecycle Manager, creates and manages resource instances, runs lifecycle actions, and tracks execution history. Use for service models that have create, update, and delete lifecycle phases. |
+| `/itential-builder:itential-json-forms` | Builds IAP JSON Forms — static-enum dropdowns, REST-bound dropdowns (live data from IAP endpoints), and cascading dropdowns (field dependency). Use when wiring structured input panels for manual triggers or manual tasks. |
 
 ---
 

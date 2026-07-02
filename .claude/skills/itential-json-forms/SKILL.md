@@ -1,10 +1,10 @@
 ---
-name: app-json_forms
+name: itential-json-forms
 description: Build IAP JSON Forms — static-enum dropdowns, REST-bound dropdowns (live data pulled from IAP endpoints), and cascading dropdowns (aka field dependency — one field's value drives another's URL path param). Use when creating, updating, or wiring forms consumed by manual triggers, manual tasks (ShowJsonForm), or any UI surface that needs a structured input panel.
 argument-hint: "[form name or operation]"
 ---
 
-# JSON Forms (app-json_forms)
+# JSON Forms (itential-json-forms)
 
 JSON Forms are reusable form definitions stored in the `json-forms` application. They drive structured input panels across IAP — manual triggers in Operations Manager, the `JsonForms/ShowJsonForm` manual task, and any workflow surface that prompts a user for typed input.
 
@@ -38,12 +38,13 @@ POST /json-forms/forms
 
 Choose the helper that matches your form's dropdown needs:
 
-| Use case | Helper |
-|---|---|
-| Static-enum dropdowns only (hardcoded option lists) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` |
-| REST-bound or cascading dropdowns (live data from IAP endpoints) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` |
+| Use case | Annotated scaffold (fill in the blanks) | Real export (read to see the actual shape) |
+|---|---|---|
+| Static-enum dropdowns only (hardcoded option lists) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` | `${CLAUDE_PLUGIN_ROOT}/helpers/assets/json-form-example-static-enum.json` — real Cisco IOS "Port Turn Up" form, 8 fields incl. static dropdown, number `updown` widgets, `ipv4` format validation |
+| REST-bound dropdowns (live data from IAP endpoints) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` | `${CLAUDE_PLUGIN_ROOT}/helpers/assets/json-form-example-rest-bound.json` — real Cisco IOS "Compliance" form, one REST-bound dropdown pulling tree names live from `GET /configuration_manager/configs` |
+| Cascading dropdowns (field dependency) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` (Inventory Manager Site/Device cascade worked example) | *(no real cascading export on hand yet — the scaffold is hand-built but follows the same field shapes as the two real exports above)* |
 
-Both helpers are annotated scaffolds — read the `_comment_*` fields inline before customizing.
+The scaffolds are annotated with `_comment_*` fields to fill in; the real exports are genuine `POST /json-forms/forms` payloads pulled from a live platform (IDs/timestamps/`createdBy` stripped since the server assigns those on create) — read one when you want to see exactly what a working form looks like end-to-end, not just the shape.
 
 ### Static-enum dropdowns
 
@@ -140,6 +141,8 @@ Helper for the wired-up trigger: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-op
 
 - `builder-agent` for workflows that consume form output, manual-trigger wiring, and project-level component management.
 - Helper files in `${CLAUDE_PLUGIN_ROOT}/helpers/`:
-  - `create-json-form.json` — static-enum scaffold
-  - `create-json-form-rest-bound.json` — REST-bound + cascading scaffold (Inventory Manager Site/Device cascade worked example)
-  - `create-ops-manager-trigger-manual.json` — manual trigger that consumes a form
+  - `create/create-json-form.json` — static-enum scaffold
+  - `create/create-json-form-rest-bound.json` — REST-bound + cascading scaffold (Inventory Manager Site/Device cascade worked example)
+  - `create/create-ops-manager-trigger-manual.json` — manual trigger that consumes a form
+  - `assets/json-form-example-static-enum.json` — real export, static-enum (Cisco IOS Port Turn Up)
+  - `assets/json-form-example-rest-bound.json` — real export, REST-bound (Cisco IOS Compliance)

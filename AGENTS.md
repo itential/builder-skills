@@ -23,6 +23,7 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 | `/itential-golden-config` | — | Golden config, compliance, grading, remediation. |
 | `/itential-inventory` | — | Device inventories, nodes, actions, tags. |
 | `/itential-lcm` | — | Resource models, instances, lifecycle actions. |
+| `/itential-json-forms` | — | JSON Forms: static-enum, REST-bound, and cascading dropdowns for manual triggers and manual tasks. |
 
 ### Delivery Lifecycle
 
@@ -330,6 +331,15 @@ After import, PATCH membership immediately (see Rule 11a).
 | File | What's Inside |
 |------|--------------|
 | `flowagent-sample-agent-project.json` | Real FlowAI project bundle exported from a live platform: 3 agents, including a multi-tool agent (device command → decorated ServiceNow tool → WorkCenter approval step). Import via `POST /agent-project-service/project-bundles/import` with `{"bundle": <file contents>, "providerResolutions": {...}}` — see the `flowagent` skill. |
+
+**JSON Form samples** — different domain, different import path (`POST /json-forms/forms` directly, not Automation Studio project import):
+
+| File | What's Inside |
+|------|--------------|
+| `json-form-example-static-enum.json` | Real Cisco IOS "Port Turn Up" form export: 8 fields incl. a static-enum dropdown, number `updown` widgets, `ipv4` format validation. No REST binding. |
+| `json-form-example-rest-bound.json` | Real Cisco IOS "Compliance" form export: one REST-bound dropdown pulling tree names live from `GET /configuration_manager/configs`, plus one plain text field. |
+
+Both extracted from real, working `jsonForm`-type components inside `vendor-cisco-ios.json` — see the `itential-json-forms` skill for the full form-structure reference.
 
 **Itential Platform — core utilities**
 
