@@ -1,16 +1,16 @@
 ---
 name: flowagent
-description: Create and run AI agents on the Itential Platform using the GA FlowAI APIs (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to autonomously call platform tools (adapters, workflows, IAG services) to complete objectives. Use when setting up agents, configuring LLM provider profiles, managing tools and decorators, or running/tracking agent sessions.
+description: Create and run AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to autonomously call platform tools (adapters, workflows, IAG services) to complete objectives. Use when setting up agents, configuring LLM provider profiles, managing tools and decorators, or running/tracking agent sessions.
 argument-hint: "[action or agent-name]"
 ---
 
-# FlowAI - Agent Skills Guide (GA)
+# FlowAI - Agent Skills Guide
 
 FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to autonomously operate the Itential Platform. Agents can call adapters, run workflows, and invoke IAG services — all driven by natural language instructions and a typed input contract.
 
-**This skill documents the GA API surface** — six decomposed services that replaced the old flat `/flowai/*` prototype API: **Agent Project Service** (projects + agents), **Model Registry Service** (LLM provider profiles + models), **Tools Service** (tools + decorators), **Agent Session Manager** (running and tracking agents), **Agent Execution Engine** (internal execution kernel — not called directly), and **Tool RPC** (tool-call execution tracking).
+**This skill documents six decomposed services**: **Agent Project Service** (projects + agents), **Model Registry Service** (LLM provider profiles + models), **Tools Service** (tools + decorators), **Agent Session Manager** (running and tracking agents), **Agent Execution Engine** (internal execution kernel — not called directly), and **Tool RPC** (tool-call execution tracking). An older, flat `/flowai/*` API also exists on some platforms — this skill does not cover it; use the services above.
 
-**Response schema caveat:** several GA endpoints (notably most of Agent Project Service and the Tools Service) declare their success response as a bare `{"type": "object"}` in the OpenAPI spec — the exact response field names are not formally typed. Where this skill states a response shape, it's inferred from request-body schemas, the project-bundle export format (which IS fully typed), or cross-referenced fields — not guessed. When in doubt, call the endpoint against your live platform and inspect the actual response before hardcoding field access in a workflow task.
+**Response schema caveat:** several endpoints (notably most of Agent Project Service and the Tools Service) declare their success response as a bare `{"type": "object"}` in the OpenAPI spec — the exact response field names are not formally typed. Where this skill states a response shape, it's inferred from request-body schemas, the project-bundle export format (which IS fully typed), or cross-referenced fields — not guessed. When in doubt, call the endpoint against your live platform and inspect the actual response before hardcoding field access in a workflow task.
 
 ## Concepts
 
@@ -491,7 +491,7 @@ POST /tools/discover
 ```
 No body. Scans adapters, IAG services, and app methods, persisting each as a registry entry addressed by `referenceId`. Safe to re-run — refreshes the registry rather than duplicating entries.
 
-**Note on tool identity:** the old prototype used a composite `"adapter//method"` string as the tool identifier. The GA registry addresses tools by an opaque `referenceId` — the response schema for tool objects is not formally typed in the OpenAPI spec, so **confirm the actual `referenceId` format and shape on your deployment** via a live `GET /tools` call before writing code that parses or constructs one.
+**Note on tool identity:** tools are addressed by an opaque `referenceId` (not a composite `"adapter//method"` string). The response schema for tool objects is not formally typed in the OpenAPI spec, so **confirm the actual `referenceId` format and shape on your deployment** via a live `GET /tools` call before writing code that parses or constructs one.
 
 There is **no create/update/delete for individual tools** — the registry is populated only by discovery.
 
@@ -603,7 +603,7 @@ POST /agent-session-manager/sessions/run-agent
   }
 }
 ```
-Note the field is `agent`, not `agentDefinitionId`. `terminationCallbackSignature` is an IAP cog hook invoked when the session reaches a terminal state — **the calling workflow task stays "running" until then**, which is what makes this feel synchronous from the workflow's perspective, even though the HTTP response itself returns immediately with `{sessionId, status}`. This is the GA analog to the old blocking `call` endpoint, but the "wait" happens at the workflow-engine layer, not the HTTP layer — see "Using Agents in Workflows" below.
+Note the field is `agent`, not `agentDefinitionId`. `terminationCallbackSignature` is an IAP cog hook invoked when the session reaches a terminal state — **the calling workflow task stays "running" until then**, which is what makes this feel synchronous from the workflow's perspective, even though the HTTP response itself returns immediately with `{sessionId, status}`. The "wait" happens at the workflow-engine layer, not the HTTP layer — see "Using Agents in Workflows" below.
 
 **Activity log:**
 ```
@@ -646,7 +646,7 @@ Read-only. This is where to look up the outcome of one specific tool call an age
 - **`agentSnapshot` on a session is frozen at session-start time.** Editing the agent afterward does not change what an already-running or already-completed session executed.
 - **Tool execution is asynchronous and externalized** — a `tool-execution` message may sit at `inference-pending`-adjacent states for longer than you'd expect from an old-style synchronous call; check `GET /tool-rpc/executions?status=running` if a session seems stuck mid-tool-call.
 - **No bulk session delete.** Unlike the old `DELETE /flowai/missions`, you must delete sessions one at a time.
-- **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint in the GA surface.
+- **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint.
 - **`run-agent`'s HTTP response is not the final answer** — it returns `{sessionId, status}` immediately just like plain `sessions` start. The "wait for the result" behavior only happens through the `terminationCallbackSignature` mechanism at the workflow-engine layer, not by blocking the HTTP call.
 - **Most Agent Project Service and Tools Service responses are untyped in the OpenAPI spec** (`{"type":"object"}`). Verify exact field names against a live call before hardcoding a `$var` path in a workflow task.
 
@@ -713,7 +713,7 @@ The task holds the workflow at that point until the session reaches a terminal s
 }
 ```
 
-**Agent-to-agent delegation has no documented GA equivalent.** The old prototype's `capabilities.agents` (call another agent by name) doesn't appear anywhere in the Agent Project Service schemas audited for this skill. If you need one agent's output to feed another, orchestrate it at the workflow level instead — run one agent's session, wait for its result via `run-agent`'s termination callback, then start the next session with that result as part of its `inputs`.
+**Agent-to-agent delegation is not supported.** There is no field in the Agent Project Service schemas for one agent to call another by name. If you need one agent's output to feed another, orchestrate it at the workflow level instead — run one agent's session, wait for its result via `run-agent`'s termination callback, then start the next session with that result as part of its `inputs`.
 
 ## Developer Scenarios
 

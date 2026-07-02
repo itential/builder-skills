@@ -1,6 +1,6 @@
 ---
 name: flowagent-to-spec
-description: Convert a FlowAgent into a deterministic workflow spec. Reads the agent definition, tools, and session history (GA Agent Project Service / Agent Session Manager APIs) to understand what the agent does, then produces a customer-spec.md that describes the same use case as structured, deterministic automation. Turns agentic → deterministic.
+description: Convert a FlowAgent into a deterministic workflow spec. Reads the agent definition, tools, and session history (Agent Project Service / Agent Session Manager APIs) to understand what the agent does, then produces a customer-spec.md that describes the same use case as structured, deterministic automation. Turns agentic → deterministic.
 argument-hint: "[agent-name or agent-id]"
 ---
 
@@ -28,7 +28,7 @@ Non-deterministic                  Same result every run
 
 The spec produced by this skill describes the deterministic equivalent — same outcome, no LLM in the loop.
 
-**Note on GA's typed `inputSchema`:** unlike the old prototype (a free-form chat objective), a GA agent's `inputSchema` already declares its input contract as typed fields. This makes Step 3's "identify inputs" analysis mostly a lookup, not an inference — read the agent's `inputSchema` directly rather than reverse-engineering input variance across session objectives.
+**Note on the typed `inputSchema`:** an agent's `inputSchema` already declares its input contract as typed fields. This makes Step 3's "identify inputs" analysis mostly a lookup, not an inference — read the agent's `inputSchema` directly rather than reverse-engineering input variance across session objectives.
 
 ---
 
@@ -135,7 +135,7 @@ Where did sessions fail (`status: FAILED`), and what did the agent do?
 
 ### Identify inputs and outputs
 
-**Inputs:** Read the agent's `inputSchema` directly (Step 1) — GA agents already declare a typed input contract, so this is a lookup, not an inference. Cross-check against the `inputs` actually supplied across several sessions (Step 2) to confirm which declared properties are used in practice vs. rarely populated.
+**Inputs:** Read the agent's `inputSchema` directly (Step 1) — agents already declare a typed input contract, so this is a lookup, not an inference. Cross-check against the `inputs` actually supplied across several sessions (Step 2) to confirm which declared properties are used in practice vs. rarely populated.
 
 **Outputs:** What did the final `AGENT_REASONING` message (the session's concluding text) consistently report? These become the workflow `outputSchema`.
 
@@ -265,7 +265,7 @@ Then offer next steps:
 
 **One-off sessions aren't reliable:** Look for the pattern across 5+ sessions. A single session may show unusual branching.
 
-**Tool identity is opaque now, not a fixed `AdapterName//methodName` string.** GA tools are addressed by an opaque `referenceId` — resolve each one via `GET /tools/{referenceId}` to get its actual name/description before mapping back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow. Don't assume the old slash-separated format still holds; confirm against a live `GET /tools` call.
+**Tool identity is opaque, not a fixed `AdapterName//methodName` string.** Tools are addressed by an opaque `referenceId` — resolve each one via `GET /tools/{referenceId}` to get its actual name/description before mapping back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow. Don't assume a slash-separated format holds; confirm against a live `GET /tools` call.
 
 **Decorators change what the agent actually sent.** If a tool reference has a `decoratorId`, the decorator's `toolInputSchema` — not the tool's native schema — is what the LLM populated. Fetch `GET /tools/decorators/{decoratorId}` to see the real, narrowed input contract the agent was working with.
 
@@ -273,4 +273,4 @@ Then offer next steps:
 
 **Stateful reasoning:** If an `AGENT_REASONING` message said "I checked earlier and the device was reachable" — that's stateful context the LLM maintained. In the deterministic version, that check must be an explicit task that stores its result in a job variable.
 
-**Sub-agents / delegation has no documented GA equivalent.** The old prototype let an agent call other agents by name (`capabilities.agents`); this doesn't appear anywhere in the GA Agent Project Service schemas. If session messages show what looks like delegation (a `sessionType: child` session, or tool calls that look like they're invoking another agent), treat each as its own candidate deterministic workflow and confirm with the engineer how the two were actually being orchestrated — don't assume a direct agent-to-agent call pattern still exists.
+**Sub-agents / delegation is not a supported field.** There's no way for an agent to call another agent by name in the Agent Project Service schemas. If session messages show what looks like delegation (a `sessionType: child` session, or tool calls that look like they're invoking another agent), treat each as its own candidate deterministic workflow and confirm with the engineer how the two were actually being orchestrated — don't assume a direct agent-to-agent call pattern exists.
