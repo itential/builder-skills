@@ -23,6 +23,7 @@ FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollam
 - **Session** — a single run of an agent. Has an 8-state lifecycle (`PENDING` → `RUNNING` → `COMPLETE`/`FAILED`/`CANCELED`, plus `PAUSING`/`PAUSED`/`CANCELING`) and a typed activity log (`messages`).
 - **Operators** — an agent-level access-control list (account/group IDs) granting specific callers the right to run that agent, independent of their project role. Only project owners can edit it.
 - **Builder Groups** — a profile-level access-control list controlling which groups can build agents against a given LLM profile.
+- **Work Item** — a human-in-the-loop task, created when an agent calls a `view`-type tool (e.g. `view:WorkCenter:QuickForm`). Lives in a separate WorkCenter Service (`/work-center-service/*`), not the Tools Service. The agent's tool call sits at `status: "pending"` until a person completes the work item.
 
 ## How to Build an Agent
 
@@ -259,7 +260,7 @@ Attach it to the agent by adding `decoratorId` to that tool's entry (via `PATCH`
 | Session input validation error | Inputs don't match `inputSchema` | Check `required`/`properties`/`additionalProperties` — only `string`/`number` types allowed |
 | Agent create/update rejected: "defined in schema but not used in template" | An `inputSchema` property isn't referenced in `instructions` | Add `{{ propertyName }}` somewhere in `instructions`, or remove the unused property |
 | Agent doesn't use a tool | Tool not in `tools` array or instructions don't mention it | Add the tool's `referenceId`, mention it by purpose in `instructions` |
-| Session stuck in `PENDING`/`RUNNING` | Long-running tool call, or a stuck external tool executor | `POST /agent-session-manager/sessions/{sessionId}` with `{"action":"CANCEL"}` |
+| Session stuck in `PENDING`/`RUNNING` | Long-running tool call, a stuck external tool executor, **or a pending human-in-the-loop task (see below)** | Check `GET /work-center-service/work-items?rootExecutionId=<sessionId>` before assuming it's stuck; if genuinely stuck, `POST /agent-session-manager/sessions/{sessionId}` with `{"action":"CANCEL"}` |
 | High token usage | Agent is exploring too many options | Constrain with "use ONLY these tools, in this order" in `instructions` |
 
 ### How the agent runs
@@ -791,6 +792,82 @@ Read-only. This is where to look up the outcome of one specific tool call an age
 - **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint.
 - **`run-agent`'s HTTP response is not the final answer** — it returns `{sessionId, status}` immediately just like plain `sessions` start. The "wait for the result" behavior only happens through the `terminationCallbackSignature` mechanism at the workflow-engine layer, not by blocking the HTTP call.
 - **Most Agent Project Service and Tools Service responses are untyped in the OpenAPI spec** (`{"type":"object"}`). Verify exact field names against a live call before hardcoding a `$var` path in a workflow task.
+
+## Human-in-the-Loop (WorkCenter)
+
+An agent can pause and wait for a real person to act, using a `view`-type tool. This is a genuinely different mechanism from a normal tool call — confirmed end-to-end against a live platform.
+
+**The tool:** `view:WorkCenter:QuickForm` (discovered and wired into an agent's `tools[]` exactly like any other tool). Its `inputSchema` fields:
+
+| Field | Type | Required | Purpose |
+|---|---|---|---|
+| `quickFormData` | array | ✅ | The rows to render in the table |
+| `columnDisplay` | `all` \| `allowlist` \| `denylist` | ✅ | Which columns appear |
+| `columns` | array | | Column names to include/exclude (used with `allowlist`/`denylist`) |
+| `actionColumnHeader` | string | ✅ | Display header for the action column |
+| `actionColumnKey` | string | ✅ | Key used to annotate each row with the operator's input in the outgoing rows |
+| `actionColumnType` | `dropdown` \| `text` \| `selection` | ✅ | Input control rendered per row |
+| `actionColumnRequired` | boolean | ✅ | When `true`, Complete is disabled until every row is actioned |
+| `actionColumnLabels` | array | | Dropdown options (required when `actionColumnType` is `dropdown`) |
+| `actionColumnAllowMultiple` | boolean | | Allow multiple dropdown selections per row |
+
+Example agent tool-call input (one summary row, dropdown acknowledgement):
+```json
+{
+  "quickFormData": [
+    { "device": "dc1-leaf1", "summary": "show version failed — unsupported device_type", "incidentNumber": "INC0012773" }
+  ],
+  "columnDisplay": "all",
+  "actionColumnHeader": "Acknowledge",
+  "actionColumnKey": "acknowledged",
+  "actionColumnType": "dropdown",
+  "actionColumnRequired": true,
+  "actionColumnLabels": ["Acknowledged", "Needs Follow-up"]
+}
+```
+
+**What actually happens when an agent calls it:**
+1. The tool call's session message shows up with `"status": "pending"` and `"output": null` — it does not resolve on its own.
+2. The session's own `status` stays `RUNNING` the whole time — there is no distinct "awaiting input" session state. Don't rely on session `status` alone to detect a HITL wait; check whether the latest `tool-execution` message has `status: "pending"`.
+3. A real work item is created in a separate service — **WorkCenter Service** (`/work-center-service/*`), not the Tools Service or Agent Session Manager. This is a distinct application with its own API surface.
+
+**Finding and completing the pending work item:**
+```
+GET /work-center-service/work-items?rootExecutionId=<sessionId>
+```
+Returns the pending item(s) for that session, including `id`, `status`, `view`, and the `execution`/`rootExecution` metadata linking it back to the session.
+
+```
+GET /work-center-service/work-items/{id}
+GET /work-center-service/work-items/{id}/variables/incoming
+```
+Get the full item detail or just its incoming variables (what was passed to the `view` tool call — e.g., the `quickFormData` rows and column config).
+
+**Complete it (this is what a human does by clicking "Complete" in the WorkCenter UI):**
+```
+PATCH /work-center-service/work-items/{id}/complete
+```
+```json
+{
+  "finishState": "completed",
+  "variables": { "acknowledged": "Acknowledged" }
+}
+```
+`variables` is a flat key-value object — the key matches `actionColumnKey` from the original QuickForm input, the value is one of `actionColumnLabels` (for a dropdown). **Method is `PATCH`, not `POST`** — a `POST` to this path returns a plain 404. Response is the completed work item (`status: "completed"`); the agent's session then resumes on its own and reaches `COMPLETE` shortly after.
+
+**Other work-item lifecycle endpoints:**
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/work-center-service/work-items` | List (requires `rootExecutionId` query param) |
+| POST | `/work-center-service/work-items/search` | Richer search (requires `sort.field`/`sort.order`) |
+| GET | `/work-center-service/work-items/count` | Count matching items |
+| POST | `/work-center-service/work-items/{id}/claim` | Claim ownership before acting |
+| POST | `/work-center-service/work-items/{id}/release` | Release a claimed item back to the pool |
+| POST | `/work-center-service/work-items/{id}/assign` | Assign to a specific operator |
+| PATCH | `/work-center-service/work-items/{id}/complete` | Submit the operator's response and resolve the item |
+| POST | `/work-center-service/work-items/cancel` / `/cancel-work-items` | Cancel one or more pending items |
+
+**Design implication:** if an agent's `instructions` call for presenting something to a human before finishing, expect the session to sit `RUNNING` indefinitely (minutes to hours, however long the human takes) until someone completes the corresponding work item. Poll or watch WorkCenter, not just the session — a session "stuck" in `RUNNING` with a `pending` `tool-execution` message is working as intended, not failing.
 
 ## Using Agents in Workflows
 
