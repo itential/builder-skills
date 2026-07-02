@@ -1,0 +1,60 @@
+{
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "merge has at least 2 items in data_to_merge",
+        "reason": "This is easy to satisfy trivially (any 2 arbitrary items would pass) and doesn't check that the items actually correspond to the requested job variables deviceName and vlanId. Consider strengthening to 'data_to_merge references job variables deviceName and vlanId via {task:\"job\", variable:...}' to make it discriminating against a workflow that merges unrelated/placeholder data."
+      },
+      {
+        "reason": "No expectation checks that the workflow is a valid, importable structure end-to-end (no dangling transitions, no duplicate transition keys to workflow_end, valid JSON, task IDs referenced in transitions exist in tasks). The executor got this right (validated with jq empty, non-duplicate workflow_end routing via a c3d4 error-sink task), but nothing in the expectation list would have caught it if the executor had produced two transitions pointing at the same workflow_end key from one task (a documented common failure mode per the skill's Rule 21)."
+      },
+      {
+        "reason": "No expectation checks whether the merge's outgoing declaration uses 'merged_object': null vs an empty object '{}' \u2014 the skill explicitly calls out '{}' as a gotcha that makes the output 'unreachable'. The output got this right (outgoing.merged_object: null), but an eval that didn't check it could pass a subtly broken workflow."
+      }
+    ],
+    "overall": "The core expectations are solid and were satisfied through genuine, verifiable work (not superficial pattern-matching) \u2014 the executor pulled real reference assets and cross-checked against a live-tested use case in the repo rather than inventing structure. The main gap is that expectations check presence/naming conventions but not that values are semantically wired to the correct job variables, and no expectation covers workflow-graph validity (duplicate transition keys, dangling refs) which is a well-documented failure mode in this skill's own rules."
+  },
+  "expectations": [
+    {
+      "text": "merge data_to_merge uses 'variable' not 'value'",
+      "passed": true,
+      "evidence": "outputs/vlan-change-request-workflow.json, task e1a1.variables.incoming.data_to_merge: both entries use {\"task\": \"job\", \"variable\": \"deviceName\"} and {\"task\": \"job\", \"variable\": \"vlanId\"} \u2014 confirmed via direct jq extraction, not just transcript claim. This also matches the skill's own documented requirement (SKILL.md line 1385: \"IMPORTANT: The field is 'variable' NOT 'value'\") and the real production reference asset (helpers/assets/vendor-servicenow.json merge task 'aab9' uses the same {task, variable} shape)."
+    },
+    {
+      "text": "Adapter task body wired via $var to merge output, not inline $var inside object",
+      "passed": true,
+      "evidence": "outputs/vlan-change-request-workflow.json, task a1b2.variables.incoming.body = \"$var.e1a1.merged_object\" (a flat string reference to the merge task's output), not an inline object with nested $var placeholders. This matches the canonical pattern in helpers/assets/vendor-servicenow.json's createChangeRequest task (body: \"$var.aab9.merged_object\")."
+    },
+    {
+      "text": "Adapter task has adapter_id in incoming variables",
+      "passed": true,
+      "evidence": "outputs/vlan-change-request-workflow.json, task a1b2.variables.incoming.adapter_id = \"ServiceNow\", present alongside body."
+    },
+    {
+      "text": "Adapter task has error transition",
+      "passed": true,
+      "evidence": "outputs/vlan-change-request-workflow.json, transitions.a1b2 includes {\"c3d4\": {\"type\": \"standard\", \"state\": \"error\"}} in addition to the success transition to workflow_end \u2014 error routes to a dedicated newVariable sink task (c3d4) which then transitions to workflow_end, correctly avoiding duplicate workflow_end keys on one task (per AGENTS.md Rule 21)."
+    },
+    {
+      "text": "All task IDs are hex-only [0-9a-f]{1,4}",
+      "passed": true,
+      "evidence": "jq extraction of task keys: workflow_start, workflow_end (reserved names, not required to be hex), e1a1, a1b2, c3d4 \u2014 all three custom task IDs match ^[0-9a-f]{1,4}$ exactly."
+    },
+    {
+      "text": "Adapter app/locationType from apps.json not tasks.json",
+      "passed": true,
+      "evidence": "Task a1b2 has app: \"Servicenow\", locationType: \"Servicenow\". Verified directly against platform/apps.json which lists {\"id\": \"@itentialopensource/adapter-servicenow\", \"name\": \"Servicenow\"} (adapter type name), distinct from the adapters.json instance name \"ServiceNow\" (capital N, used correctly in adapter_id instead). The transcript documents this exact distinction and the JSON output reflects it correctly."
+    },
+    {
+      "text": "merge has at least 2 items in data_to_merge",
+      "passed": true,
+      "evidence": "e1a1.variables.incoming.data_to_merge is an array with 2 items (device_name from deviceName, vlan_id from vlanId), satisfying the skill's documented 'min 2 items' requirement (SKILL.md line 1382, 1422)."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  }
+}

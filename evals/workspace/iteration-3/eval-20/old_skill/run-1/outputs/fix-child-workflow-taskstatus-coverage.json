@@ -1,0 +1,145 @@
+{
+  "_comment": "CHILD workflow pattern (Guide 4's try-catch pattern, generalized to N branches). Every single path that can reach workflow_end -- not just the 'main' success and error paths -- must funnel through a newVariable that sets taskStatus on $var.job.taskStatus BEFORE workflow_end. This is issue #3: if the child workflow grew a second success branch (e.g. an 'already configured / no-op, skip' path, or an alternate evaluation outcome) after the original build, and that branch was wired straight to workflow_end without going through the status-setting newVariable, that child's job variables never contain a taskStatus key at all. The child still finishes with status:'complete' and no errors -- but the parent's loop-array element for that iteration is missing taskStatus, which is exactly the intermittent 'null even though every child completed successfully' symptom, because it only affects the subset of devices that take that branch.",
+
+  "tasks": {
+    "workflow_start": { "name": "workflow_start", "groups": [], "nodeLocation": { "x": 600, "y": 100 } },
+
+    "e1e1": {
+      "name": "someAdapterOrConfigTask",
+      "canvasName": "someAdapterOrConfigTask",
+      "summary": "Do the actual work",
+      "location": "Adapter",
+      "locationType": "REPLACE_WITH_APPS_JSON_NAME",
+      "app": "REPLACE_WITH_APPS_JSON_NAME",
+      "type": "automatic",
+      "displayName": "REPLACE_WITH_TASKS_JSON_displayName",
+      "variables": {
+        "incoming": { "adapter_id": "$var.job.adapter_id" },
+        "outgoing": { "result": null },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 208 }
+    },
+
+    "f2f2": {
+      "name": "evaluation",
+      "canvasName": "evaluation",
+      "summary": "Already-configured / no-op check",
+      "description": "Example of the SECOND branch that is easy to forget to wire into the try-catch pattern.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "all_true_flag": true,
+          "evaluation_groups": [
+            {
+              "all_true_flag": true,
+              "evaluations": [
+                {
+                  "operand_1": { "task": "e1e1", "variable": "result" },
+                  "operator": "contains",
+                  "operand_2": { "task": "static", "variable": "already exists" }
+                }
+              ]
+            }
+          ]
+        },
+        "outgoing": { "return_value": null },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 316 }
+    },
+
+    "s1s1": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Set taskStatus = success (normal path)",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": { "name": "taskStatus", "value": "success" },
+        "outgoing": { "value": "$var.job.taskStatus" },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 336, "y": 424 }
+    },
+
+    "s2s2": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Set taskStatus = success (no-op/skip path) -- THE BRANCH THAT WAS MISSING",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": { "name": "taskStatus", "value": "success" },
+        "outgoing": { "value": "$var.job.taskStatus" },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 864, "y": 424 }
+    },
+
+    "err1": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Set taskStatus = error",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": { "name": "taskStatus", "value": "error" },
+        "outgoing": { "value": "$var.job.taskStatus" },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 1128, "y": 316 }
+    },
+
+    "workflow_end": { "name": "workflow_end", "groups": [], "nodeLocation": { "x": 600, "y": 532 } }
+  },
+
+  "transitions": {
+    "workflow_start": { "e1e1": { "type": "standard", "state": "success" } },
+    "e1e1": {
+      "f2f2": { "type": "standard", "state": "success" },
+      "err1": { "type": "standard", "state": "error" }
+    },
+    "f2f2": {
+      "s1s1": { "type": "standard", "state": "failure" },
+      "s2s2": { "type": "standard", "state": "success" }
+    },
+    "s1s1": { "workflow_end": { "type": "standard", "state": "success" } },
+    "s2s2": { "workflow_end": { "type": "standard", "state": "success" } },
+    "err1": { "workflow_end": { "type": "standard", "state": "success" } },
+    "workflow_end": {}
+  }
+}

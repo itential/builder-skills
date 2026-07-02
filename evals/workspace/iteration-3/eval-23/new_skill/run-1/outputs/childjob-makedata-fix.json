@@ -1,0 +1,260 @@
+{
+  "_comment_before_broken_pattern": "This is what causes the reported bug: <!var!> placeholders pass through makeData unresolved. The merge task's data_to_merge references the childJob's job_details output directly, and that merge's merged_object is then wired straight into makeData.incoming.variables. Per SKILL.md builder-agent ### makeData section: 'makeData.incoming.variables cannot use $var references to a merge that sources childJob output' -- the platform cannot compile $var.<mergeId>.merged_object as a taskRef in that specific field when the merge contains a childJob ref, so it is stored as a literal static string instead. Template substitution then runs against the literal string '$var.e1e1.merged_object', not the real object, so every <!var!> placeholder passes through unresolved.",
+  "broken_pattern": {
+    "tasks": {
+      "a1a1": {
+        "name": "childJob",
+        "canvasName": "childJob",
+        "summary": "Provision Subnet (fan out)",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "task": "",
+            "workflow": "Provision Subnet",
+            "variables": {},
+            "data_array": "$var.job.subnets",
+            "transformation": "",
+            "loopType": "parallel"
+          },
+          "outgoing": { "job_details": null }
+        },
+        "actor": "job"
+      },
+      "e1e1": {
+        "name": "merge",
+        "canvasName": "merge",
+        "summary": "BROKEN: merges childJob job_details with a static template string",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_to_merge": [
+              { "task": "a1a1", "variable": "job_details" },
+              { "key": "template", "value": { "task": "static", "value": "Subnet Provisioning Report" } }
+            ]
+          },
+          "outgoing": { "merged_object": null }
+        },
+        "actor": "Pronghorn"
+      },
+      "f1f1": {
+        "name": "makeData",
+        "canvasName": "makeData",
+        "summary": "BROKEN: variables is a literal string, not a resolved object",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "automatic",
+        "displayName": "Tools",
+        "variables": {
+          "incoming": {
+            "input": "{\"title\": \"<!template!>\", \"status\": \"<!taskStatus!>\"}",
+            "outputType": "json",
+            "variables": "$var.e1e1.merged_object"
+          },
+          "outgoing": { "output": null }
+        },
+        "actor": "Pronghorn"
+      }
+    },
+    "why_it_fails": "e1e1.data_to_merge contains a childJob reference ({task:'a1a1', variable:'job_details'}). Because of that, $var.e1e1.merged_object cannot be compiled as a taskRef specifically inside makeData.incoming.variables (this limitation is unique to makeData -- query.incoming.obj does not have it). The engine stores the string '$var.e1e1.merged_object' as a literal instead of resolving it, so <!template!> and <!taskStatus!> in makeData.incoming.input are substituted against nothing and come through as literal, unresolved placeholders in the output."
+  },
+
+  "_comment_fixed_pattern": "Fix: never feed a childJob-sourced merge directly into makeData.incoming.variables. Extract each individual scalar you need out of the childJob-sourced merge with `query` tasks (query.incoming.obj DOES resolve $var refs to a childJob-sourced merge -- it is only makeData.incoming.variables that cannot). Then build a SECOND, clean merge containing only those already-resolved scalars plus static values (no childJob refs at all), and feed THAT merge's merged_object into makeData.",
+  "fixed_pattern": {
+    "tasks": {
+      "a1a1": {
+        "name": "childJob",
+        "canvasName": "childJob",
+        "summary": "Provision Subnet (fan out)",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "task": "",
+            "workflow": "Provision Subnet",
+            "variables": {},
+            "data_array": "$var.job.subnets",
+            "transformation": "",
+            "loopType": "parallel"
+          },
+          "outgoing": { "job_details": null }
+        },
+        "actor": "job",
+        "nodeLocation": { "x": 600, "y": 312 }
+      },
+      "b2b2": {
+        "name": "merge",
+        "canvasName": "merge",
+        "summary": "Capture childJob job_details via taskRef (guards against $var.a1a1.job_details not resolving downstream on some platform versions)",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_to_merge": [
+              { "task": "a1a1", "variable": "job_details" },
+              { "task": "static", "value": {} }
+            ]
+          },
+          "outgoing": { "merged_object": null }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 420 }
+      },
+      "c3c3": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract the full per-subnet loop results array",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "loop",
+            "obj": "$var.b2b2.merged_object"
+          },
+          "outgoing": { "return_data": "$var.job.subnetResults" }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 528 }
+      },
+      "d4d4": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract subnet count (scalar) -- verify .length is supported by your platform's query implementation; if not, use a transformation (JST) task instead",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "loop.length",
+            "obj": "$var.b2b2.merged_object"
+          },
+          "outgoing": { "return_data": "$var.job.totalSubnets" }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 636 }
+      },
+      "d5d5": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract representative scalar (first subnet's taskStatus) -- repeat this per field the template needs",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "loop[0].taskStatus",
+            "obj": "$var.b2b2.merged_object"
+          },
+          "outgoing": { "return_data": "$var.job.firstSubnetStatus" }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 744 }
+      },
+      "e5e5": {
+        "name": "merge",
+        "canvasName": "merge",
+        "summary": "Clean merge for makeData -- ONLY resolved scalars (from query tasks) and static values, NO childJob refs",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_to_merge": [
+              { "key": "title", "value": { "task": "static", "value": "Subnet Provisioning Report" } },
+              { "key": "totalSubnets", "value": { "task": "d4d4", "variable": "return_data" } },
+              { "key": "status", "value": { "task": "d5d5", "variable": "return_data" } }
+            ]
+          },
+          "outgoing": { "merged_object": null }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 852 }
+      },
+      "f1f1": {
+        "name": "makeData",
+        "canvasName": "makeData",
+        "summary": "Render final JSON string -- variables now points to a merge with NO childJob refs, so it compiles as a real taskRef and <!var!> placeholders resolve",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "automatic",
+        "displayName": "Tools",
+        "variables": {
+          "incoming": {
+            "input": "{\"title\": \"<!title!>\", \"totalSubnets\": <!totalSubnets!>, \"status\": \"<!status!>\"}",
+            "outputType": "json",
+            "variables": "$var.e5e5.merged_object"
+          },
+          "outgoing": { "output": "$var.job.finalReport" }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 600, "y": 960 }
+      },
+      "errh1": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Shared error handler",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "taskStatus", "value": "error" },
+          "outgoing": { "value": "$var.job.taskStatus" }
+        },
+        "actor": "Pronghorn",
+        "nodeLocation": { "x": 936, "y": 636 }
+      }
+    },
+    "transitions": {
+      "workflow_start": { "a1a1": { "type": "standard", "state": "success" } },
+      "a1a1": {
+        "b2b2": { "type": "standard", "state": "success" },
+        "errh1": { "type": "standard", "state": "error" }
+      },
+      "b2b2": { "c3c3": { "type": "standard", "state": "success" } },
+      "c3c3": {
+        "d4d4": { "type": "standard", "state": "success" },
+        "errh1": { "type": "standard", "state": "failure" }
+      },
+      "d4d4": {
+        "d5d5": { "type": "standard", "state": "success" },
+        "errh1": { "type": "standard", "state": "failure" }
+      },
+      "d5d5": {
+        "e5e5": { "type": "standard", "state": "success" },
+        "errh1": { "type": "standard", "state": "failure" }
+      },
+      "e5e5": { "f1f1": { "type": "standard", "state": "success" } },
+      "f1f1": { "workflow_end": { "type": "standard", "state": "success" } },
+      "errh1": { "workflow_end": { "type": "standard", "state": "success" } }
+    }
+  }
+}

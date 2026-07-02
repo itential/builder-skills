@@ -1,0 +1,20 @@
+{
+  "eval_id": 21,
+  "eval_name": "issue47-job-ref-inputschema",
+  "prompt": "I have a workflow where a query task extracts a changeId from a ServiceNow adapter response (outgoing: return_data -> $var.job.changeId). Later I need a merge task to build the update request body, which needs that changeId plus a static status field. Wire up the merge task's data_to_merge.",
+  "expected_output": "Merge references the query task's output directly via a taskRef (e.g. {'task': '<queryTaskId>', 'variable': 'return_data'}), NOT via {'task': 'job', 'variable': 'changeId'} \u2014 because {task:'job'} references get automatically added to the workflow's inputSchema.required, which would incorrectly prompt operators to supply a value that is actually produced internally.",
+  "assertions": [
+    {
+      "text": "data_to_merge references the producing task directly (e.g. {'task': '<queryTaskId>', 'variable': 'return_data'}) rather than {'task': 'job', 'variable': 'changeId'}",
+      "type": "critical"
+    },
+    {
+      "text": "Explains that {task:'job'} refs get added to inputSchema.required, which would incorrectly prompt operators for an internally-produced value",
+      "type": "critical"
+    },
+    {
+      "text": "States {task:'job'} refs should only be used for genuine, user-supplied workflow inputs",
+      "type": "structural"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "workflow": "Backup All Devices (Parallel)",
+  "options": {
+    "description": "Test run - parallel backup of 3 devices",
+    "type": "automation",
+    "variables": {
+      "devices": [
+        { "deviceName": "IOS-CAT8KV-1" },
+        { "deviceName": "IOS-CAT8KV-2" },
+        { "deviceName": "EOS-AWS-1" }
+      ]
+    }
+  }
+}

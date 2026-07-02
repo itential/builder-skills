@@ -1,0 +1,37 @@
+{
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Identifies incorrect back-connection as the error",
+        "reason": "This is a fairly easy bar to clear since the SKILL.md states the rule almost verbatim ('Do NOT connect it back to forEach'); a model that merely echoes the skill text without verifying it against a real asset would still pass. Consider adding an expectation that specifically requires cross-referencing a real production workflow asset (as this run did) to reward genuine verification over rote quoting."
+      },
+      {
+        "reason": "No expectation checks whether the JSON artifact is syntactically valid and self-consistent (broken vs. fixed patterns actually differing only in the targeted transition). I verified this manually (valid JSON, and the diff between broken_pattern and fixed_pattern is exactly the back-edge vs. empty transitions) \u2014 a future run that produced malformed or self-contradictory JSON would not be caught by the current expectations, which only check for prose explanations."
+      }
+    ],
+    "overall": "Expectations are satisfied with strong, well-cited evidence, but they only test presence of the correct textual explanation, not correctness/validity of the JSON deliverable itself. The response's own rigor (cross-checking against a live production asset) exceeds what the expectations require."
+  },
+  "expectations": [
+    {
+      "text": "Identifies incorrect back-connection as the error",
+      "passed": true,
+      "evidence": "Transcript Diagnosis section states: 'The engineer's workflow almost certainly has the lastBodyTask inside the forEach loop wired with an explicit transition back to the forEach task's own ID.' The 'Final answer to the engineer' section states: 'That explicit edge is the bug.' The output file foreach-loop-fix.json contains a 'broken_pattern' block showing `\"lastBodyTask\": { \"c1c3\": { \"type\": \"standard\", \"state\": \"success\" } }` labeled as the anti-pattern, with why_this_breaks explaining the causal mechanism."
+    },
+    {
+      "text": "Explains last body task must have empty {} transition",
+      "passed": true,
+      "evidence": "Transcript Fix step 3 states: 'Replace it with an empty transitions object: \"lastBodyTask\": {}'. The output JSON's 'fixed_pattern.transitions' shows `\"lastBodyTask\": {}` with why_this_works explaining: 'lastBodyTask has an EMPTY transitions entry ({}). The workflow engine treats reaching the end of the loop body (no outgoing transition) as \"this iteration is done\"...' This matches the SKILL.md source text (verified directly: /tmp/eval-old-skill/builder-agent/SKILL.md lines ~1473-1487 read via grep, quote 'The last task in the loop body has an empty transition {}. Do NOT connect it back to forEach.' confirmed present in the actual file)."
+    },
+    {
+      "text": "forEach handles the loop iteration automatically",
+      "passed": true,
+      "evidence": "Diagnosis section: 'It fails because forEach is not a task you loop back into manually \u2014 the workflow engine owns loop continuation internally. It dispatches the loop body once per element of data_array via the loop state transition, and it detects \"this iteration is finished\" by the loop body simply running out of transitions... When all elements are exhausted, the engine fires the forEach task's own success state transition.' Also restated in the 'Final answer to the engineer' section and in the JSON artifact's why_this_works field: 'the workflow engine ... internally loops the forEach task back to the next data_array element on its own. ... The developer never wires an explicit edge back into c1c3.'"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "automation": {
+    "name": "Process Device Ticket - Child",
+    "description": "Child workflow invoked by 'Run Device Ticket Child And Extract Status'. Accepts ticketId and deviceName from the parent, performs the ticket/device work, and ALWAYS completes with a taskStatus output ('success' or 'error') so the parent can safely query it. PLACEHOLDER: the actual business-logic task (adapter call, config push, etc.) has NOT been specified for this build — see notes below.",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": {"x": 600, "y": 200}
+      },
+      "d1d1": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "PLACEHOLDER: Mark Ticket Processing Complete",
+        "description": "PLACEHOLDER for the child's real work (e.g., a ServiceNow/adapter task keyed on $var.job.ticketId and $var.job.deviceName, looked up via tasks.json for the target platform). Currently just sets taskStatus=success unconditionally so the parent's query has something real to extract. Replace with the try/catch pattern from builder-agent Guide 4: route the real task's success transition to a newVariable(taskStatus=success) and its error transition to a separate newVariable(taskStatus=error), both leading to workflow_end.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "name": "taskStatus",
+            "value": "success"
+          },
+          "outgoing": {
+            "value": "$var.job.taskStatus"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": {"x": 600, "y": 308}
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": {"x": 600, "y": 416}
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "d1d1": {"type": "standard", "state": "success"}
+      },
+      "d1d1": {
+        "workflow_end": {"type": "standard", "state": "success"}
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticketId": {"title": "ticketId", "type": "string"},
+        "deviceName": {"title": "deviceName", "type": "string"}
+      },
+      "required": ["ticketId", "deviceName"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "taskStatus": {"title": "taskStatus", "type": "string"}
+      }
+    }
+  }
+}

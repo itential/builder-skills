@@ -1,0 +1,43 @@
+{
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": null,
+        "reason": "None of the four expectations check whether the deliverable workflow JSON actually complies with the platform's own task-ID format rule ([0-9a-f]{1,4}, documented at SKILL.md lines 352, 508, 1264, 1325 and AGENTS.md rule 9). The produced artifact (outputs/foreach-device-loop-example.json) uses three non-hex task IDs -- g6h7, h7i8, j8k9 -- which contain the letters g/h/i/j/k that fall outside [0-9a-f]. This directly contradicts the transcript's own claim (line 31) that the JSON was built 'following Guide 1's mapping rules (task ID format [0-9a-f]{1,4}...)' and that it was 'validated'. Per the skill's own documentation this would cause project-import rejection and silent $var resolution failures if ever imported. A stronger eval would assert that every task ID in the produced example matches ^[0-9a-f]{1,4}$ (excluding workflow_start/workflow_end), since this is an easy, deterministic, and currently-failing check that the four existing assertions do not cover."
+      },
+      {
+        "assertion": "States forEach incoming should contain ONLY data_array, not job_id",
+        "reason": "This expectation is satisfied by both the reasoning text and the code (f2b2 incoming = {\"data_array\": ...} only), so it is well-grounded, not just a name check -- no complaint here, listed only for completeness of coverage discussion."
+      }
+    ],
+    "overall": "The four core expectations are well-designed and discriminating -- they require the agent to correctly cite specific, verifiable skill constraints and to actually apply them correctly in a working example, and this run genuinely did both, cross-referencing a live production asset export as independent confirmation. However, none of the assertions catch a real defect I found in the delivered artifact: three task IDs (g6h7, h7i8, j8k9) violate the skill's hard hex-only task ID rule ([0-9a-f]{1,4}), directly contradicting the transcript's explicit claim of compliance and 'validation'. Recommend adding a task-ID-format assertion to this eval family so this class of defect is caught automatically."
+  },
+  "expectations": [
+    {
+      "text": "States forEach incoming should contain ONLY data_array, not job_id",
+      "passed": true,
+      "evidence": "Transcript verbatim quotes SKILL.md line 1568/1579: 'Incoming: data_array (array) -- ONLY data_array. Do NOT include job_id in incoming -- it triggers errors' and explicitly answers 'No.' to the question, cross-referencing a real production asset export (helpers/assets/itential-platform-configuration-management.json, forEach tasks 5208/c1c3) which I independently verified via jq to have incoming = {\"data_array\": \"$var.6882.return_data\"} with no job_id key. The delivered JSON's forEach task f2b2 has incoming = {\"data_array\": \"$var.job.deviceNames\"} only (verified via jq on outputs/foreach-device-loop-example.json) -- no job_id present."
+    },
+    {
+      "text": "States $var.<taskId>.<output> does not resolve inside the forEach loop body and recommends $var.job.<varName> instead",
+      "passed": true,
+      "evidence": "Transcript quotes SKILL.md line 1581 verbatim: '$var.<taskId>.<output> does NOT resolve inside the loop body ... Use $var.job.<varName> instead' and elaborates that this applies to any pre-loop task's output, not just current_item. The delivered JSON applies this: loop-body task c3d4's operand_1 is {\"task\": \"job\", \"variable\": \"maintenanceWindowActive\"} (i.e. $var.job.maintenanceWindowActive), and the outside-the-loop evaluation task e1a1 binds its outgoing directly to $var.job.maintenanceWindowActive rather than being referenced via $var.e1a1.return_value inside the loop -- verified by reading the JSON directly."
+    },
+    {
+      "text": "States the last loop body task must have an empty {} transition, not a loop-back reference to forEach",
+      "passed": true,
+      "evidence": "Transcript quotes SKILL.md constraint #4 (line 1585): 'The last loop body task signals loop-back with an empty {} transition -- do NOT add an explicit loop-back target pointing to forEach.' Verified in the delivered JSON via jq: transitions.d4e5 = {} and transitions.e5f6 = {} (both terminal loop-body tasks), with no transition entry referencing f2b2 (the forEach task ID) anywhere in the file."
+    },
+    {
+      "text": "States loop body tasks must not transition to error handlers outside the loop",
+      "passed": true,
+      "evidence": "Transcript quotes SKILL.md constraint #3 (line 1583): 'Loop body tasks cannot transition to tasks outside the loop ... The forEach task itself handles exit via state: error.' The final answer section restates this explicitly: 'loop body tasks should never transition out to an external error handler -- let the forEach task's own state: error transition be the loop's single exit point for errors.' Verified in the delivered JSON: loop-body task c3d4's only transitions go to d4e5 and e5f6 (both loop-internal, terminal with {}), while the external error handler h7i8 is reached only via forEach task f2b2's own state:error transition, not from any loop body task."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1
+  }
+}

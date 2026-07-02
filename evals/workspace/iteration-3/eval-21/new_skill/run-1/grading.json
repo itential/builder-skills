@@ -1,0 +1,89 @@
+{
+  "expectations": [
+    {
+      "text": "data_to_merge references the producing task directly (e.g. {'task': '<queryTaskId>', 'variable': 'return_data'}) rather than {'task': 'job', 'variable': 'changeId'}",
+      "passed": true,
+      "evidence": "outputs/merge-update-changeid-task.json, merge task 'd4e5': data_to_merge[0] = {\"key\": \"changeId\", \"value\": {\"task\": \"b2c3\", \"variable\": \"return_data\"}} where 'b2c3' is the query task's own id (task 'b2c3' has name 'query', outgoing.return_data bound to $var.job.changeId). The forbidden form {\"task\": \"job\", \"variable\": \"changeId\"} does not appear anywhere as the actual wiring for changeId; it is only mentioned/quoted to explain why it was rejected."
+    },
+    {
+      "text": "Explains that {task:'job'} refs get added to inputSchema.required, which would incorrectly prompt operators for an internally-produced value",
+      "passed": true,
+      "evidence": "outputs/merge-update-changeid-task.json key_wiring_notes[1]: 'changeId is NOT wired as {\"task\": \"job\", \"variable\": \"changeId\"} even though the query task's outgoing already binds it to $var.job.changeId. The platform scans merge data_to_merge entries for {task:'job'} refs and auto-adds that variable name to inputSchema.required \u2014 that would incorrectly prompt operators to supply changeId as a workflow input, even though it's produced internally by the query task.' The transcript's final answer to the engineer (lines 260-266) restates the same explanation in different words."
+    },
+    {
+      "text": "States {task:'job'} refs should only be used for genuine, user-supplied workflow inputs",
+      "passed": true,
+      "evidence": "Transcript final answer (line 271): 'Same rule applies any time a merge/childJob variable was produced by an earlier task rather than supplied by the operator \u2014 always point at the producing task's ref (query\u2192return_data, newVariable\u2192value, makeData\u2192output, merge\u2192merged_object), never at job.' This states the rule in its complementary form (job refs reserved for operator-supplied values, never for produced values), matching the SKILL.md source rule verified at SKILL.md:1395 ('only use {task:\"job\"} for variables that are genuine workflow inputs'), which the transcript also quotes partially in step 3."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 1,
+      "Bash": 3,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 5,
+    "errors_encountered": 0,
+    "output_chars": 5889,
+    "transcript_chars": 15050,
+    "note": "Tool-call counts are inferred from the narrative transcript's described steps (1 SKILL.md read, jq/bash lookups against helpers/assets/vendor-servicenow.json, 1 file write); the transcript is a synthesized record rather than a raw tool-call log, so these counts are approximate."
+  },
+  "claims": [
+    {
+      "claim": "data_to_merge item format is {\"key\": <targetField>, \"value\": {\"task\": ..., \"variable\": ...}}, confirmed against helpers/assets/vendor-servicenow.json 'Create Change Request' (task aab9) and 'Update Change Request' (task ade8)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Directly inspected helpers/assets/vendor-servicenow.json with jq: task aab9 in 'Create Change Request' has data_to_merge entries like {\"key\": \"title\", \"value\": {\"task\": \"job\", \"variable\": \"title\", \"editable\": true}}, and task ade8 in 'Update Change Request' has {\"key\": \"number\", \"value\": {\"task\": \"job\", \"variable\": \"crNumber\", \"editable\": true}} \u2014 matches the claimed shape exactly."
+    },
+    {
+      "claim": "{task:'job'} references in merge/childJob get scanned by the platform and auto-added to inputSchema.required",
+      "type": "factual",
+      "verified": true,
+      "evidence": "SKILL.md:1392-1399 contains this exact warning verbatim: 'The platform scans every data_to_merge entry in merge tasks (and every variables entry in childJob) for {task:\"job\"} references and automatically adds that variable name to inputSchema.required... Rule: only use {task:\"job\"} for variables that are genuine workflow inputs.' Also restated in the Guide 1 pre-submit checklist at SKILL.md:366."
+    },
+    {
+      "claim": "merge requires at least 2 items in data_to_merge; 1 item resolves silently to null",
+      "type": "factual",
+      "verified": true,
+      "evidence": "SKILL.md:1422 states: 'Requires at least 2 items (1 item = silently null).' Also stated at SKILL.md:613. Note: the real production asset task ade8 ('Build sysparmQuery' in vendor-servicenow.json) actually only has 1 item in data_to_merge, which appears to be a pre-existing inconsistency in the shipped asset relative to the documented rule \u2014 not a flaw in the transcript's claim, which correctly cites the documented rule and correctly builds 2 items in its own output."
+    },
+    {
+      "claim": "outgoing.merged_object must be declared null (not {}), or it becomes unreachable",
+      "type": "factual",
+      "verified": true,
+      "evidence": "SKILL.md:1422: 'Outgoing MUST declare \"merged_object\": null (empty {} makes it unreachable).' The produced merge task (d4e5) declares outgoing.merged_object as null, consistent with this rule."
+    },
+    {
+      "claim": "Read the full builder-agent SKILL.md (2441 lines) before responding",
+      "type": "process",
+      "verified": true,
+      "evidence": "The file /Users/ankitrbhansali/builderskills/builder-skills/.claude/skills/builder-agent/SKILL.md exists and is a large, comprehensive skill file (118651 bytes) containing all of the specific sections (merge reference table, {task:'job'} warning, pre-submit checklist) quoted in the transcript, consistent with it having been read rather than fabricated from memory."
+    },
+    {
+      "claim": "Task IDs used (b2c3, d4e5, e5f6, ef01) are hex-only per platform requirements",
+      "type": "quality",
+      "verified": true,
+      "evidence": "All four task IDs use only hex characters [0-9a-f], consistent with the project-level rule (AGENTS.md rule 9: 'Task IDs are hex-only \u2014 [0-9a-f]{1,4}')."
+    }
+  ],
+  "user_notes_summary": {},
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "This eval's expectations are well-targeted: the trap (wiring changeId as {task:'job', variable:'changeId'} because the query task's outgoing happens to also write to $var.job.changeId) is genuinely tempting and specifically documented as a gotcha in the skill, so passing requires real understanding rather than surface pattern-matching. No weak or coincidentally-satisfiable assertions were found here."
+      },
+      {
+        "assertion": "data_to_merge references the producing task directly",
+        "reason": "Consider also asserting that the merge task has at least 2 data_to_merge entries and that outgoing.merged_object is declared null (not {}) \u2014 both are separate, well-documented gotchas the agent got right in this run but that the current expectations don't check for, so a future run that got the {task:'job'} rule right but broke one of these (e.g. only wired 1 item, or set merged_object to {}) would still pass all three expectations despite producing a broken workflow."
+      }
+    ],
+    "overall": "All three expectations passed with strong, non-superficial evidence: the output JSON itself (not just the transcript's prose) contains the correct producing-task reference and an explicit inline explanation of the inputSchema.required gotcha. Cross-checked the transcript's factual claims against the actual helpers/assets/vendor-servicenow.json asset and the builder-agent SKILL.md source text; all quoted rules and the data_to_merge shape were verified as accurate, not fabricated. The eval is discriminating and well-designed; the only gap is that it doesn't check the adjacent min-2-items / merged_object-null gotchas that the agent also handled correctly in this run."
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "expectations": [
+    {
+      "text": "childJob actor is 'job' not 'Pronghorn'",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1' (childJob): \"actor\": \"job\" (line 39). Confirmed this matches the real production childJob usage in helpers/assets/vendor-netbox.json task '4b5c', which also has \"actor\": \"job\"."
+    },
+    {
+      "text": "childJob task field is empty string",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1'.variables.incoming.task = \"\" (line 27), matching the skill's Mode B spec and the real vendor-netbox.json childJob task ('4b5c'.variables.incoming.task = \"\")."
+    },
+    {
+      "text": "childJob outgoing job_details is null",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1'.variables.outgoing = {\"job_details\": null} (lines 34-36), matching the real asset example exactly."
+    },
+    {
+      "text": "childJob loopType is 'parallel'",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1'.variables.incoming.loopType = \"parallel\" (line 32), which is the field the whole task (fan out over an array of devices in parallel) requires."
+    },
+    {
+      "text": "childJob variables is {} (empty) when using data_array",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1'.variables.incoming.variables = {} (line 29) while data_array = \"$var.job.devices\" is set, matching Guide 4 Mode B ('Each element in data_array becomes the child's input variables for that iteration. Set variables: {} (empty)')."
+    },
+    {
+      "text": "All incoming fields present including unused ones (transformation: '')",
+      "passed": true,
+      "evidence": "backup-all-devices-parent-workflow.json, task 'a1a1'.variables.incoming contains all six fields from the skill's Mode B spec: task, workflow, variables, data_array, transformation (= \"\", line 31), loopType \u2014 an exact field-for-field match to SKILL.md's documented childJob loop-mode template and the real vendor-netbox.json childJob task."
+    },
+    {
+      "text": "No $var references inside childJob variables object",
+      "passed": true,
+      "evidence": "task 'a1a1'.variables.incoming.variables = {} \u2014 empty, so no $var strings appear inside it. This correctly avoids the documented gotcha (SKILL.md: '$var references don't resolve inside object values ... childJob variables use {task,value} NOT $var \u2014 $var strings inside variables cause an indefinite hang at runtime')."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "note": "transcript.md is a narrative summary of the build process rather than a raw tool-call log, so per-tool-call counts could not be reliably extracted. The transcript documents specific jq/grep lookups against helpers/assets/*.json (verified independently below) plus two Write operations for the output JSON files."
+    },
+    "total_steps": 0,
+    "errors_encountered": 0,
+    "output_chars": 9112,
+    "transcript_chars": 22937
+  },
+  "claims": [
+    {
+      "claim": "The asset library (helpers/assets/*.json, helpers/assets/lcm/*.json) has no example of loopType: \"parallel\" \u2014 only \"\" and one \"sequential\" (vendor-netbox.json's Delete Prefix workflow)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Ran `grep -o '\"loopType\": \"[^\"]*\"' helpers/assets/*.json helpers/assets/lcm/*.json` directly: results were 2x \"\" in itential-platform-configuration-management.json, 9x \"\" in lcm-vxlan-fabric-services-project.json, 14x \"\" in vendor-arista-eos.json, and exactly 1x \"sequential\" in vendor-netbox.json. No \"parallel\" instance found anywhere, confirming the claim."
+    },
+    {
+      "claim": "vendor-netbox.json's 'Delete Prefix' workflow childJob task ('4b5c') was used as the structural template for the parent's childJob task, with only loopType changed from sequential to parallel",
+      "type": "process",
+      "verified": true,
+      "evidence": "Extracted task '4b5c' via jq: incoming = {task:\"\", workflow:\"Delete IP Address - NetBox\", variables:{}, data_array:\"$var.1bd8.ipsInPrefix\", transformation:\"\", loopType:\"sequential\"}, outgoing = {job_details:null}, actor:\"job\". This field set and shape is identical to the built parent's 'a1a1' task, differing only in the workflow name, data_array source, and loopType value (parallel vs sequential)."
+    },
+    {
+      "claim": "None of the real childJob usages in the asset library wire an explicit error transition off the childJob task itself (only success)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Queried transitions keyed off every childJob task ID across itential-platform-configuration-management.json, vendor-arista-eos.json, and vendor-netbox.json: every single childJob outgoing transition found has state 'success'; none has state 'error'. This directly supports the build's design decision to omit an error transition on the parent's childJob task."
+    },
+    {
+      "claim": "The child workflow's backUpDevice task incoming/outgoing shape ({name, options} -> {status}) was taken from the real 'Backup Configuration' workflow in itential-platform-configuration-management.json",
+      "type": "factual",
+      "verified": true,
+      "evidence": "jq extraction of the real asset's backUpDevice task shows variables.incoming = {name: \"$var.1d07.current_item\", options: \"$var.5152.backupOptions\"}, variables.outgoing = {status: null}, app: \"ConfigurationManager\", location: \"Application\", type: \"automatic\" \u2014 an exact structural match (field names, types, app/location values) to the built child workflow's 'a1b1' task, only with the $var source paths changed to point at this build's own job variables."
+    },
+    {
+      "claim": "All task IDs in both output workflows are hex-only ([0-9a-f]{1,4})",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Listed task keys via jq: child workflow keys are a1b1, b2c2, c3d3, e5f5, workflow_end, workflow_start; parent workflow keys are a1a1, b2b2, workflow_end, workflow_start. All non-start/end keys are lowercase hex, satisfying the skill's mandatory task-ID rule."
+    },
+    {
+      "claim": "The child workflow always completes via a try-catch pattern (success and error paths both reach workflow_end after setting taskStatus)",
+      "type": "quality",
+      "verified": true,
+      "evidence": "device-backup-child-workflow.json transitions: a1b1 (backUpDevice) -> b2c2 on success and -> e5f5 on error; b2c2 -> c3d3 (success); c3d3 -> workflow_end (success); e5f5 -> workflow_end (success). Both the success branch (via c3d3) and the error branch (via e5f5) terminate at workflow_end, and workflow_end.transitions = {} in both files (confirmed via jq), so the workflow is well-formed and always completes."
+    },
+    {
+      "claim": "Both output files are valid JSON and are complete POST /automation-studio/automations request bodies",
+      "type": "factual",
+      "verified": true,
+      "evidence": "`jq empty` succeeded on both device-backup-child-workflow.json and backup-all-devices-parent-workflow.json. Both are wrapped in a top-level \"automation\" key and contain canvasVersion, encodingVersion, font_size, inputSchema, and outputSchema, matching the skill's documented request body shape."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "No $var references inside childJob variables object",
+        "reason": "In loop mode (data_array set), the skill's own spec requires variables: {} (empty) \u2014 so this assertion is largely redundant with 'childJob variables is {} (empty) when using data_array': any output satisfying the latter automatically satisfies the former, since an empty object cannot contain a $var string. It would be more discriminating as a single-mode check (workflow field set to a fixed workflow with static per-key {task,value} variables) where a $var string genuinely could sneak into variables and cause the documented indefinite-hang bug."
+      },
+      {
+        "reason": "None of the seven expectations verify the actual semantic content that fulfills the user's request \u2014 e.g., that childJob.workflow == \"Device Backup\" (the specific child workflow named in the task) or that data_array points at a genuine per-device array input. A subtly wrong build (e.g., wiring the loop against the wrong workflow name, or against a static array instead of a job input) would still pass every listed expectation. Consider adding an assertion on the 'workflow' field value and/or that data_array references a job-level array variable."
+      },
+      {
+        "reason": "No assertion checks that the child workflow itself is well-formed (always completes via try-catch, has error transitions on adapter tasks) even though this is explicitly required by the skill's Guide 4 'Building the child workflow' section and is essential for the parent's childJob loop to produce usable per-iteration taskStatus results. I verified this independently and it held, but a genuinely broken child workflow (e.g., no error transition, leaving a loop iteration stuck) would not be caught by any of the given expectations."
+      }
+    ],
+    "overall": "All seven expectations passed with strong, verifiable evidence \u2014 cross-checked not just against the transcript's narrative claims but independently against the real production asset files (helpers/assets/*.json) the executor said it consulted, and every cross-check confirmed the transcript's claims were accurate rather than fabricated. The assertions correctly target well-documented, high-consequence childJob gotchas (wrong actor/task/job_details/variables shape causes runtime hangs or validation failures per the skill's own Gotchas list), so a genuinely wrong build would very likely fail one or more of them. The main gap is that no expectation checks the task-specific semantics (correct child workflow name, correct data source) or the child workflow's own completeness \u2014 both of which I verified manually and found correct, but which the expectation set does not itself guard against."
+  }
+}

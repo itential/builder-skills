@@ -1,0 +1,101 @@
+{
+  "expectations": [
+    {
+      "text": "childJob variables use {'task':'job','value':'varName'} syntax not $var",
+      "passed": true,
+      "evidence": "parent-workflow-childjob-orchestrator.json, task a1b1.variables.incoming.variables: {\"ticketId\": {\"task\": \"job\", \"value\": \"ticketId\"}, \"deviceName\": {\"task\": \"job\", \"value\": \"deviceName\"}}. No $var reference is used for these inputs. Confirmed this matches the real, wired childJob task (id 6bf9) in helpers/assets/itential-platform-configuration-management.json, whose variables.incoming.variables also uses {\"task\":\"job\",\"value\":\"templateName\"} style refs (verified directly with jq)."
+    },
+    {
+      "text": "childJob loopType is '' for single mode",
+      "passed": true,
+      "evidence": "parent-workflow-childjob-orchestrator.json, task a1b1.variables.incoming: \"data_array\": \"\", \"transformation\": \"\", \"loopType\": \"\" — all loop-related fields are empty strings, consistent with single (non-loop) child job mode."
+    },
+    {
+      "text": "Query uses flat variable name like 'taskStatus' not nested path",
+      "passed": true,
+      "evidence": "parent-workflow-childjob-orchestrator.json, task b2c2 (query).variables.incoming.query = \"taskStatus\" — a flat key, not a nested path like \"variables.job.taskStatus\"."
+    },
+    {
+      "text": "Query obj wired to $var.childJobTaskId.job_details",
+      "passed": true,
+      "evidence": "parent-workflow-childjob-orchestrator.json, task b2c2 (query).variables.incoming.obj = \"$var.a1b1.job_details\", where a1b1 is exactly the childJob task's own ID in the same file's tasks map. The wiring correctly references the specific childJob task's output."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 1,
+      "Bash": 3,
+      "Write": 2
+    },
+    "total_tool_calls_estimated": 6,
+    "total_steps": "not explicitly enumerated in transcript (narrative-style transcript, not raw tool log)",
+    "errors_encountered": 0,
+    "output_chars": 7275,
+    "transcript_chars": 23644,
+    "note": "No metrics.json was present in outputs_dir; these figures are inferred from the narrative transcript, which documents 1 full SKILL.md read, ~3 bash/jq exploration commands against helpers/assets/, and 2 output file writes, plus 2 jq-empty validation checks."
+  },
+  "timing": {
+    "note": "No timing.json found in the run directory; timing data unavailable."
+  },
+  "claims": [
+    {
+      "claim": "vendor-cisco-ios.json (the file the skill's own jq examples point to for a childJob example) contains zero childJob tasks",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Ran `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == \"childJob\")] | length' helpers/assets/vendor-cisco-ios.json` independently — returned 0."
+    },
+    {
+      "claim": "Real childJob task examples exist in vendor-arista-eos.json, vendor-netbox.json, itential-platform-configuration-management.json, and lcm/lcm-vxlan-fabric-services-project.json",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Ran `grep -l '\"name\": \"childJob\"' helpers/assets/*.json` and `helpers/assets/lcm/*.json` independently — matched exactly these four files, confirming the transcript's claim."
+    },
+    {
+      "claim": "In the real production workflow, the childJob tasks (6f5, 6bf9) have no error transition — only a success transition (or an empty {} terminator)",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Ran `jq -r '.components[].document.transitions.\"6f5\", .components[].document.transitions.\"6bf9\"' helpers/assets/itential-platform-configuration-management.json` — found transitions of `{}` and `{\"workflow_end\": {\"type\": \"standard\", \"state\": \"success\"}}` respectively, with no error/failure key present."
+    },
+    {
+      "claim": "Both output files were validated with `jq empty` and are well-formed JSON",
+      "type": "process",
+      "verified": true,
+      "evidence": "Independently ran `jq empty` on both parent-workflow-childjob-orchestrator.json and child-workflow-process-device-ticket.json — both parsed without error."
+    },
+    {
+      "claim": "The child workflow is a structurally complete, importable workflow demonstrating the required contract (accepts ticketId/deviceName, always completes, outputs taskStatus) despite being a placeholder for real business logic",
+      "type": "quality",
+      "verified": true,
+      "evidence": "child-workflow-process-device-ticket.json has inputSchema.required = [ticketId, deviceName] matching the parent's passed variables, a single newVariable task (d1d1) that unconditionally sets taskStatus and always reaches workflow_end via one success transition, and outputSchema.properties.taskStatus. The workflow is minimal but internally consistent and matches the declared contract; the placeholder nature is explicitly and prominently disclosed in the JSON's description/task fields and in the response, so this isn't a hidden gap."
+    },
+    {
+      "claim": "No error transition was added on the parent's childJob task (a1b1), by design, mirroring production convention",
+      "type": "quality",
+      "verified": true,
+      "evidence": "parent-workflow-childjob-orchestrator.json transitions map has an entry for a1b1 with only a `success` transition to b2c2; there is no `failure`/`error` key. This does match the real asset pattern verified above, but see eval_feedback — this is a genuine risk (childJob start-time failures, e.g. workflow-not-found, would leave the parent job stuck) that none of the four expectations check for."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": null,
+        "reason": "No expectation checks whether the parent's childJob task (a1b1) has any failure/error handling path. The delivered parent workflow has zero transitions off a1b1 besides success, which conflicts with the repo's own AGENTS.md rule 19 ('Error transitions are mandatory on adapter/external tasks... without an error transition, task errors produce Job has no available transitions and the job gets stuck forever'). The transcript defends this by citing a real asset example, but that example's job-not-found/start-failure risk is a legitimate operational gap that no assertion in this eval surfaces either way (pass or fail)."
+      },
+      {
+        "assertion": null,
+        "reason": "None of the four expectations verify the childJob-to-child-workflow contract end-to-end (that the child workflow's inputSchema.required actually matches the variable names passed by the parent's childJob.variables, and that the child's outputSchema exposes the field the query later reads). This run got it right, but a run that passed the wrong variable names into the child, or a child with a mismatched outputSchema, would still pass all four given expectations."
+      },
+      {
+        "assertion": "Query obj wired to $var.childJobTaskId.job_details",
+        "reason": "This expectation is satisfied here, but as phrased it would also pass if the obj pointed at an arbitrary/wrong hex task ID as long as it looked like a childJob-shaped reference (e.g., pointing at a different, unrelated task ID that happens to also be a childJob elsewhere in the same file). Tightening it to require the referenced ID match the ID of the actual childJob task in the same workflow (as this run correctly did) would make it more discriminating against copy-paste or off-by-one ID errors."
+      }
+    ],
+    "overall": "All four expectations passed with genuine, verifiable evidence — not just filename or superficial structural matches. The design choices (single-mode childJob syntax, flat query key, correct $var wiring) are all correctly implemented and independently cross-checked against real production asset JSON, which is a meaningfully high bar. The main gap is that none of the expectations test failure-path completeness (error transitions, contract matching between parent and child schemas), which is where a subtly incorrect childJob/query build would most likely go wrong in production."
+  }
+}

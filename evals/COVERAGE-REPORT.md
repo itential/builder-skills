@@ -11,11 +11,13 @@
 |-------|-------|------------|----------|------------|----------|
 | spec-agent | 5 | 18 | 6 | 11 | 1 |
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
-| builder-agent | 19 | 55 | 22 | 30 | 3 |
+| builder-agent | 27 | 82 | 39 | 40 | 3 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
 | flowagent | 6 | 18 | 4 | 13 | 1 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **52** | **167** | **61** | **97** | **10** |
+| **Total** | **60** | **194** | **78** | **107** | **10** |
+
+**2026-06-30 update:** Added 8 builder-agent evals (ids 20-27) covering issues #46-49, #51-54 (childJob query extraction, `{task:"job"}` inputSchema pollution, ViewData schema, makeData+childJob-merge, restCall response shape, childJob loop enrichment, forEach constraints, LCM Create completeness). Ran the official skill-creator executor→grader pipeline (`evals/workspace/iteration-3/`) old-skill-vs-new-skill: **new skill 100% pass rate, old (pre-fix) skill 71.8%, zero regressions** on the 5 pre-existing evals re-run alongside the 8 new ones. See `evals/workspace/iteration-3/benchmark.md` and `review.html` for the full breakdown. One pre-existing assertion (builder-agent eval 4, "makeData outputType is 'json'") was corrected after the grader flagged it as encoding an incorrect platform-semantics assumption — the task asks for a JSON *string*, and `outputType: "string"` is the platform-correct choice, not `"json"`.
 
 ---
 

@@ -1,0 +1,88 @@
+{
+  "expectations": [
+    {
+      "text": "'view' is a top-level field, not nested inside variables",
+      "passed": true,
+      "evidence": "Both output files place `view` as a sibling of `name`/`type`/`app` inside the ViewData task object. In outputs/viewdata-approval-task.json: `\"view\": \"/workflow_engine/task/ViewData\"` appears at the same level as `\"type\": \"manual\"` (not inside the `variables` block). Verified programmatically: `jq '.e1f2 | .view' viewdata-approval-task.json` and `jq '.tasks.e1f2 | .view' workflow-approval-wiring.json` both return the top-level path string, and `jq '.e1f2.variables | has(\"view\")'` is false. Transcript step 9 checklist also explicitly confirms this: '[x] view top-level, not nested in variables'."
+    },
+    {
+      "text": "'incoming.variables' key is present in the task (even if the value is {})",
+      "passed": true,
+      "evidence": "In both output files, `variables.incoming.variables` key is present (set to `\"$var.job.dataToReview\"` rather than `{}`, but the key itself exists as required). Verified via `jq '.e1f2.variables.incoming | has(\"variables\")'` on both files, which returns `true`. The expectation only requires the key be present (value can be `{}` 'if unused' per SKILL.md line 2118); here it's populated with a real reference rather than omitted or nested incorrectly."
+    },
+    {
+      "text": "displayName is 'Tools' and there is no actor field on the manual task",
+      "passed": true,
+      "evidence": "Both files show `\"displayName\": \"Tools\"` on the e1f2 ViewData task, and no `actor` key exists anywhere in that task object (confirmed via `jq '.e1f2 | has(\"actor\")'` → false, and `jq '.tasks.e1f2 | has(\"actor\")'` → false in the wiring file). Note the non-manual `newVariable` tasks (a1a1, b1b1) in workflow-approval-wiring.json do carry `\"actor\": \"Pronghorn\"`, but the expectation is scoped to 'the manual task' (ViewData), which correctly omits it."
+    },
+    {
+      "text": "Does not claim 'error' or 'decorators' fields are invalid on manual tasks",
+      "passed": true,
+      "evidence": "Transcript step 9 checklist states: '[x] error/decorators included in variables (harmless, Studio-added, kept for consistency with production exports)' — explicitly calling them harmless, not invalid. No text anywhere in the transcript or final answer instructs the engineer to remove or avoid these fields; the output JSON files themselves include `\"error\": \"\"` and `\"decorators\": []` inside the variables block, consistent with SKILL.md's own guidance (line 2121: 'these are added by Studio on export and are harmless. You do not need to add or remove them')."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Bash": 5,
+      "Write": 2
+    },
+    "total_tool_calls": 7,
+    "total_steps": 10,
+    "errors_encountered": 0,
+    "output_chars": 4938,
+    "transcript_chars": 14263
+  },
+  "claims": [
+    {
+      "claim": "vendor-cisco-ios.json (the file SKILL.md points to for a live ViewData example) actually only contains a ViewHTML task, not a ViewData task — the skill's pointer is stale/incorrect",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Independently ran `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == \"ViewData\")] | first | .value' helpers/assets/vendor-cisco-ios.json` against the actual skill repo file — result is `null`. The file does contain a `ViewHTML` task. This confirms the transcript's finding and is a genuine, verifiable documentation bug in SKILL.md line 2110-2113."
+    },
+    {
+      "claim": "Real production ViewData tasks (checked across multiple asset files) omit `taskVersion` and `hostApp` entirely, contradicting the impression from the skill's ViewHTML example that these are required on manual tasks generally",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Independently queried ViewData tasks in vendor-arista-eos.json, vendor-servicenow.json, vendor-netbox.json, vendor-infoblox-nios-ddi.json, and itential-platform-configuration-management.json — all five have `taskVersion: null` and `hostApp: null` (i.e., absent). SKILL.md itself only states `taskVersion`/`hostApp` are required in the ViewHTML section (line 2094, 2108), not in the ViewData section (lines 2123-2145), so the executor's caution here is accurate and matches actual SKILL.md scoping, and is further corroborated by the asset data."
+    },
+    {
+      "claim": "displayName is 'Tools' in 3 of 4 checked assets (2 legacy ones use 'WorkFlowEngine' instead)",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Re-checking the five ViewData-bearing asset files referenced by the transcript (arista, servicenow, netbox, infoblox, itential-platform-configuration-management): 3 use displayName 'Tools' (arista, servicenow, itential-platform-configuration-management) and 2 use 'WorkFlowEngine' (netbox, infoblox) — a 3-of-5 split, not 3-of-4 as stated. This is a minor internal arithmetic/count inconsistency in the transcript's self-reporting; it does not affect the correctness of the delivered artifacts (which correctly use 'Tools' per SKILL.md's explicit instruction) but is a small factual slip worth noting."
+    },
+    {
+      "claim": "Both output JSON files were validated with `jq empty` and parse cleanly",
+      "type": "process",
+      "verified": true,
+      "evidence": "Independently ran `jq empty` on both outputs/viewdata-approval-task.json and outputs/workflow-approval-wiring.json — both exited cleanly with no parse errors."
+    },
+    {
+      "claim": "Approve and Reject transitions cannot both point directly to workflow_end from the same task's transitions object, so each is routed through its own newVariable task before converging on workflow_end",
+      "type": "quality",
+      "verified": true,
+      "evidence": "This correctly reflects the duplicate-key JSON constraint (also documented as Rule 21 in the repo's AGENTS.md: 'Duplicate transition keys to same target'). The delivered workflow-approval-wiring.json implements exactly this pattern: e1f2 transitions to a1a1 (success) and b1b1 (failure), and both a1a1 and b1b1 independently transition to workflow_end — verified structurally in the file's `transitions` block."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "'incoming.variables' key is present in the task (even if the value is {})",
+        "reason": "This assertion only checks key presence, which a trivial/incorrect output could also satisfy by setting `variables: {}` without wiring any real approval data. It doesn't verify that the task actually surfaces a header + message + Approve/Reject buttons as the engineer requested — consider adding an assertion that checks for `header`, `message`, `btn_success`, and `btn_failure` fields with non-empty approval-appropriate values, since that's the actual functional ask in the prompt."
+      },
+      {
+        "reason": "No expectation checks the workflow wiring itself (transition correctness, the duplicate-key-to-workflow_end handling, or that both success and failure transitions exist on the ViewData task). The executor produced a solid, correct wiring file (workflow-approval-wiring.json) that resolves a real JSON constraint (can't have two 'workflow_end' keys in one transitions object) — this is arguably the most technically substantive part of the deliverable, and it goes entirely unverified by the current expectation set."
+      },
+      {
+        "reason": "None of the expectations reward or penalize whether the executor consulted real production examples (as instructed by the skill's 'read the skill file first' / 'pull real, production-tested examples' directives) versus fabricating a plausible-looking task from memory. In this run the executor did the right thing (pulled and cross-checked live asset files, and even caught a stale doc pointer), but an expectation set that never checks this would equally reward a lucky guess that happened to match SKILL.md's inline example. Consider adding an expectation like 'traces its ViewData field choices to a real asset file example, not just the skill's inline template.'"
+      }
+    ],
+    "overall": "All four expectations pass with genuine, verifiable evidence — the delivered ViewData task is structurally correct per the skill's own manual-task rules, and the executor went beyond the letter of the task by cross-referencing real production asset JSON, catching and reporting a real documentation bug (stale vendor-cisco-ios.json pointer for ViewData), and correctly solving the duplicate-transition-key problem for the Approve/Reject branches. The expectation set is reasonably discriminating for the four specific manual-task gotchas it targets, but it doesn't test the functional core of the request (working approval UI content) beyond key presence, nor does it credit the wiring/transition correctness that represents the bulk of the engineering value in this deliverable."
+  }
+}

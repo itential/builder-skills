@@ -1,0 +1,24 @@
+{
+  "eval_id": 4,
+  "eval_name": "makedata-merge-json",
+  "prompt": "Create a workflow with makeData that generates a JSON string containing deviceName and action fields from job variables.",
+  "expected_output": "merge task builds variables object first, makeData references merge output via $var, input uses <!var!> syntax, outputType set correctly",
+  "assertions": [
+    {
+      "text": "merge task precedes makeData to build the variables object",
+      "type": "structural"
+    },
+    {
+      "text": "makeData variables field is $var.mergeTaskId.merged_object not inline",
+      "type": "critical"
+    },
+    {
+      "text": "makeData input uses <!var!> syntax for substitution",
+      "type": "structural"
+    },
+    {
+      "text": "makeData outputType is 'json' for JSON output",
+      "type": "structural"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies that restCall has no response/result wrapper -- it returns the parsed JSON body directly",
+      "passed": true,
+      "evidence": "Transcript 'Diagnosis' section: '`restCall` is different. It is a WorkFlowEngine *utility* task, not an adapter task, and it returns the **already-parsed JSON response body directly** as its outgoing value — there is no `response` or `result` wrapper at all.' This matches the skill's own text (SKILL.md line 1680, verified directly): '`restCall` returns the **already-parsed JSON body directly** as the outgoing value. There is no `response` or `result` wrapper.' The claim is also repeated in the output artifact's `c3c3` task description field ('restCall returns the parsed JSON body directly — no response/result wrapper') and in the 'Final answer to the engineer' block."
+    },
+    {
+      "text": "Corrects the query path to 'access_token' (not 'response.access_token')",
+      "passed": true,
+      "evidence": "Transcript 'Fix' section explicitly instructs changing `\"query\": \"response.access_token\"` to `\"query\": \"access_token\"`. The output file outputs/restcall-query-fix.json contains a corrected task `c3c3` with `\"query\": \"access_token\"` and, for contrast, a `c3c3_WRONG_EXAMPLE_query` task retaining the broken `\"query\": \"response.access_token\"` labeled '_comment: This is the BROKEN version — shown for contrast only'."
+    },
+    {
+      "text": "Contrasts this with adapter tasks, which DO wrap responses in {response, headers, metrics}",
+      "passed": true,
+      "evidence": "Transcript Diagnosis: 'Adapter tasks (e.g., `genericAdapterRequest`, `createChangeRequest`) always wrap the upstream HTTP response in `{response, headers, metrics}`. That's why adapter query paths look like `\"response.id\"` or `\"response.access_token\"`.' Repeated in the 'General rule to remember' line and in the final verbatim answer to the engineer ('Adapter tasks always wrap upstream responses in `{response, headers, metrics}`, so adapter query paths correctly start with `response.`'). This matches SKILL.md line 1688 verified directly: 'This is the opposite of adapter tasks (e.g., `genericAdapterRequest`), which always wrap the upstream response in `{response, headers, metrics}`.'"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 2,
+      "Bash": 2,
+      "Write": 1
+    },
+    "total_tool_calls": 5,
+    "total_steps": 8,
+    "errors_encountered": 0,
+    "output_chars": 3771,
+    "transcript_chars": 13908
+  },
+  "execution_metrics_note": "No metrics.json/timing.json present in the run directory; tool-call counts above are inferred from the narrative 'Steps taken' section of the transcript (2 Read calls to cover SKILL.md across a truncation boundary, 2 grep-based Bash calls, 1 Write for the output artifact) rather than a raw tool-invocation log, so this is a best-effort estimate, not an exact count.",
+  "claims": [
+    {
+      "claim": "restCall returns the already-parsed JSON body directly as its outgoing value, with no response/result wrapper",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Directly confirmed against .claude/skills/builder-agent/SKILL.md line 1680, which states exactly this."
+    },
+    {
+      "claim": "Adapter tasks (e.g. genericAdapterRequest) always wrap the upstream response in {response, headers, metrics}",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Directly confirmed against SKILL.md line 1688, which states this verbatim."
+    },
+    {
+      "claim": "Correct restCall query path is 'access_token'; 'response.access_token' and 'result.access_token' are both wrong",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Directly confirmed against SKILL.md lines 1682-1686 code block, which lists exactly these correct/wrong examples."
+    },
+    {
+      "claim": "No local asset project under helpers/assets/ wires a restCall task ('grep -rl \"name\": \"restCall\" helpers/assets/' returns no hits)",
+      "type": "process",
+      "verified": true,
+      "evidence": "Re-ran the same grep command in the repo: exit code 1, zero matches, confirming the transcript's claim."
+    },
+    {
+      "claim": "No oauth_bootstrap.py script exists in scripts/",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Listed scripts/ directory: only platform_pull.py and use_case_init.py are present; no oauth_bootstrap.py."
+    },
+    {
+      "claim": "AGENTS.md Key Rule #20 reinforces the same 'don't assume wrapper, verify actual response shape' principle for adapter tasks",
+      "type": "factual",
+      "verified": true,
+      "evidence": "AGENTS.md Key Rule 20 (provided in context) reads: 'Adapter responses are transformed — adapters reshape the upstream API response. Don't assume the native API's response structure (e.g., ServiceNow result.sys_id). Call the adapter endpoint directly or check openapi.json to verify the actual response shape before wiring query paths.' This matches the transcript's paraphrase/quote closely."
+    },
+    {
+      "claim": "The output artifact explicitly flags that the restCall task's illustrative incoming field names (uri/method/headers/body/contentType) are unverified against a live schema and should be checked via tasks.json + multipleTaskDetails before use",
+      "type": "quality",
+      "verified": true,
+      "evidence": "outputs/restcall-query-fix.json top-level '_comment' field states: 'Task ID/field names for restCall follow WorkFlowEngine utility-task conventions documented in the builder-agent skill... In a live session, pull the exact restCall incoming field names from tasks.json + POST /automation-studio/multipleTaskDetails before finalizing — do not treat the incoming field names below as authoritative without that lookup.' This is an honest, appropriately-scoped caveat rather than presenting a guess as verified fact."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "No expectation checks whether the response correctly leaves the restCall task itself unmodified (i.e., correctly scopes the fix to only the downstream query task rather than also 'fixing' the working restCall call). The transcript does this correctly ('No change is needed to the restCall task itself'), but an expectation checking this would catch a plausible failure mode where a model over-corrects and also alters restCall's request wiring unnecessarily."
+      },
+      {
+        "reason": "The three expectations are all satisfied by prose alone; none requires the JSON artifact to actually be internally consistent (e.g., that the corrected query task's 'obj' field points at the same task ID as the restCall task, or that transitions route the wrong-example task out of the graph). In this run the artifact was in fact consistent and correctly excluded the wrong-example task from 'transitions', but an expectation exercising the artifact's structural correctness (not just its prose) would be a slightly more discriminating check for this kind of eval."
+      }
+    ],
+    "overall": "Evals are solid and discriminating: each expectation requires citing/using specific documented behavior (restCall's unwrapped response shape, the exact corrected query string, and the adapter-task contrast) that a model could only get right by actually reading and correctly applying the SKILL.md restCall subsection, not by generic guessing. All three passed with direct, verifiable evidence in both the transcript and the output artifact."
+  }
+}

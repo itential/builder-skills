@@ -1,0 +1,84 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies that the merge is missing subscription_id and resource_group from schema.required",
+      "passed": true,
+      "evidence": "Transcript 'Diagnosis' section (line 49): 'If the merge task that builds it only wires two of the four required fields (`vnet_name`, `vlan_id`) and omits `subscription_id` and `resource_group`, the resulting `instance` object is missing two required properties.' The final answer (line 75) repeats this explicitly, and the produced outputs/merge-task-AFTER-fixed.json adds both fields to `data_to_merge` alongside the existing `vnet_name`/`vlan_id` entries."
+    },
+    {
+      "text": "Explains that a missing required field causes the instance write to fail AFTER resources are already provisioned, orphaning them from LCM",
+      "passed": false,
+      "evidence": "The transcript never discusses provisioning order or orphaning. Its failure-mode discussion is limited to (1) the instance write being rejected by schema validation at write time ('the write will fail schema validation... Schema validation failed on must have required property...', line 75) and (2) a 'quieter failure mode' where fields persist as silently undefined and propagate to later Update/Delete workflows (lines 57-58). A grep of the full transcript for 'orphan', 'provision', 'already', 'sequence', 'external system' etc. found no discussion of the specific scenario where an earlier task in the workflow has already created the real external resource before the instance-write/merge task runs, such that a failed instance write leaves a resource that exists in the vendor/system of record but has no corresponding LCM instance record. This specific architectural risk (provisioning happens before LCM registration, so a late schema failure orphans the resource) is not mentioned anywhere in the transcript or outputs."
+    },
+    {
+      "text": "Recommends reading schema.required before/while building the merge task (e.g. jq '.schema.required' on the model file)",
+      "passed": false,
+      "evidence": "The transcript's author personally inspected `schema.required` in various asset files during its own research (Step 3, e.g. 'Confirmed the shape of `schema.required`, e.g.: \"required\": [\"becentralId\", \"mac\", \"serialNumber\", \"customerId\"]'), but this was the executor diagnosing the existing bug, not a forward-looking recommendation to the engineer. The 'Recommended fix' section (lines 59-65) and the verbatim final answer (lines 75-77) only tell the engineer to add the two missing fields, use the correct `variable` key, wire `merged_object` to `$var.job.instance`, check `outputSchema`/`inputSchema.required`, and use `POST /automation-studio/workflows/validate` before running. Nowhere does the output instruct the engineer to read/extract `schema.required` from the resource model file (e.g. via `jq '.schema.required'`) as a step to perform before or while building merge tasks going forward. A grep for 'jq', 'schema.required', 'before building', 'while building' surfaces only descriptive/diagnostic uses of schema.required, not a prescriptive process recommendation."
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 2,
+    "total": 3,
+    "pass_rate": 0.33
+  },
+  "execution_metrics": {
+    "tool_calls": 0,
+    "total_tool_calls": 0,
+    "total_steps": 4,
+    "errors_encountered": 0,
+    "output_chars": 5703,
+    "transcript_chars": 11069,
+    "note": "transcript.md is a narrative summary, not a raw tool-call trace, so exact per-tool-call counts could not be reliably extracted. The narrative describes ~4 major steps: reading SKILL.md in full (2313 lines), grepping the skill for LCM/merge guidance, pulling and inspecting 4 real LCM asset files under helpers/assets/lcm and helpers/create, and synthesizing a diagnosis plus 3 output JSON files."
+  },
+  "claims": [
+    {
+      "claim": "The skill (SKILL.md) does not have a dedicated 'LCM resource model' section walking through schema.required vs. data_to_merge, so the executor relied on general merge-task and debug-guide sections plus real asset files.",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript line 14 states this explicitly, and the executor's subsequent steps (pulling helpers/assets/lcm/*.json files) are consistent with needing to derive LCM-specific evidence from real assets rather than a dedicated skill section."
+    },
+    {
+      "claim": "outputs/merge-task-AFTER-fixed.json contains all four required fields (subscription_id, resource_group, vnet_name, vlan_id) in data_to_merge, each using the correct {\"task\":\"job\",\"variable\":...} reference shape (not childJob's \"value\" key).",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Read outputs/merge-task-AFTER-fixed.json directly: data_to_merge contains 4 entries for subscription_id, resource_group, vnet_name, vlan_id, each as {\"key\": ..., \"value\": {\"task\": \"job\", \"variable\": ...}}, and outgoing.merged_object is wired to \"$var.job.instance\"."
+    },
+    {
+      "claim": "outputs/create-action-workflow-fragment.json models a minimal workflow with inputSchema.required listing all four fields and outputSchema.required: [\"instance\"], with instance.required also listing all four fields.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Read outputs/create-action-workflow-fragment.json directly: inputSchema.required = [\"subscription_id\",\"resource_group\",\"vnet_name\",\"vlan_id\"]; outputSchema.required = [\"instance\"]; outputSchema.properties.instance.required = [\"subscription_id\",\"resource_group\",\"vnet_name\",\"vlan_id\"]. This matches the transcript's stated intent."
+    },
+    {
+      "claim": "The executor cites a real production LCM asset (lcm-vxlan-fabric-management.json) as evidence that an LCM action's outputSchema requires a job variable named 'instance' whose shape mirrors the resource model schema.",
+      "type": "factual",
+      "verified": false,
+      "evidence": "This claim cannot be independently verified from the outputs_dir or transcript alone since the referenced source file (helpers/assets/lcm/lcm-vxlan-fabric-management.json) is not included in outputs and was not provided for inspection in this grading pass; the transcript's quoted JSON snippet is plausible and internally consistent with the rest of the LCM asset library described in the project's AGENTS.md ('every action workflow must declare and output an instance variable'), but the underlying file itself was not directly inspected during grading."
+    },
+    {
+      "claim": "The engineer's final answer is presented 'verbatim' as what was communicated back to the user.",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript includes a clearly delimited 'Final answer to the engineer (verbatim)' section (lines 73-77) that restates the diagnosis and fix in second-person, consistent with a direct response to the engineer's question."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Explains that a missing required field causes the instance write to fail AFTER resources are already provisioned, orphaning them from LCM",
+        "reason": "This assertion tests a fairly specific, non-obvious architectural claim (that in typical LCM Create workflows, the actual external resource is provisioned by an earlier task before the final instance-write/merge step runs, so a late schema failure leaves a resource orphaned outside LCM's tracking). Nothing in the eval's stated scenario (a single merge task building data_to_merge) mentions or implies the existence of an earlier provisioning task, so a model that reasons purely from the given facts has no way to surface an orphaning narrative \u2014 it can only invent one or omit it. If this is the intended teaching point, the eval's problem setup should include an explicit adapter/provisioning task earlier in the workflow so there is something concrete for the response to reason about (and fail to catch, or catch, in a discriminating way)."
+      },
+      {
+        "assertion": "Recommends reading schema.required before/while building the merge task (e.g. jq '.schema.required' on the model file)",
+        "reason": "As written, this expectation is somewhat ambiguous between 'the executor should perform this lookup while diagnosing' (which happened \u2014 the transcript describes reading schema.required from real asset files) and 'the executor should tell the engineer to adopt this as a standing practice for future merge-task construction' (which did not happen \u2014 the final answer is retrospective/corrective, not process-prescriptive). Clarifying which of these two is intended would make grading less subjective and would help distinguish skill versions that only fix the immediate bug from skill versions that also instill a preventive habit."
+      }
+    ],
+    "overall": "One of three expectations (the schema.required omission) is clearly and substantively satisfied with strong evidence and correct corrected artifacts. The other two probe for specific narrative/process elements (provisioning-order orphaning risk, and a forward-looking 'check schema.required first' habit) that the given problem statement does not clearly cue and that the old skill's transcript does not address at all \u2014 worth checking whether these gaps are due to a genuine skill deficiency (plausible, since the skill lacks a dedicated LCM resource-model section per the transcript's own observation) or due to expectations that assume context beyond what was given to the executor."
+  }
+}
