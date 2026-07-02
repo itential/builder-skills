@@ -41,12 +41,13 @@ BUILD SEQUENCE (build locally, import atomically, test, iterate)
      │    On failure: fix local JSON → PUT to update → re-test
      │    Never recreate — updating preserves IDs
      │
-     │  Phase 6: VERIFY + DELIVER
-     │    Run acceptance criteria from solution-design.md
+     │  Phase 6: VERIFY + HAND OFF
      │    Verify membership (set in Phase 3)
+     │    Confirm solution-design.md §D has real IDs, not placeholders
+     │    Acceptance criteria are NOT verified here — that's /qa-agent's job
      │
      ▼
-DELIVERED
+HANDED OFF TO /qa-agent (acceptance testing + as-built)
 ```
 
 ---
@@ -367,14 +368,9 @@ When something fails, fix locally and update on the platform.
 
 ---
 
-## Phase 6: VERIFY + DELIVER
+## Phase 6: VERIFY + HAND OFF
 
-### Run acceptance criteria
-
-For each criterion in `solution-design.md` Section F:
-1. Run the test
-2. Check pass/fail
-3. If fail: fix (Phase 5 cycle), re-test
+**Acceptance criteria are NOT run here.** That's `/qa-agent`'s job, running against the completed build with real test data the engineer confirms — component-level testing in Phase 4 only proves each piece runs without erroring, not that the delivered solution satisfies what the customer actually asked for.
 
 ### Verify membership (set in Phase 3)
 
@@ -384,12 +380,16 @@ GET /automation-studio/projects/{projectId}
 ```
 Check `data.members` — verify the spec's owner and editors are listed, not just the OAuth service account. If membership is missing or wrong, re-run the Phase 3 membership procedure.
 
+### Confirm real IDs are in solution-design.md §D
+
+Component Inventory should now have real workflow/template/project IDs, not placeholders. `/qa-agent` needs these to run acceptance tests.
+
 ### Deliverables
 
 ```
 {use-case}/
   customer-spec.md          ← what they asked for (HLD)
-  solution-design.md        ← how it was built (LLD)
+  solution-design.md        ← how it was built (LLD), §D updated with real IDs
   customer-context.md       ← business rules
   project-import.json       ← full import payload (reproducible)
   cmd-*.json                ← command templates
@@ -401,7 +401,7 @@ Summary to the engineer:
 - What was built and where to find it
 - How to run it (input variables, trigger)
 - What it expects (devices, adapters, credentials)
-- Acceptance test results
+- That it's ready to hand off to `/qa-agent` for acceptance testing
 
 ---
 
@@ -460,7 +460,7 @@ Summary to the engineer:
                └───────┬────────┘
                        │
                ┌───────▼────────┐
-               │ VERIFY+DELIVER │  ← Phase 6: acceptance criteria
+               │ VERIFY+HANDOFF │  ← Phase 6: membership + real IDs, hand off to /qa-agent
                └────────────────┘
 ```
 

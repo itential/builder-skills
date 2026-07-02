@@ -14,7 +14,8 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 | `/documentation` | — | Survey global platform assets → discover relationships → group by use case → produce HLD+LLD per use case → optionally create projects and move assets in. For a specific named project, redirect to `/project-to-spec`. |
 | `/flowagent-to-spec` | — | Read a FlowAgent → produce customer-spec.md as a deterministic workflow spec. |
 | `/solution-arch-agent` | **Solution Architecture Agent** | Feasibility assessment + solution design. Runs after Requirements. |
-| `/builder-agent` | **Builder Agent** | Build all assets, run tests, produce as-built record. |
+| `/builder-agent` | **Builder Agent** | Build all assets, test each component individually. Runs after Design. |
+| `/qa-agent` | **QA Agent** | Acceptance testing against the approved acceptance criteria + as-built record. Runs after Build — last technical stage before customer sign-off. |
 | `/iag` | — | Automation Gateway: IAG services (Python, Ansible, OpenTofu). |
 | `/flowagent` | — | AI Agents: configure LLM providers, tools, missions. |
 | `/itential-mop` | — | Command templates with validation rules. |
@@ -25,21 +26,21 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 
 ### Delivery Lifecycle
 
-Spec-based delivery follows five stages. Each stage has a named agent, a clear input, and a deliverable.
+Spec-based delivery follows six stages. Each stage has a named agent, a clear input, and a deliverable.
 
 ```
-Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
-      │                │              │          │           │
-  Spec Agent   Solution Architecture  Solution   Builder     Builder
-                     Agent           Architecture Agent       Agent
-                                      Agent
-      │                │              │          │           │
-  customer-        feasibility.md  solution-    assets/    as-built.md
-  spec.md          (assessment     design.md    configs    (delivered state,
-  (approved)       + decision)     (approved)  (delivered)  deviations,
-                                                            learnings)
-                                                           ↳ design updates
-                                                           ↳ spec amendments
+Requirements → Feasibility →   Design    →  Build   →    Test    →  As-Built
+      │              │             │            │             │            │
+  Spec Agent   Solution Arch  Solution Arch  Builder      QA Agent    QA Agent
+                   Agent          Agent       Agent
+      │              │             │            │             │            │
+  customer-      feasibility.md solution-    assets/    test-report.md as-built.md
+  spec.md        (assessment    design.md    configs    (evidence per  (delivered
+  (approved)     + decision)   (approved)   (delivered) criterion, from   state,
+                                                          test-plan.md    deviations,
+                                                          approved by     learnings)
+                                                          engineer)      ↳ design updates
+                                                                         ↳ spec amendments
 ```
 
 **Deliverables:**
@@ -49,14 +50,16 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 | HLD | `customer-spec.md` | Spec Agent | Customer / stakeholder |
 | Feasibility Assessment | `feasibility.md` | Solution Architecture Agent | Customer / architect |
 | Solution Design / LLD | `solution-design.md` | Solution Architecture Agent | Engineer / delivery team |
-| As-Built | `as-built.md` | Builder Agent | Customer / delivery / support / system of record |
+| Test Plan | `test-plan.md` | QA Agent | Engineer (approves before any live test execution) |
+| Test Report | `test-report.md` | QA Agent | Customer / delivery — evidence per acceptance criterion |
+| As-Built | `as-built.md` | QA Agent | Customer / delivery / support / system of record |
 
 **Explore path** (no spec, no delivery lifecycle):
 ```
 /explore → auth → pull platform data → summarize → use skills directly
 ```
 
-**IMPORTANT: Invoke skills using the Skill tool** — don't just reference them in text. When you need to build workflows/templates, invoke `/builder-agent`. The skills contain the API details you need. Without loading them, you're guessing.
+**IMPORTANT: Invoke skills using the Skill tool** — don't just reference them in text. When you need to build workflows/templates, invoke `/builder-agent`. When a build needs acceptance testing or a closeout record, invoke `/qa-agent`. The skills contain the API details you need. Without loading them, you're guessing.
 
 ### Directory Layout
 
@@ -84,7 +87,7 @@ builder-skills/
         ├── applications.json — pulled fresh per engagement (prefer over platform/)
         ├── task-schemas.json — fetched on demand during build, never pre-populated
         ├── use-case-memory.md — living context: IDs, decisions, gotchas, test log, open items
-        └── (deliverables: customer-spec.md, feasibility.md, solution-design.md, as-built.md)
+        └── (deliverables: customer-spec.md, feasibility.md, solution-design.md, test-plan.md, test-cases.json, test-report.md, as-built.md)
 ```
 
 **Setup sequence (one-time per platform):**
@@ -107,6 +110,22 @@ builder-skills/
 cat use-cases/<name>/use-case-memory.md
 ```
 It contains the platform URL, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented. If the file doesn't exist, create it from `helpers/use-case-memory.md`.
+
+### Resuming a Use-Case
+
+`use-case-memory.md`'s `Stage` field tells you where to pick up — but a field can go stale (an agent forgets to update it, a session gets interrupted mid-write). **Verify `Stage` against which files actually exist before trusting it.** If they disagree, the files are ground truth — investigate the mismatch before proceeding, don't just pick one.
+
+| `Stage` says | Files that should exist | Files that should NOT exist yet |
+|---|---|---|
+| `requirements` | (nothing yet, or a draft `customer-spec.md`) | `feasibility.md` |
+| `feasibility` | `customer-spec.md` (approved) | `feasibility.md` (approved) |
+| `design` | `feasibility.md` (approved) | `solution-design.md` (approved) |
+| `build` | `solution-design.md` (approved) | Component Inventory (§D) has real IDs |
+| `test` | `solution-design.md` §D has real IDs | `test-report.md` (complete) |
+| `as-built` | `test-report.md` (all cases passing, or residuals explicitly accepted) | `as-built.md` |
+| `delivered` | `as-built.md` (signed off) | — |
+
+`Status: on-hold` can apply at any `Stage` — it means work is paused, not that the stage is wrong. Every skill that hands off to another stage MUST update `Stage` (and `Last updated`) before ending its session — see each skill's handoff section for the exact point to do it.
 
 **Data lookup order:**
 - `{use-case}/tasks.json`, `apps.json`, `adapters.json`, `openapi.json` — pulled by `/solution-arch-agent` or `/explore` during feasibility. **Always prefer these — they are per-engagement and fresh.**
@@ -187,17 +206,17 @@ Figure out which **category of work** the user needs:
 
 ## Developer Flow
 
-Five stages. Three agents. Each stage has a named agent, a clear input, and a deliverable. Nothing moves forward without the engineer's sign-off at each stage.
+Six stages. Four agents. Each stage has a named agent, a clear input, and a deliverable. Nothing moves forward without the engineer's sign-off at each stage.
 
 ```
-Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
-      │                │              │          │           │
-  /spec-agent    /solution-        /solution-  /builder-  /builder-
-                  arch-agent        arch-agent   agent      agent
-      │                │              │          │           │
-  customer-        feasibility.md  solution-    assets/    as-built.md
-  spec.md          (approved)       design.md   configs    (approved)
-  (approved)                        (approved)
+Requirements → Feasibility →   Design    →  Build   →    Test    →  As-Built
+      │              │             │            │             │            │
+ /spec-agent   /solution-     /solution-   /builder-     /qa-agent   /qa-agent
+                arch-agent     arch-agent    agent
+      │              │             │            │             │            │
+  customer-      feasibility.md solution-    assets/    test-plan.md  as-built.md
+  spec.md        (approved)     design.md   (delivered) (approved),   (approved)
+  (approved)                    (approved)              test-report.md
 ```
 
 **Stage summaries:**
@@ -206,9 +225,10 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 |-------|-------|-------------|---------------|
 | Requirements | `/spec-agent` | Refines use case, defines scope, structures HLD | Approves `customer-spec.md` |
 | Feasibility | `/solution-arch-agent` | Connects to platform, assesses capabilities, flags constraints | Approves `feasibility.md` |
-| Design | `/solution-arch-agent` | Produces component inventory, adapter mappings, build plan | Approves `solution-design.md` |
-| Build | `/builder-agent` | Builds all assets, tests each component, delivers | Reviews and accepts delivery |
-| As-Built | `/builder-agent` | Records delivered state, deviations, learnings | Signs off on `as-built.md` |
+| Design | `/solution-arch-agent` | Produces component inventory, adapter mappings, build plan, acceptance-criteria-to-test mapping | Approves `solution-design.md` |
+| Build | `/builder-agent` | Builds all assets, tests each component individually, delivers | Reviews and accepts delivery |
+| Test | `/qa-agent` | Drafts `test-plan.md`, runs static + acceptance test cases against confirmed test data, reports evidence | Approves `test-plan.md` before live execution; reviews `test-report.md` |
+| As-Built | `/qa-agent` | Records delivered state, deviations, learnings, backed by test evidence | Signs off on `as-built.md` |
 
 **For explore / freestyle work:**
 ```
@@ -237,7 +257,7 @@ Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 11b. **Project thumbnails use a data URI, not raw base64** — `PUT /automation-studio/projects/{id}/thumbnail` expects `{"imageData": "data:image/png;base64,...", "backgroundColor": "#RRGGBB"}`. Passing raw base64 without the `data:image/png;base64,` prefix results in a black/blank thumbnail in the UI. Use `GET /automation-studio/projects/{id}/thumbnail` to retrieve; the response is `{"data": {"image": "data:image/png;base64,...", "backgroundColor": "..."}}`. Accepted formats: jpg, jpeg, png up to 1000 KB. **Optimal dimensions: 330×100 px.**
 12. **API response shapes vary** — projects use `{message, data, metadata}`, but workflow and template lists use `{items, skip, limit, total}`, and create endpoints return `{created, edit}`. Always check the response shape before parsing
 13. **Project component types** — valid values: `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
-14. **Use skills, don't reimplement** — `/builder-agent` covers projects, workflows, templates, MOP, and testing. Only load other skills for their specific domains (IAG, FlowAgent, MOP, etc.)
+14. **Use skills, don't reimplement** — `/builder-agent` covers projects, workflows, templates, MOP, and component-level testing. Acceptance testing and as-built records are `/qa-agent`'s job, not builder-agent's. Only load other skills for their specific domains (IAG, FlowAgent, MOP, etc.)
 15. **When unsure about ANY endpoint, method, or payload — check `openapi.json` FIRST.** Run `jq '.paths["/the/endpoint"]' platform/openapi.json` to see the method, request body schema, and response schema. Don't guess, don't try variations, don't make up field names — look it up. The spec is always right.
 16. **If `openapi.json` is not local, fetch it** — `GET /help/openapi?url={ENCODED_BASE}` and save it. Then search locally.
 17. **If the openapi schema is empty for an endpoint** — check the corresponding POST/PUT endpoint's schema for the wrapper pattern. As a last resort, send `{}` and read the `"Missing Params"` error — it lists every required field with name, type, and examples.

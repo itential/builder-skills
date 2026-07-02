@@ -2,9 +2,12 @@
 
 > One sentence: what problem this solves and for whom.
 
-**Status:** `draft | in-progress | built | delivered | on-hold`
+**Stage:** `requirements | feasibility | design | build | test | as-built | delivered`
+**Status:** `active | on-hold`
 **Last updated:** YYYY-MM-DD
 **Platform:** https://...
+
+> **Resuming this use-case?** `Stage` tells you where to pick up — but verify it against what files actually exist before trusting it (a stale field is worse than no field). See AGENTS.md's "Resuming a Use-Case" table for the file-presence check per stage.
 
 ---
 

@@ -224,9 +224,9 @@ Before presenting to the engineer, create `{use-case}/use-case-memory.md` from `
 - **Platform References** — platform URL, project name, project `_id`, adapter instance names and type names, group memberships observed
 - **What Was Built** — every component from the inventory table: name, type, ID, status=`existing`
 - **Architecture Decisions** — any patterns you inferred (why childJob loop, why this adapter, why approval gate)
-- **Status** — `in-progress` if handed to another skill, `delivered` if the project is fully in production
+- **Stage / Status** — `Stage: delivered`, `Status: active` if the project is fully in production and this is pure documentation; `Stage: requirements` (or wherever the engineer decides to re-enter) if this is a baseline for a rebuild or refinement
 
-This means any skill that picks up from here (spec-agent, solution-arch-agent, builder-agent) starts with the real IDs already recorded — no re-discovery.
+This means any skill that picks up from here (spec-agent, solution-arch-agent, builder-agent, qa-agent) starts with the real IDs already recorded — no re-discovery.
 
 ---
 

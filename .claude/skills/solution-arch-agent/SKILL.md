@@ -61,11 +61,15 @@ ${CLAUDE_PLUGIN_ROOT}/spec-files/spec-*.md          ← Generic library spec (ne
         ▼
 {use-case}/solution-design.md ← Solution Design / LLD — approved (Design)
         │
-        │  /builder: implement locked plan
+        │  /builder-agent: implement locked plan
         ▼
 {use-case}/*.json             ← Delivered assets
         │
-        │  /builder: record as-built
+        │  /qa-agent: acceptance testing
+        ▼
+{use-case}/test-report.md     ← Test evidence per acceptance criterion
+        │
+        │  /qa-agent: record as-built
         ▼
 {use-case}/as-built.md        ← Delivered state, deviations, learnings
 ```
@@ -295,7 +299,7 @@ The orchestrator is always the last thing built, after all children are tested.
 
 **E. Implementation Plan** — ordered build steps with test method for each
 
-**F. Acceptance Criteria → Tests** — map each criterion to how to verify it
+**F. Acceptance Criteria → Tests** — map each criterion to how to verify it. This is a first-pass mapping — `/qa-agent` refines it into an executable `test-plan.md` once real IDs exist after Build, but the verification *method* per criterion should be decided now, while the design is fresh.
 
 ### Present for Review
 
@@ -354,13 +358,15 @@ Hand off to `/builder-agent`. The workspace is complete.
   task-schemas.json       ← fetched on demand by builder during build (not pre-populated)
 ```
 
-The builder builds from the locked plan, tests each component, and produces the `as-built.md` record.
+The builder builds from the locked plan and tests each component individually. Once the build is complete, `/builder-agent` hands off to `/qa-agent`, which runs acceptance testing against Section F's criteria-to-tests mapping and produces the `as-built.md` record.
 
-**Before handing off — create `use-case-memory.md`** from `helpers/use-case-memory.md` and populate:
+**Before handing off — update `use-case-memory.md`** (create from `helpers/use-case-memory.md` if `/spec-agent` didn't already):
 - Platform URL and project name (if a project already exists)
-- Status: `in-progress`
+- `Stage: build`, `Status: active`
 - Any adapter instance names and type names resolved during feasibility
 - Key decisions made during design (why this adapter, why this split, any constraints)
+
+**Update `Stage` at each internal transition too, not just at final handoff** — set `Stage: feasibility` when starting the feasibility assessment (if `/spec-agent` left it at `requirements`) and `Stage: design` once feasibility is approved and design work begins. Someone resuming mid-Feasibility shouldn't see `Stage: build`.
 
 The builder will read this file first and update it after every build session.
 

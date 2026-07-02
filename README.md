@@ -22,17 +22,17 @@ Spec-driven infrastructure automation and orchestration — delivered by AI agen
 
 Most infrastructure automation is built without a delivery model. No consistent stages, no traceability, no repeatable process — just ad hoc builds that are hard to maintain, document, or hand off.
 
-This repository introduces **Spec-Driven Development** for infrastructure automation. Every delivery follows five structured stages, with AI agents executing each stage and engineers approving the artifacts that gate the next one.
+This repository introduces **Spec-Driven Development** for infrastructure automation. Every delivery follows six structured stages, with AI agents executing each stage and engineers approving the artifacts that gate the next one.
 
 ```
-Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
-      │                │              │          │           │
-  /spec-agent    /solution-       /solution-  /builder-  /builder-
-                  arch-agent       arch-agent    agent      agent
-      │                │              │          │           │
-  customer-       feasibility.md  solution-    assets     as-built.md
-  spec.md         (approved)      design.md    (delivered) (approved)
-  (approved)                      (approved)
+Requirements → Feasibility →   Design    →  Build   →    Test    →  As-Built
+      │              │             │            │             │            │
+ /spec-agent   /solution-     /solution-   /builder-     /qa-agent   /qa-agent
+                arch-agent     arch-agent    agent
+      │              │             │            │             │            │
+  customer-      feasibility.md solution-    assets     test-plan.md  as-built.md
+  spec.md        (approved)     design.md   (delivered) (approved),   (approved)
+  (approved)                    (approved)              test-report.md
 ```
 
 The result is infrastructure automation that is traceable, repeatable, and delivered faster.
@@ -132,7 +132,8 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 |-------|-------------|
 | `/itential-builder:spec-agent` | Refines a use case into an approved requirements spec (HLD). Picks from 22 built-in specs or starts from scratch. Produces `customer-spec.md` — the input to every downstream stage. |
 | `/itential-builder:solution-arch-agent` | Connects to your platform, assesses what it can support, and produces a feasibility decision and a concrete implementation plan. Outputs `feasibility.md` and `solution-design.md`. |
-| `/itential-builder:builder-agent` | Implements the approved solution design end-to-end — workflows, templates, configs, projects. Tests each component, verifies acceptance criteria, and produces `as-built.md`. |
+| `/itential-builder:builder-agent` | Implements the approved solution design end-to-end — workflows, templates, configs, projects. Tests each component individually, then hands off to `/qa-agent`. |
+| `/itential-builder:qa-agent` | Drafts a test plan from the approved acceptance criteria (engineer approves before anything runs live), generates and runs static + acceptance test cases against the delivered build, and produces `test-report.md` and `as-built.md`. The last technical stage before customer sign-off. |
 | `/itential-builder:flowagent-to-spec` | Reads a FlowAgent's config and mission history, reconstructs what it actually did, and produces a `customer-spec.md` for the deterministic equivalent. Turns agentic exploration into a governed delivery path. |
 | `/itential-builder:project-to-spec` | Reads an existing Itential project — workflows, templates, MOP — and reverse-engineers a `customer-spec.md` and `solution-design.md`. Use to document undocumented automation or create a baseline for a rebuild. |
 | `/itential-builder:documentation` | Surveys global assets on a platform — collects workflows, templates, LCM models, golden config, and OM automations, discovers their relationships, groups them into use cases, and produces `customer-spec.md` + `solution-design.md` per use case plus a master README. Optionally creates a project per use case and moves assets in with a reference impact report. For a named project, use `/project-to-spec` instead. |

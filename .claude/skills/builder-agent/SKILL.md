@@ -1,14 +1,15 @@
 ---
 name: builder-agent
-description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", "start the build", "the design is locked — implement it", or "write the as-built documentation". Also trigger it when a build is failing mid-way and needs debugging. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, testing each component, and producing as-built.md. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill. Invoke after /solution-arch-agent produces an approved solution-design.md.
+description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", or "the design is locked — implement it". Also trigger it when a build is failing mid-way and needs debugging, or when /qa-agent hands back a failing test case for a fix. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, and testing each component individually. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill. Invoke after /solution-arch-agent produces an approved solution-design.md. Hands off to /qa-agent once the build is complete — /qa-agent owns acceptance testing and the as-built record.
 ---
 
 # Builder Agent
 
-**Stages:** Build → As-Built
-**Owns:** Implementing the approved design and recording the delivered state.
+**Stage:** Build
+**Owns:** Implementing the approved design.
 **Receives from:** `/solution-architecture` (approved `solution-design.md` + complete workspace)
-**Produces:** Deployed assets + `as-built.md`
+**Produces:** Deployed assets (workflows, templates, projects)
+**Hands off to:** `/qa-agent` (acceptance testing + as-built record)
 
 ---
 
@@ -19,24 +20,14 @@ description: Use this skill when someone has an approved solution design and is 
 | | |
 |--|--|
 | **Engineer provides** | Approved `solution-design.md` (all platform data already present in workspace) |
-| **Agent does** | Builds all components per design, tests each piece, reports delivery outcomes |
+| **Agent does** | Builds all components per design, tests each piece individually, reports delivery outcomes |
 | **Engineer action** | Reviews delivery and resolves open build questions |
 | **Deliverable** | Deployed assets (workflows, templates, projects) |
-| **Customer receives** | Delivered project — all workflows, templates, and configs tested, packaged, and access granted. Acceptance criteria verified. |
+| **Customer receives** | Delivered project — all workflows, templates, and configs individually tested, packaged, and access granted. Formal acceptance testing and sign-off happen next, in `/qa-agent`. |
 
 Build implements the approved plan. The builder never re-pulls discovery data — it uses what the Solution Architecture Agent left in the workspace. If any required file is missing, stop and surface as an upstream failure.
 
-### As-Built
-
-| | |
-|--|--|
-| **Engineer provides** | Deployed assets and build outcomes |
-| **Agent does** | Records delivered state, deviations from design, learnings; updates design and spec where needed |
-| **Engineer action** | Signs off on as-built record |
-| **Deliverable** | `as-built.md` + design/spec updates |
-| **Customer receives** | As-built record — delivered state, deviations from design with reasons, and learnings. The baseline for future work on this use case. |
-
-As-Built is closeout documentation. It captures delivery reality — what was built, what changed from the design, and what was learned. Design deviations update `solution-design.md` as an `## As-Built` section. Scope changes amend `customer-spec.md` with a dated `## Amendments` section.
+**Testing during Build is component-level, not acceptance-level.** "Test each piece" here means confirming a task or workflow runs without error and wires variables correctly — not verifying the delivered solution satisfies the customer's stated acceptance criteria end-to-end. That's `/qa-agent`'s job, running against the completed build with real test data the engineer confirms. Don't skip component testing because "QA will catch it" — a structurally broken workflow wastes a live acceptance-test run.
 
 ---
 
@@ -69,6 +60,7 @@ This skill covers everything needed to build and test Itential automation assets
   workflows.json          ← existing workflows
   device-groups.json      ← device groups
   task-schemas.json       ← fetched on demand during build (append-only, never pre-populated)
+  test-report.md          ← if returning from /qa-agent with a failing test case — has the exact case ID, expected vs actual, and evidence
 ```
 
 **The builder NEVER re-pulls bootstrap or discovery data.** If `tasks.json`, `apps.json`, or `adapters.json` is missing, stop and tell the user — that's an upstream failure, not something to silently fix.
@@ -120,18 +112,19 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 7. Build orchestrator last  → parent wires tested children via childJob
 8. Add assets to project    → move/copy into the project
 9. Set project membership   → resolve spec members, PATCH immediately after import
-10. Test                    → jobs/start, check results
+10. Test each component     → jobs/start, check results (component-level, not acceptance-level)
 11. Debug                   → check job.error, filesystem-first
 12. Reconcile               → diff built vs designed, update artifacts
 13. Update memory file      → record IDs, decisions, gotchas, test results, open items
 14. Update this skill       → if you hit a platform behavior not documented here, add it before closing out
+15. Hand off to /qa-agent   → build is complete; real IDs are in solution-design.md §D
 ```
 
 **Step 0 — memory file:**
 
 At the start of every session, check for `use-cases/{use-case}/use-case-memory.md`:
 - **Exists** → read it before doing anything else. It tells you the platform, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented.
-- **Missing** → create it now from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` template. Fill in Platform URL and Status immediately.
+- **Missing** → create it now from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` template. Fill in Platform URL, `Stage: build`, `Status: active` immediately.
 
 **Step 13 — update memory file after every session:**
 
@@ -141,7 +134,7 @@ Before closing out any build session, update `use-case-memory.md` with:
 - Any gotchas hit and how they were fixed
 - Test results (date, what was tested, outcome)
 - Updated open items list
-- Status field if it changed
+- `Stage` and `Status` if they changed — mid-build, `Stage` stays `build`; only update it to `test` at the Step 15 handoff
 
 The memory file is what makes it possible to pick up a use-case after weeks without re-discovering everything from scratch.
 
@@ -149,6 +142,10 @@ The memory file is what makes it possible to pick up a use-case after weeks with
 - New platform behavior (error shape, field constraint, task gotcha) → add detail to the relevant body section (`### query`, `### childJob`, `### Projects`, etc.), then add a one-liner to the Gotchas pre-flight list under the right category.
 - New pattern or workflow recipe → add to `## Workflow Patterns` and, if the pattern is reusable, export the project from the platform and save it to `${CLAUDE_PLUGIN_ROOT}/helpers/assets/`. Add a row to the Helper Templates table in this file pointing to it.
 - Do NOT create a new top-level section for a single finding — put it where a builder would look when working on that topic.
+
+**Step 15 — hand off to `/qa-agent`:** Once every component has been individually tested and `solution-design.md` Section D has real IDs (project ID, workflow IDs) instead of placeholders, the build is complete. Update `use-case-memory.md` to `Stage: test` before ending the session. Tell the engineer the build is done and route to `/qa-agent` for acceptance testing and the as-built record — don't write `as-built.md` here.
+
+**If `/qa-agent` hands back a failing test case:** fix the specific issue it identifies (it gives you the case ID, expected vs. actual, and evidence — a job ID or static-check output). Don't re-examine the whole build; the failure report tells you exactly what broke. Once fixed, tell the engineer so `/qa-agent` can re-run just that case.
 
 ---
 

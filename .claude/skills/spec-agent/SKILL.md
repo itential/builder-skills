@@ -114,10 +114,11 @@ Tell the engineer what happens next:
 >
 > 1. **Feasibility** — The Solution Architecture Agent connects to your platform and assesses what's possible against your approved spec.
 > 2. **Design** — A solution design is produced with exactly what to build, reuse, and skip. You approve it before anything is built.
-> 3. **Build** — The Builder Agent implements the approved design, tests each component, and delivers the project.
-> 4. **As-Built** — What was actually delivered is recorded, including any deviations and learnings.
+> 3. **Build** — The Builder Agent implements the approved design and tests each component individually.
+> 4. **Test** — The QA Agent drafts a test plan from your acceptance criteria, which you approve before anything runs live, then verifies the delivered solution against it with real evidence.
+> 5. **As-Built** — What was actually delivered is recorded, backed by that test evidence, including any deviations and learnings.
 >
-> You own approval at Feasibility and Design. Nothing gets built without your sign-off."
+> You own approval at Feasibility, Design, and the Test Plan. Nothing gets built or tested live without your sign-off."
 
 **Artifact-based handoff.** The workspace the Solution Architecture Agent receives:
 
@@ -126,10 +127,10 @@ Tell the engineer what happens next:
   customer-spec.md     ← approved HLD (Requirements complete)
   .env                 ← credentials (if provided)
   customer-context.md  ← business rules, naming (if provided)
-  use-case-memory.md   ← create from helpers/use-case-memory.md, set Status: in-progress
+  use-case-memory.md   ← create from helpers/use-case-memory.md, set Stage: feasibility, Status: active
 ```
 
-Create `use-case-memory.md` at handoff — populate the use-case name, one-sentence description, and Status. The solution-arch-agent will add platform refs and adapter details during feasibility; the builder will add asset IDs and decisions during build.
+Create `use-case-memory.md` at handoff — populate the use-case name, one-sentence description, and `Stage: feasibility` / `Status: active`. The solution-arch-agent will add platform refs and adapter details during feasibility, and update `Stage` again at its own handoff; the builder will add asset IDs and decisions during build.
 
 No auth. No platform data. `/solution-arch-agent` owns everything from Feasibility onward.
 
