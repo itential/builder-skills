@@ -8,7 +8,7 @@ argument-hint: "[action or agent-name]"
 
 FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to autonomously operate the Itential Platform. Agents can call adapters, run workflows, and invoke IAG services — all driven by natural language instructions and a typed input contract.
 
-**This skill documents six decomposed services**: **Agent Project Service** (projects + agents), **Model Registry Service** (LLM provider profiles + models), **Tools Service** (tools + decorators), **Agent Session Manager** (running and tracking agents), **Agent Execution Engine** (internal execution kernel — not called directly), and **Tool RPC** (tool-call execution tracking). An older, flat `/flowai/*` API also exists on some platforms — this skill does not cover it; use the services above.
+**This skill documents six services**: **Agent Project Service** (projects + agents), **Model Registry Service** (LLM provider profiles + models), **Tools Service** (tools + decorators), **Agent Session Manager** (running and tracking agents), **Agent Execution Engine** (internal execution kernel — not called directly), and **Tool RPC** (tool-call execution tracking).
 
 **Response schema caveat:** several endpoints (notably most of Agent Project Service and the Tools Service) declare their success response as a bare `{"type": "object"}` in the OpenAPI spec — the exact response field names are not formally typed. Where this skill states a response shape, it's inferred from request-body schemas, the project-bundle export format (which IS fully typed), or cross-referenced fields — not guessed. When in doubt, call the endpoint against your live platform and inspect the actual response before hardcoding field access in a workflow task.
 
@@ -20,7 +20,7 @@ FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollam
 - **Model** — one specific model enabled on a profile (e.g., a Claude or GPT model), addressed by a UUID assigned when it's added to the profile. An agent's `provider` field is `{profile: <uuid>, model: <uuid>}` — both required together.
 - **Tool** — a callable platform capability (adapter method, IAG service, app method), addressed by a structured `referenceId` (`<type>:<source>:<method>`, e.g. `application:ConfigurationManager:runCompliancePlan`). Discovered via `POST /tools/discover`, never created by hand.
 - **Decorator** — a standalone, ID-addressed override of a tool's description and input schema for a specific use case. Cloneable and portable (bulk export/import). An agent attaches a decorator to a specific tool reference, not globally.
-- **Session** — a single run of an agent. Replaces the old "mission." Has an 8-state lifecycle (`PENDING` → `RUNNING` → `COMPLETE`/`FAILED`/`CANCELED`, plus `PAUSING`/`PAUSED`/`CANCELING`) and a typed activity log (`messages`).
+- **Session** — a single run of an agent. Has an 8-state lifecycle (`PENDING` → `RUNNING` → `COMPLETE`/`FAILED`/`CANCELED`, plus `PAUSING`/`PAUSED`/`CANCELING`) and a typed activity log (`messages`).
 - **Operators** — an agent-level access-control list (account/group IDs) granting specific callers the right to run that agent, independent of their project role. Only project owners can edit it.
 - **Builder Groups** — a profile-level access-control list controlling which groups can build agents against a given LLM profile.
 
@@ -139,6 +139,8 @@ Response includes `id` (the profile UUID — this is `provider.profile` on an ag
 ```
 Only `string` and `number` property types are allowed — `additionalProperties` must be `false` — `required` lists which of the declared properties are mandatory. This is a real function-signature-style contract now, not a free-form context bag — the platform validates session inputs against it.
 
+**CRITICAL — every declared `inputSchema` property MUST appear as a `{{ propertyName }}` template variable somewhere in `instructions`.** `instructions` isn't just a static system prompt — it's a template, and `inputSchema` properties are substituted into it at session-start time (confirmed live: `POST .../agents` rejects a property with *"'&lt;name&gt;' is defined in schema but not used in template"* if it's declared but never referenced). A session's `agentSnapshot.instructions` shows the **post-substitution** text — e.g. a schema property `count` referenced as `{{ count }}` in the instructions becomes the literal value (`3`) in the snapshot once a session starts with `inputs: {count: 3}`. Declare a property only if you actually reference it with `{{ }}` somewhere in `instructions`.
+
 ### Step 7: Test tools before wiring them to the agent
 
 Don't give an agent a tool you haven't tested yourself — every tool wraps a real platform API call.
@@ -168,7 +170,7 @@ POST /agent-project-service/projects/{projId}/agents
 {
   "name": "network-ops-agent",
   "description": "Monitors device health and creates ServiceNow tickets for issues",
-  "instructions": "You are a network operations agent. Check device health using the available tools and create a ServiceNow ticket for any device that is unreachable. Use the exact device name provided — do not guess or reformat it.",
+  "instructions": "You are a network operations agent. Check the health of {{ deviceName }} using the available tools and create a ServiceNow ticket if it is unreachable. Use the exact device name provided — do not guess or reformat it.",
   "inputSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -255,6 +257,7 @@ Attach it to the agent by adding `decoratorId` to that tool's entry (via `PATCH`
 | Agent calls wrong tool | Unclear objective | Be more specific in `instructions` about what to do and when |
 | Agent loops (`iterationCount` high) | Too many tools or vague instructions | Reduce the `tools` array, add step-by-step guidance in `instructions` |
 | Session input validation error | Inputs don't match `inputSchema` | Check `required`/`properties`/`additionalProperties` — only `string`/`number` types allowed |
+| Agent create/update rejected: "defined in schema but not used in template" | An `inputSchema` property isn't referenced in `instructions` | Add `{{ propertyName }}` somewhere in `instructions`, or remove the unused property |
 | Agent doesn't use a tool | Tool not in `tools` array or instructions don't mention it | Add the tool's `referenceId`, mention it by purpose in `instructions` |
 | Session stuck in `PENDING`/`RUNNING` | Long-running tool call, or a stuck external tool executor | `POST /agent-session-manager/sessions/{sessionId}` with `{"action":"CANCEL"}` |
 | High token usage | Agent is exploring too many options | Constrain with "use ONLY these tools, in this order" in `instructions` |
@@ -264,9 +267,20 @@ Attach it to the agent by adding `decoratorId` to that tool's entry (via `PATCH`
 1. Session Manager resolves `agentDefinitionId` → fetches instructions, provider/model, resolved+decorated tools from Agent Project Service and Model Registry Service
 2. Session Manager hands a fully-materialized definition to the Agent Execution Engine, which starts the inference loop (internal call — not made directly by users)
 3. The LLM decides which tool(s) to call based on the objective and `inputs`
-4. Tool execution happens **asynchronously and externally** — the engine dispatches a tool call, an external executor runs it and persists the result, then calls back into the engine with a receipt (tracked via Tool RPC)
+4. Tool execution happens **asynchronously and externally under the hood** — the engine dispatches a tool call, an external executor runs it and persists the result, then calls back into the engine with a receipt (tracked via Tool RPC). This is internal plumbing — the session's `messages` still show the actual resolved tool input/output directly, not the receipt (confirmed in testing: a single, fast tool call completed and was fully visible within seconds).
 5. The engine fetches the actual result and feeds it back to the LLM; repeats until the objective is met or an error occurs
 6. Every step is recorded as a typed session message; the session's `status` reaches a terminal state (`COMPLETE`/`FAILED`/`CANCELED`)
+
+### Validated end-to-end
+
+This full flow (project → profile → agent → session → tool call → result) has been run against a live platform, not just inferred from the OpenAPI spec:
+1. Created a project via `POST /agent-project-service/projects`
+2. Created an agent with `instructions` containing `{{ count }}`, `inputSchema` requiring `count`, an existing Anthropic profile/model, and one tool (`application:ConfigurationManager:getDevicesFiltered`)
+3. Started a session with `inputs: {"count": 3}`
+4. Session reached `COMPLETE` in ~8.6s: 1 tool call, 2 inference iterations, ~3,100 total tokens
+5. `messages` showed the full trace — the LLM's initial reasoning, the tool call with real input/output, and a final formatted summary of the 3 devices returned
+
+Every schema and gotcha in this skill that could be checked against a live response has been corrected to match what was actually observed, not just what the OpenAPI spec declares.
 
 ---
 
@@ -419,7 +433,7 @@ POST /agent-project-service/project-bundles/import
 - Tool changes on update are **deltas**, not a full-array replace: `addTools`, `removeTools`, `decorateTools` (attach/detach/change a decorator on an existing reference — `decoratorId: null` clears it), and `authorizeTools` (marks a tool reference as explicitly authorized — exact semantics not documented beyond the field name; verify against your platform before relying on it for anything security-sensitive).
 - **Updating `operators` requires the owner GBAC role** on the parent project, even though other agent edits only need editor.
 
-**`operators` — what it actually is:** a direct, agent-level access grant (array of 24-hex account/group IDs) letting those specific callers *operate* (run) this one agent, independent of their project role. It's additive to project GBAC, not a replacement — a project editor/owner can already operate every agent in the project; `operators` extends operate-access to accounts that otherwise wouldn't have it. This is **not** the same as the old prototype's `identity.agent_account`/`agent_password` (which was the identity the agent ran platform API calls *as*) — that execution-identity concept has no direct equivalent documented in this service; it likely now lives inside the session/execution layer.
+**`operators` — what it actually is:** a direct, agent-level access grant (array of 24-hex account/group IDs) letting those specific callers *operate* (run) this one agent, independent of their project role. It's additive to project GBAC, not a replacement — a project editor/owner can already operate every agent in the project; `operators` extends operate-access to accounts that otherwise wouldn't have it. This does not control what identity the agent's own tool calls run as — that's a separate concern not configured on the agent definition itself.
 
 ### Providers and Profiles (Model Registry Service)
 
@@ -539,7 +553,7 @@ Response: `{ "success": true, "models": [{ "id", "name", "enabled", "status" }],
 
 ### Tools
 
-**Base path:** `/tools` (top-level — distinct from the legacy `/flowai/tools`)
+**Base path:** `/tools`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -556,15 +570,35 @@ POST /tools/discover
 ```
 No body. Scans adapters, IAG services, and app methods, persisting each as a registry entry addressed by `referenceId`. Safe to re-run — refreshes the registry rather than duplicating entries.
 
-**Tool identity — `referenceId` format (confirmed from a live project-bundle export):** a colon-separated `<type>:<source>:<method>` string, where `type` is one of at least `application`, `adapter`, or `gatewayService`:
+**Tool identity — `referenceId` format:** a colon-separated `<type>:<source>:<method>` string. Observed `type` values: `application`, `adapter`, `gatewayService`, `workflow`, `integration`, `template`, `jsonForm`, `method` (a method belonging to a parent `application`/`adapter` entry — see `parentType`/`parentId`/`parentTitle` on the tool object):
 
 | Type | Example `referenceId` | Structure |
 |---|---|---|
 | `application` | `application:ConfigurationManager:runCompliancePlan` | `application:<app-name>:<method>` |
 | `adapter` | `adapter:Servicenow:ServiceNow:createChangeRequest` | `adapter:<adapter-instance-id>:<app-type-name>:<method>` |
 | `gatewayService` | `gatewayService:selab-iag5-standalone:04a19e29-f2dc-41f7-b9c7-102e6b19df08` | `gatewayService:<cluster-id>:<service-uuid>` |
+| `workflow` | `workflow:7473bb49-f317-4280-9d7a-9e4bd4969365` | `workflow:<workflow-uuid>` |
+| `integration` | `integration:BECentral%3A2.3:BECentral23:getDevicesByTagId` | `integration:<instance-id-may-be-url-encoded>:<app-name>:<method>` |
 
-The response schema for `GET /tools`/`GET /tools/{referenceId}` is still not formally typed in the OpenAPI spec beyond this — verify the exact `type` enum and any additional fields against a live call on your deployment before writing code that parses one.
+**Confirmed full tool object shape** (from a live `GET /tools/{referenceId}` call):
+```json
+{
+  "_id": "<mongo-id>",
+  "type": "method",
+  "referenceId": "application:ConfigurationManager:getDevicesFiltered",
+  "active": true,
+  "checksum": "...",
+  "description": "Gets a specific subset of devices for based on given options",
+  "inputSchema": { "...full JSON Schema draft 2020-12, with real property definitions, enums, and examples..." },
+  "lastUpdated": "...",
+  "name": "getDevicesFiltered",
+  "parentId": "ConfigurationManager",
+  "parentInstance": null,
+  "parentTitle": "ConfigurationManager",
+  "parentType": "application"
+}
+```
+`inputSchema` on a tool is a full, real JSON Schema (types, enums, patterns, examples) — this is what an LLM actually sees for that tool's parameters, and it's what a decorator's `toolInputSchema` replaces if one is attached.
 
 There is **no create/update/delete for individual tools** — the registry is populated only by discovery.
 
@@ -598,7 +632,7 @@ There is **no create/update/delete for individual tools** — the registry is po
 
 **How decorators attach to an agent:** an agent's `tools[]` entry carries an optional `decoratorId` alongside `referenceId` — decorators are looked up by ID when an agent runs, not embedded inline. This means the same decorator can be referenced by multiple agents, and `clone` lets you start from an existing decorator rather than hand-authoring overrides from scratch for a new team/use case.
 
-**CRITICAL — same rule as the old API:** a decorator's `toolInputSchema` **replaces the entire schema the LLM sees**. Any field you omit will never be sent by the agent, even if the underlying adapter requires it. Test the tool directly (Guide Step 7) to find every required field before writing the decorator.
+**CRITICAL:** a decorator's `toolInputSchema` **replaces the entire schema the LLM sees**. Any field you omit will never be sent by the agent, even if the underlying adapter requires it. Test the tool directly (Guide Step 7) to find every required field before writing the decorator.
 
 **When to create a decorator (and when NOT to):** create one only when the tool's native schema is too broad and the LLM sends wrong/incomplete inputs despite good `instructions`, or when different teams need different required fields on the same tool. Skip it for read-only tools and skip it if fixing the `instructions` text alone solves the problem.
 
@@ -620,15 +654,17 @@ There is **no create/update/delete for individual tools** — the registry is po
 
 **List — query parameters:** `filters` (array of field/operator/value), `offset`, `limit` (max 100), `sortBy` (`createdAt`\|`updatedAt`\|`startedAt`\|`status`\|`createdBy`\|`agentDefinitionId`), `sortOrder`.
 
-**Session object:**
+**Session object** (fields confirmed against a live run — `agentSnapshot.instructions` shows `{{ }}` template variables already substituted with the actual session `inputs`):
 ```json
 {
   "sessionId": "string",
   "agentDefinitionId": "string",
-  "agentSnapshot": { "_id": "...", "name": "...", "instructions": "...", "namespace": { "_id": "...", "name": "..." } },
+  "agentSnapshot": { "_id": "...", "name": "...", "instructions": "... (template vars substituted) ...", "namespace": { "_id": "...", "name": "..." } },
   "status": "PENDING | RUNNING | PAUSING | PAUSED | COMPLETE | FAILED | CANCELING | CANCELED",
-  "startedAt": "...", "endTime": "...", "duration": 0,
-  "createdAt": "...", "createdBy": "...",
+  "startedAt": "...", "endTime": "...", "durationMs": 0,
+  "createdAt": "...", "createdBy": "<account-id>",
+  "provider": "anthropic",
+  "modelVersion": "claude-sonnet-4-6",
   "sessionType": "root | child",
   "trigger": { "type": "eventSystem|endpoint|schedule|manual|job|session", "name": "...", "source": "..." },
   "errorMessage": "...", "errorCategory": "...",
@@ -637,7 +673,7 @@ There is **no create/update/delete for individual tools** — the registry is po
   "inputs": {}
 }
 ```
-`agentSnapshot` is a copy of the agent's config **at session-start time** — updating the agent afterward does not retroactively change what a past session ran. `sessionType: child` implies sessions can spawn child sessions; the mechanism for that isn't exposed in this API slice — treat as informational unless you see it triggered from elsewhere.
+`provider`/`modelVersion` are plain strings (provider id and model name) at the session level — not the `{profile, model}` UUID pair used on the agent itself. `agentSnapshot` is a copy of the agent's config **at session-start time** — updating the agent afterward does not retroactively change what a past session ran. `sessionType: child` implies sessions can spawn child sessions; the mechanism for that isn't exposed in this API slice — treat as informational unless you see it triggered from elsewhere.
 
 **Start a session (async):**
 ```
@@ -646,7 +682,7 @@ POST /agent-session-manager/sessions
 ```json
 { "agentDefinitionId": "<agent-uuid>", "inputs": { "deviceName": "IOS-CAT8KV-1" } }
 ```
-`inputs` must satisfy the agent's `inputSchema`. Response: `{ "sessionId": "...", "status": "PENDING" }` — returns immediately, does not wait for completion. This is the direct successor to the old async `start` call.
+`inputs` must satisfy the agent's `inputSchema`. Response: `{ "sessionId": "...", "status": "..." }` — returns immediately, does not wait for completion. **`status` in the response was observed going straight to `RUNNING` in testing** — don't assume you'll always see `PENDING` first; poll and branch on the terminal states (`COMPLETE`/`FAILED`/`CANCELED`), not on catching a specific intermediate value.
 
 **Cancel / Pause / Resume:**
 ```
@@ -655,7 +691,7 @@ POST /agent-session-manager/sessions/{sessionId}
 ```json
 { "action": "CANCEL", "canceledBy": "<username>", "correlationId": "<for tracing>" }
 ```
-`action` is one of `CANCEL` | `PAUSE` | `RESUME`. Response: the full updated Session object. Pause/resume have no equivalent in the old prototype API.
+`action` is one of `CANCEL` | `PAUSE` | `RESUME`. Response: the full updated Session object.
 
 **Delete:**
 ```
@@ -685,7 +721,38 @@ GET /agent-session-manager/sessions/{sessionId}/messages?sortBy=timestamp&sortOr
 Each message: `{ sessionId, eventId, timestamp, type, category, sequenceNumber?, text?, data }`.
 - `type`: `inference-pending` | `inference-succeeded` | `inference-failed` | `tool-execution` | `agent-session-paused` | `agent-session-resumed` | `agent-session-completed` | `agent-session-failed` | `agent-session-canceled`
 - `category`: `AGENT_REASONING` | `TOOL_CALLED` | `AGENT_STATUS`
-- Payloads are truncated by default — fetch `GET .../messages/{eventId}` for the full, untruncated event.
+- `sequenceNumber` is `null` on `tool-execution` and `AGENT_STATUS` messages — only `AGENT_REASONING` messages are sequenced.
+
+**Confirmed real `data` shapes** (from a live run — corrects an earlier over-generalization: session messages return the actual resolved tool input/output inline, not just a store/receipt pointer — the receipt pattern is internal plumbing between the execution engine and its tool executor, not what this endpoint returns):
+
+`inference-succeeded`:
+```json
+{
+  "durationMs": 2125,
+  "stopReason": "tool_use | end_turn",
+  "tokenUsage": { "inputTokens": 1055, "outputTokens": 73, "cacheReadTokens": 0, "cacheCreationTokens": 0 }
+}
+```
+Sibling `text` field on the same message has the LLM's actual reasoning/response text.
+
+`tool-execution`:
+```json
+{
+  "toolGroupId": "<uuid>",
+  "toolCallId": "toolu_...",
+  "toolName": "getDevicesFiltered",
+  "toolType": "method",
+  "input": { "options": { "limit": 3 } },
+  "isInputTruncated": false,
+  "output": { "...the tool's actual return value..." },
+  "isOutputTruncated": false,
+  "durationMs": 764,
+  "errorMessage": null, "errorCategory": null, "canceledBy": null,
+  "outcomeEventId": "<eventId of the AGENT_REASONING message that follows>",
+  "status": "succeeded"
+}
+```
+`output` is the real, resolved tool result — inspect it directly rather than assuming you need `GET .../messages/{eventId}` to see it. `isInputTruncated`/`isOutputTruncated` flag when a large payload WAS truncated in this listing; fetch the single-event endpoint only in that case.
 
 ### Tool Executions (Tool RPC — observability only)
 
@@ -714,11 +781,13 @@ Read-only. This is where to look up the outcome of one specific tool call an age
 - **Deleting a profile is irreversible (hard delete)** — always check `agent-impact` first.
 - **Deleting a project cascades to every agent inside it** — no soft-delete/recovery.
 - **Updating an agent's `operators` requires the owner GBAC role**, even though other agent fields only need editor — a common source of unexpected 403s.
-- **`operators` grants operate-access; it is not the old execution identity.** There's no documented equivalent of the old `identity.agent_account`/`agent_password` (what the agent runs API calls *as*) in Agent Project Service — don't assume one exists without checking the session/execution layer on your platform version.
+- **`operators` grants operate-access only — it does not configure what identity the agent's tool calls run as.** That's a separate concern, not set on the agent definition itself.
 - **Decorators replace the ENTIRE tool input schema**, not just the fields you specify. Omitting a required field means the agent will never send it, and the underlying adapter call fails with a schema validation error. Always test the tool directly first to enumerate every required field.
 - **`agentSnapshot` on a session is frozen at session-start time.** Editing the agent afterward does not change what an already-running or already-completed session executed.
-- **Tool execution is asynchronous and externalized** — a `tool-execution` message may sit at `inference-pending`-adjacent states for longer than you'd expect from an old-style synchronous call; check `GET /tool-rpc/executions?status=running` if a session seems stuck mid-tool-call.
-- **No bulk session delete.** Unlike the old `DELETE /flowai/missions`, you must delete sessions one at a time.
+- **Tool execution is asynchronous and externalized internally**, but a fast tool call still completes and shows up fully resolved in `messages` within seconds in practice — the async/receipt pattern is an internal implementation detail, not something that makes results harder to read via the session API. If a session does seem stuck mid-tool-call, check `GET /tool-rpc/executions?status=running`.
+- **`inputSchema` properties must be used in `instructions`.** Declaring a property and never referencing it as `{{ propertyName }}` in the instructions text fails agent creation/update with a validation error naming the unused property.
+- **Generic WorkFlowEngine utility tasks (merge, query, getTime, etc.) are not discoverable as tools.** `POST /tools/discover` only registers adapter methods, app methods, workflows, and IAG gateway services — confirmed live (`GET /tools?name=WorkFlowEngine` returns 0 results even when the task genuinely exists in `tasks.json`). If you need simple platform-level info, look for it via an app method (e.g., `application:ConfigurationManager:*`) instead.
+- **No bulk session delete.** You must delete sessions one at a time.
 - **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint.
 - **`run-agent`'s HTTP response is not the final answer** — it returns `{sessionId, status}` immediately just like plain `sessions` start. The "wait for the result" behavior only happens through the `terminationCallbackSignature` mechanism at the workflow-engine layer, not by blocking the HTTP call.
 - **Most Agent Project Service and Tools Service responses are untyped in the OpenAPI spec** (`{"type":"object"}`). Verify exact field names against a live call before hardcoding a `$var` path in a workflow task.

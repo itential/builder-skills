@@ -52,7 +52,7 @@ Extract:
 - **`provider`** — `{profile, model}` UUIDs (not needed for the spec, but useful context on which LLM ran it)
 - **`operators`** — who could invoke this agent (informational, not usually spec-relevant)
 
-There is no equivalent of the old `identity.agent_account`/`agent_password` (the platform user the agent ran as) in this service — if you need to know what permissions the agent's tool calls actually exercised, infer it from which adapters/apps the tools in `tools[]` touch, not from an execution-identity field.
+The agent definition doesn't declare what platform identity its tool calls run as — if you need to know what permissions the agent's tool calls actually exercised, infer it from which adapters/apps the tools in `tools[]` touch.
 
 Save to `{use-case}/agent-config.json`.
 
@@ -265,7 +265,7 @@ Then offer next steps:
 
 **One-off sessions aren't reliable:** Look for the pattern across 5+ sessions. A single session may show unusual branching.
 
-**Tool identity is a colon-separated `<type>:<source>:<method>` string, not the old `AdapterName//methodName` format.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest` (adapter instance + app type + method) or `application:ConfigurationManager:runCompliancePlan` (app + method). Resolve each `referenceId` via `GET /tools/{referenceId}` to confirm its exact name/description, and map the `<source>` segment(s) back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow.
+**Tool identity is a colon-separated `<type>:<source>:<method>` string.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest` (adapter instance + app type + method) or `application:ConfigurationManager:runCompliancePlan` (app + method). Resolve each `referenceId` via `GET /tools/{referenceId}` to confirm its exact name/description, and map the `<source>` segment(s) back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow.
 
 **Decorators change what the agent actually sent.** If a tool reference has a `decoratorId`, the decorator's `toolInputSchema` — not the tool's native schema — is what the LLM populated. Fetch `GET /tools/decorators/{decoratorId}` to see the real, narrowed input contract the agent was working with.
 
