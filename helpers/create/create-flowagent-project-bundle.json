@@ -1,0 +1,32 @@
+{
+  "_comment": "A real, importable FlowAI Agent Project Bundle. Shows the exact structure the platform expects for a project + one agent + tools + a decorator. Edit this file locally, then import it atomically instead of creating a project and adding agents one call at a time.",
+  "_usage": "POST /agent-project-service/project-bundles/import with body: { \"bundle\": <the 'bundle' object below>, \"conflictMode\": \"keep-both\", \"providerResolutions\": {...} }",
+  "_provider_resolution_note": "provider is referenced by {profileName, modelName} here, not by UUID. Both must already exist in the target environment (GET /model-registry-service/profiles) or be remapped on import via providerResolutions.",
+  "_schema_freshness_warning": "The REPLACE_* placeholders below (tool referenceIds, decoratorId) are structural examples, not real values. Resolve real ones from your own platform before importing: GET /tools to find referenceIds, GET /tools/{referenceId} to confirm the tool's current inputSchema, and GET /tools/decorators/{id} to inspect an existing decorator. See SKILL.md 'Verifying This Skill Against Your Platform'.",
+  "_template_variable_rule": "Every inputSchema property must appear as {{ propertyName }} somewhere in instructions, or agent create/import fails validation. This template already follows that rule (deviceName is used below) -- keep it true if you add or rename properties.",
+  "bundle": {
+    "name": "REPLACE_PROJECT_NAME",
+    "description": "REPLACE_PROJECT_DESCRIPTION",
+    "agentProjectBundleVersion": 1,
+    "agents": [
+      {
+        "name": "REPLACE_AGENT_NAME",
+        "description": "REPLACE_AGENT_DESCRIPTION",
+        "instructions": "You are a network diagnostics agent. Run a diagnostic check against {{ deviceName }} using the available tools. Summarize the result in 2-3 sentences. If the device is unreachable or reports an error, create a ServiceNow incident with short_description set to 'Diagnostic failure - {{ deviceName }}' and description set to the full diagnostic summary. If everything looks healthy, do not create a ticket -- just report the summary.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["deviceName"],
+          "properties": {
+            "deviceName": { "type": "string" }
+          }
+        },
+        "provider": { "profileName": "REPLACE_PROFILE_NAME", "modelName": "REPLACE_MODEL_NAME" },
+        "tools": [
+          { "referenceId": "REPLACE_REFERENCE_ID_FOR_DIAGNOSTIC_TOOL", "lastKnownName": "REPLACE_TOOL_NAME" },
+          { "referenceId": "REPLACE_REFERENCE_ID_FOR_CREATE_INCIDENT_TOOL", "lastKnownName": "createIncident", "decoratorId": "REPLACE_DECORATOR_ID_OR_REMOVE_THIS_FIELD" }
+        ]
+      }
+    ]
+  }
+}

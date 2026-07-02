@@ -1,0 +1,21 @@
+{
+  "_comment": "A tool decorator -- replaces the ENTIRE inputSchema an LLM sees for one tool. Use when a tool's native schema is too vague and the LLM sends wrong or incomplete inputs.",
+  "_usage": "POST /tools/decorators",
+  "_schema_freshness_warning": "referenceId and every field inside toolInputSchema must match a REAL tool on your platform. Call GET /tools/{referenceId} first to see the tool's actual native schema, and test it directly to confirm every field the underlying adapter truly requires -- see SKILL.md 'Verifying This Skill Against Your Platform'.",
+  "toolDecorator": {
+    "referenceId": "REPLACE_TOOL_REFERENCE_ID",
+    "name": "REPLACE_DECORATOR_NAME",
+    "description": "REPLACE_DESCRIPTION -- what this decorator customizes and why",
+    "toolDescription": "REPLACE_DESCRIPTION_THE_LLM_SEES -- be explicit about which fields are required and why",
+    "toolInputSchema": {
+      "type": "object",
+      "properties": {
+        "REPLACE_FIELD_NAME": {
+          "type": "string",
+          "description": "REPLACE -- what this field is for, and whether it's required"
+        }
+      },
+      "required": ["REPLACE_FIELD_NAME"]
+    }
+  }
+}
