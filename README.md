@@ -143,7 +143,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers, registers tools (adapters, workflows, IAG services), and runs missions. Use when building or operating Flow AI agents. |
+| `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers, registers tools (adapters, workflows, IAG services), and runs agent sessions. Use when building or operating Flow AI agents. |
 | `/itential-builder:iag` | Builds and runs IAG 5 services — Python scripts, Ansible playbooks, OpenTofu plans. Manages YAML service definitions, imports via `iagctl`, and calls services from Itential workflows via GatewayManager. |
 | `/itential-builder:itential-mop` | Builds Method of Procedure command templates with variable substitution and validation rules. Runs CLI pre-checks and post-checks against devices, and uses analytic templates for before/after config comparison. |
 | `/itential-builder:itential-devices` | Manages network devices in Itential Configuration Manager — onboard devices, take config backups, diff configurations, organize device groups, and apply device templates. |

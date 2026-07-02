@@ -17,7 +17,7 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 | `/builder-agent` | **Builder Agent** | Build all assets, test each component individually. Runs after Design. |
 | `/qa-agent` | **QA Agent** | Acceptance testing against the approved acceptance criteria + as-built record. Runs after Build — last technical stage before customer sign-off. |
 | `/iag` | — | Automation Gateway: IAG services (Python, Ansible, OpenTofu). |
-| `/flowagent` | — | AI Agents: configure LLM providers, tools, missions. |
+| `/flowagent` | — | AI Agents: configure LLM providers, tools, and agent sessions. |
 | `/itential-mop` | — | Command templates with validation rules. |
 | `/itential-devices` | — | Devices, backups, diffs, device groups. |
 | `/itential-golden-config` | — | Golden config, compliance, grading, remediation. |
@@ -299,6 +299,8 @@ Helper templates are organized in subdirectories under `helpers/`:
 | `create-golden-config-tree.json` | Golden config tree |
 | `create-golden-config-node.json` | Child node |
 | `create-compliance-plan.json` | Compliance plan |
+| `create-flowagent-project-bundle.json` | FlowAI agent project bundle (project + agent + tools + decorator) — import via `/agent-project-service/project-bundles/import` |
+| `create-flowagent-decorator.json` | FlowAI tool decorator body — narrows a tool's `inputSchema` for the LLM |
 
 **`helpers/update/`** — PUT/PATCH bodies for updating assets
 
@@ -322,6 +324,12 @@ Helper templates are organized in subdirectories under `helpers/`:
 
 Import via `POST /automation-studio/projects/import` with body `{"project": <file contents>}`.
 After import, PATCH membership immediately (see Rule 11a).
+
+**FlowAI agent samples** — different domain, different import path (not Automation Studio):
+
+| File | What's Inside |
+|------|--------------|
+| `flowagent-sample-agent-project.json` | Real FlowAI project bundle exported from a live platform: 3 agents, including a multi-tool agent (device command → decorated ServiceNow tool → WorkCenter approval step). Import via `POST /agent-project-service/project-bundles/import` with `{"bundle": <file contents>, "providerResolutions": {...}}` — see the `flowagent` skill. |
 
 **Itential Platform — core utilities**
 
