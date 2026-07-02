@@ -1,0 +1,20 @@
+{
+  "eval_id": 23,
+  "eval_name": "issue49-makedata-childjob-merge",
+  "prompt": "I have a childJob that fans out over subnets. Afterward I merge each child's job_details together with a static template string, then feed that merged object into a makeData task to render a final JSON string using <!var!> placeholders. The placeholders come through literally unresolved in the output instead of being substituted with real values. What's wrong and how do I fix it?",
+  "expected_output": "Identifies that the merge task references a childJob output, and that makeData.incoming.variables cannot compile a $var reference to that merge's merged_object as a taskRef (it is stored as a literal string instead). Recommends using query tasks to extract individual scalar values from the childJob-sourced merge first, then feeding those resolved values into makeData (e.g. via a second merge containing only non-childJob refs). Notes that query.incoming.obj does not have this limitation.",
+  "assertions": [
+    {
+      "text": "Identifies that the merge task references a childJob output, and that makeData cannot compile that merge's $var.<mergeId>.merged_object as a taskRef",
+      "type": "critical"
+    },
+    {
+      "text": "Recommends using query tasks to extract individual scalar values from the childJob-sourced merge before feeding data into makeData",
+      "type": "critical"
+    },
+    {
+      "text": "Notes that query.incoming.obj does not have this limitation, unlike makeData.incoming.variables",
+      "type": "structural"
+    }
+  ]
+}

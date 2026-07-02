@@ -1,0 +1,18 @@
+{
+  "eval_id": 3,
+  "eval_name": "sd-refuse-without-approval",
+  "skill": "solution-design",
+  "prompt": "Build the solution design. I haven't approved the spec yet.",
+  "expectations": [
+    {
+      "text": "Does NOT skip Gate 1 — requires spec approval first",
+      "passed": true,
+      "evidence": "Response explicitly refuses to proceed, stating 'Gate 1 requires your explicit approval of the spec before I do anything else' and 'No API calls, no discovery, no design work happens until the spec is locked.' Does not attempt any design or platform work."
+    },
+    {
+      "text": "Asks engineer to review and approve spec before proceeding",
+      "passed": true,
+      "evidence": "Response outlines the full Phase 1 flow (review spec, collect context, answer discovery questions, refine, present for approval) and ends with 'Would you like to start by reviewing the current spec?' — directly asking the engineer to begin the review/approval process."
+    }
+  ]
+}

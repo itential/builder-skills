@@ -1,0 +1,33 @@
+{
+  "eval_id": 2,
+  "eval_name": "setup-spec-path-no-data-pull",
+  "skill": "itential-setup",
+  "prompt": "I want to build the port turn-up use case from the spec file.",
+  "expectations": [
+    {
+      "text": "Creates use-case directory",
+      "passed": true,
+      "evidence": "Response includes 'mkdir -p port-turn-up' to create the use-case directory before forking the spec."
+    },
+    {
+      "text": "Forks spec to customer-spec.md (does not modify original in spec-files/)",
+      "passed": true,
+      "evidence": "Response copies spec-files/spec-port-turn-up.md to port-turn-up/customer-spec.md via cp. Explicitly states 'The original in spec-files/ stays untouched.'"
+    },
+    {
+      "text": "Does NOT authenticate or pull platform data for spec path",
+      "passed": true,
+      "evidence": "No authentication, no curl calls, no bootstrap data pull. Response explicitly states 'No authentication or platform data pull happens at this stage -- that comes later, after you've approved the spec at Gate 1.' The skill's Path B section says 'No auth here. No data pulls. Just route.'"
+    },
+    {
+      "text": "Tells engineer what happens next (understand, Gate 1, discover, design, Gate 2, build)",
+      "passed": true,
+      "evidence": "Response includes the full 6-step plan: Understand, Approve the spec (Gate 1), Discover, Design, Approve the design (Gate 2), Build. Ends with 'You own both gates. Nothing gets built without your sign-off.'"
+    },
+    {
+      "text": "Hands off to /solution-design with only the forked spec file",
+      "passed": true,
+      "evidence": "Response explicitly shows the workspace contains exactly one file (customer-spec.md) and states handoff to /solution-design. No .auth.json, no openapi.json, no tasks.json -- only the forked spec."
+    }
+  ]
+}

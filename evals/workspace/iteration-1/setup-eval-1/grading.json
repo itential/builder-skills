@@ -1,0 +1,23 @@
+{
+  "eval_id": 1,
+  "eval_name": "setup-oauth-explore",
+  "skill": "itential-setup",
+  "prompt": "Connect me to my Itential platform. I have a cloud instance with OAuth credentials.",
+  "expectations": [
+    {
+      "text": "OAuth POST uses Content-Type: application/x-www-form-urlencoded not JSON",
+      "passed": true,
+      "evidence": "Response explicitly specifies Content-Type: application/x-www-form-urlencoded for the POST /oauth/token call, with form-encoded body (client_id=...&client_secret=...&grant_type=client_credentials). The skill file documents this at line 189 and reiterates it in Gotchas at line 227. The response also explicitly called out that this must NOT be JSON."
+    },
+    {
+      "text": "Checks for existing .env file before asking for credentials",
+      "passed": true,
+      "evidence": "Step 1 of the response checks for existing .env files in two locations ({use-case}/.env and environments/*.env) before Step 2 which only gathers credentials if no .env is found. This matches the skill instruction at line 43-49: 'Check for an env file first. If one exists, use it - don't ask questions.'"
+    },
+    {
+      "text": "Uses Bearer token in Authorization header for subsequent calls",
+      "passed": true,
+      "evidence": "Step 4 shows all bootstrap data pulls using -H 'Authorization: Bearer eyJhbG...' header format. The .auth.json saved in Step 5 records auth_method as 'oauth'. This matches the skill's OAuth reference at line 196: 'Use as Bearer header: Authorization: Bearer eyJhbG...'"
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "skill": "itential-builder",
+  "eval_group": "findings",
+  "results": [
+    {
+      "eval_id": 9,
+      "prompt": "My IAG Python service returns JSON but when I try to reference fields from result.stdout in a downstream task, they come back null.",
+      "assertions": [
+        {
+          "text": "Identifies that result.stdout is a string, not a parsed object",
+          "passed": true,
+          "evidence": "Skill line 945: 'Convert a JSON string into a JavaScript object. Essential after extracting result.stdout from runService (which is always a string, even when the script printed valid JSON).' Explicitly states stdout is always a string."
+        },
+        {
+          "text": "Recommends using a parse task (WorkFlowEngine) to convert the JSON string",
+          "passed": true,
+          "evidence": "Skill lines 943-969: Full parse task section documents the WorkFlowEngine parse task with app: 'WorkFlowEngine', incoming stringToParse, outgoing result. Clearly shows how to convert JSON string to object."
+        },
+        {
+          "text": "Shows the pattern: runService -> query(result.stdout) -> parse(stringToParse) -> access fields",
+          "passed": true,
+          "evidence": "Skill lines 972-977: 'Common pattern - runService -> query -> parse: runService -> query(result.stdout) -> parse(stringToParse) -> use parsed fields'. Exact pattern documented with example of accessing fields after parse."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 10,
+      "prompt": "I'm trying to use {{ data | from_json }} in my Jinja2 template on Itential but it throws an error.",
+      "assertions": [
+        {
+          "text": "Identifies that from_json filter is not available in Itential Jinja2",
+          "passed": true,
+          "evidence": "Skill line 1228: 'No from_json filter - Ansible's from_json Jinja2 filter does NOT exist in Itential's TemplateBuilder.' Explicitly documented as a gotcha."
+        },
+        {
+          "text": "Recommends using a parse task before the template render step",
+          "passed": true,
+          "evidence": "Skill line 1228: 'If you need to parse a JSON string, use a parse task before the template render step, not a filter inside the template'. Direct recommendation provided."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 11,
+      "prompt": "I'm merging two objects that both have a 'device_ip' key and the result has an array instead of a string. Why?",
+      "assertions": [
+        {
+          "text": "Explains merge duplicate keys produce arrays",
+          "passed": true,
+          "evidence": "Skill line 941: 'Duplicate keys produce arrays - merging {\"ip\": \"1.2.3.4\"} and {\"ip\": \"1.2.3.4\"} yields {\"ip\": [\"1.2.3.4\", \"1.2.3.4\"]}, not an overwrite.' Explicitly documented with example."
+        },
+        {
+          "text": "Recommends avoiding duplicate keys by using a single pre-built object",
+          "passed": true,
+          "evidence": "Skill line 941: 'To avoid this, pass a pre-built object as a single workflow input variable instead of merging multiple objects with the same keys.' Direct recommendation provided."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 12,
+      "prompt": "What's the weather like today?",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for unrelated queries",
+          "passed": true,
+          "evidence": "The skill description (line 2) scopes it to 'Create projects, build workflows, templates (Jinja2/TextFSM), and command templates (MOP). Wire utility tasks, run jobs, and debug.' A weather query has no overlap with any skill content, so skill routing from CLAUDE.md would not invoke it. The skill itself contains no weather-related patterns that would attract false matches."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 13,
+      "prompt": "Help me write a Python script that calls the ServiceNow API.",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for generic coding tasks",
+          "passed": true,
+          "evidence": "The skill is scoped to Itential platform assets (workflows, templates, projects, MOP). CLAUDE.md skill router table maps itential-builder to 'Create projects, workflows, templates, command templates, wire tasks, run jobs, debug.' A standalone Python script calling ServiceNow directly is not an Itential workflow/template building task. The skill contains no guidance for writing standalone Python scripts outside the IAG context."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

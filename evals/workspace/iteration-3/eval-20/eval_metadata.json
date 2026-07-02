@@ -1,0 +1,24 @@
+{
+  "eval_id": 20,
+  "eval_name": "issue46-childjob-query-null",
+  "prompt": "My childJob runs a child workflow in a loop over an array of devices (loopType: parallel), and afterward I query $var.<childJobId>.job_details with query 'loop' to extract each child's taskStatus. Sometimes downstream logic reports null for taskStatus even though every child completed successfully. What's going on and how do I fix it?",
+  "expected_output": "Explains that on some platform versions $var.<childJobId>.job_details does not resolve as the obj value of a query task (stored as a literal string). Documents the fallback: insert a merge task between childJob and query that captures job_details via a taskRef ({'task': childJobId, 'variable': 'job_details'}), then point the query's obj at $var.<mergeId>.merged_object instead. Does not claim the direct $var form is broken outright \u2014 it is the primary approach.",
+  "assertions": [
+    {
+      "text": "Diagnoses that $var.<childJobId>.job_details may not resolve inside query.obj on some platform versions",
+      "type": "critical"
+    },
+    {
+      "text": "Provides the merge+taskRef workaround: merge data_to_merge includes {'task': childJobId, 'variable': 'job_details'}",
+      "type": "critical"
+    },
+    {
+      "text": "Updated query points obj to $var.<mergeTaskId>.merged_object",
+      "type": "structural"
+    },
+    {
+      "text": "Does not discourage the direct $var.<childJobId>.job_details form as the default first attempt",
+      "type": "structural"
+    }
+  ]
+}

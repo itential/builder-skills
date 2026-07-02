@@ -1,0 +1,223 @@
+{
+  "skill": "itential-builder",
+  "eval_group": "build",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "Build a workflow that uses a merge task to assemble a request body from job variables deviceName and vlanId, then passes that body to a ServiceNow createChangeRequest adapter task.",
+      "assertions": [
+        {
+          "text": "merge data_to_merge uses 'variable' not 'value'",
+          "passed": true,
+          "evidence": "Skill line 919: 'IMPORTANT: The field is \"variable\" NOT \"value\"' in merge section. Line 1036: 'childJob uses \"value\". merge/evaluation use \"variable\". Do NOT mix them.' Line 211: checklist item 'merge uses \"variable\", childJob uses \"value\"'. Line 1625: Gotcha #11 repeats the same rule."
+        },
+        {
+          "text": "Adapter task body wired via $var to merge output, not inline $var inside object",
+          "passed": true,
+          "evidence": "Skill line 160: 'If a task's incoming variable is type: \"object\" (like body), you CANNOT put $var references inside it — they won't resolve. Use a merge task before it'. Line 183: 'Then wire the adapter task's body to \"$var.e1a1.merged_object\"'. Lines 870-879: $var Resolution Rules section explicitly shows nested $var inside objects does NOT work."
+        },
+        {
+          "text": "Adapter task has adapter_id in incoming variables",
+          "passed": true,
+          "evidence": "Skill line 157: 'Add adapter_id to incoming for adapter tasks (not in schema, always required)'. Line 207: checklist 'Every adapter task has adapter_id in incoming'. Line 816: 'Adapter tasks also require adapter_id in incoming variables'."
+        },
+        {
+          "text": "Adapter task has error transition",
+          "passed": true,
+          "evidence": "Skill line 190: 'Every adapter task needs BOTH success and error transitions'. Line 208: checklist 'Every adapter task has an error transition'. Line 853: 'MANDATORY: Every adapter/external task needs an error transition.' Line 1621: Gotcha #9."
+        },
+        {
+          "text": "All task IDs are hex-only [0-9a-f]{1,4}",
+          "passed": true,
+          "evidence": "Skill line 204: checklist 'Task IDs are hex-only ([0-9a-f]{1,4})'. Line 820: 'Task IDs must be hex-only: [0-9a-f]{1,4}. Non-hex IDs (e.g., apush) cause $var references to silently fail.' Line 1618: Gotcha #6."
+        },
+        {
+          "text": "Adapter app/locationType from apps.json not tasks.json",
+          "passed": true,
+          "evidence": "Skill line 75: 'For adapter tasks, the app in tasks.json is WRONG. Look up the correct name'. Line 205: checklist 'app values come from apps.json, not tasks.json'. Lines 239-240: Field mapping table shows app from 'apps.json .name'. Line 1648: Gotcha #28."
+        },
+        {
+          "text": "merge has at least 2 items in data_to_merge",
+          "passed": true,
+          "evidence": "Skill line 916: 'Incoming: data_to_merge (array, min 2 items)'. Line 941: 'Requires at least 2 items (1 item = silently null)'. Line 227: reference table says 'Needs at least 2 items'. Line 1626: Gotcha #12."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "Create a workflow with a childJob that runs a child workflow called 'Device Backup' for each device in an array, running them in parallel.",
+      "assertions": [
+        {
+          "text": "childJob actor is 'job' not 'Pronghorn'",
+          "passed": true,
+          "evidence": "Skill line 154: 'actor → \"Pronghorn\" for all tasks except childJob (which uses \"job\")'. Line 388: Mode B example shows 'actor: \"job\"'. Line 483: checklist 'actor is \"job\" (NOT \"Pronghorn\")'. Line 1013: 'actor MUST be \"job\" — not \"Pronghorn\"'. Line 1627: Gotcha #13."
+        },
+        {
+          "text": "childJob task field is empty string",
+          "passed": true,
+          "evidence": "Skill line 484: checklist 'task is \"\" (empty string)'. Line 1014: 'task MUST be \"\" (empty string)'. Line 429: Mode B example shows 'task: \"\"'. Line 1627: Gotcha #13."
+        },
+        {
+          "text": "childJob outgoing job_details is null",
+          "passed": true,
+          "evidence": "Skill line 485: checklist 'job_details outgoing is null'. Line 1015: 'outgoing.job_details MUST be null — do NOT override with $var.job.X'. Line 438: Mode B example shows 'outgoing: {\"job_details\": null}'. Line 1627: Gotcha #13."
+        },
+        {
+          "text": "childJob loopType is 'parallel'",
+          "passed": true,
+          "evidence": "Skill line 434: Mode B example shows 'loopType: \"parallel\"'. Line 490: 'loopType: \"\" (single), \"parallel\" (simultaneous), \"sequential\" (one at a time)'. Line 1043 documents loop modes."
+        },
+        {
+          "text": "childJob variables is {} (empty) when using data_array",
+          "passed": true,
+          "evidence": "Skill line 418: 'Set variables: {} (empty)'. Line 431: Mode B example shows 'variables: {}'. Line 488: checklist 'variables is {} when using data_array (loop mode)'. Line 1043: 'With loops, use data_array ... and set variables: {}'."
+        },
+        {
+          "text": "All incoming fields present including unused ones (transformation: '')",
+          "passed": true,
+          "evidence": "Skill line 486: checklist 'All incoming fields present — even unused ones: \"data_array\": \"\", \"transformation\": \"\", \"loopType\": \"\"'. Line 1016: 'All incoming fields required — even unused ones'. Mode B example at lines 428-435 shows all fields present."
+        },
+        {
+          "text": "No $var references inside childJob variables object",
+          "passed": true,
+          "evidence": "Skill line 487: checklist 'Variables use {\"task\",\"value\"} NOT $var (single mode)'. Line 1018: 'Variables use {\"task\", \"value\"} syntax — NOT $var'. Line 1628: Gotcha #14 '$var inside causes indefinite hang'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "Build a workflow where a childJob runs a single child workflow and passes the parent's ticketId and deviceName to the child. After the child completes, extract the child's taskStatus using a query task.",
+      "assertions": [
+        {
+          "text": "childJob variables use {'task':'job','value':'varName'} syntax not $var",
+          "passed": true,
+          "evidence": "Skill line 393: 'Variable passing rules (uses \"value\", NOT \"variable\")'. Lines 379-381: Mode A example shows '{\"task\": \"job\", \"value\": \"targetDevice\"}'. Line 1018-1027: childJob section repeats the pattern. Line 1628: Gotcha #14."
+        },
+        {
+          "text": "childJob loopType is '' for single mode",
+          "passed": true,
+          "evidence": "Skill line 384: Mode A example shows 'loopType: \"\"'. Line 490: 'loopType: \"\" (single)'. Line 1043: 'loopType: \"\" (single)'."
+        },
+        {
+          "text": "Query uses flat variable name like 'taskStatus' not nested path",
+          "passed": true,
+          "evidence": "Skill line 414: 'Query uses flat variable names — \"taskStatus\", NOT \"variables.job.taskStatus\"'. Line 1058: 'Use flat variable names, NOT nested paths.'"
+        },
+        {
+          "text": "Query obj wired to $var.childJobTaskId.job_details",
+          "passed": true,
+          "evidence": "Skill lines 406-407: Example shows 'obj: \"$var.a1a1.job_details\"'. Line 1052: Shows 'obj: \"$var.f48f.job_details\"'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "Create a workflow with makeData that generates a JSON string containing deviceName and action fields from job variables.",
+      "assertions": [
+        {
+          "text": "merge task precedes makeData to build the variables object",
+          "passed": true,
+          "evidence": "Skill line 1097: 'The variables field must be a resolved object. Use merge first to build it, then pass via $var.taskId.merged_object'. Lines 1099-1101: Shows pattern 'merge (build variables object) → makeData (use $var.taskId.merged_object as variables)'. Line 1633: Gotcha #19 'makeData variables must be a resolved object — use merge first'."
+        },
+        {
+          "text": "makeData variables field is $var.mergeTaskId.merged_object not inline",
+          "passed": true,
+          "evidence": "Skill line 1097-1101: 'Use merge first to build it, then pass via $var.taskId.merged_object' and shows the pattern explicitly. Line 1633: Gotcha #19."
+        },
+        {
+          "text": "makeData input uses <!var!> syntax for substitution",
+          "passed": true,
+          "evidence": "Skill line 1092-1094: 'Construct data with <!var!> variable substitution. Incoming: input (string with <!var!> placeholders)'. Line 1576: Variable syntax reference shows 'makeData input: <!var!>'."
+        },
+        {
+          "text": "makeData outputType is 'json' for JSON output",
+          "passed": true,
+          "evidence": "Skill line 1094: 'outputType (\"string\"/\"json\"/\"number\"/\"boolean\")'. The skill lists 'json' as a valid outputType, so Claude would know to use 'json' for JSON output."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 5,
+      "prompt": "I have a workflow where both the success and error paths from an adapter task need to reach workflow_end. Wire it correctly.",
+      "assertions": [
+        {
+          "text": "Does NOT use workflow_end as key twice in transitions",
+          "passed": true,
+          "evidence": "Skill line 199: 'If both success and error need to reach workflow_end, route error to an intermediate newVariable task first (JSON can't have duplicate keys)'. Line 855: 'JSON duplicate key problem: If both success and error need to go to workflow_end, you can't use workflow_end as a key twice.' Line 1622: Gotcha #10."
+        },
+        {
+          "text": "Error transition goes to intermediate task (e.g., newVariable)",
+          "passed": true,
+          "evidence": "Skill line 199: 'route error to an intermediate newVariable task first'. Line 231: Reference table shows 'Error handler. Adapter error transitions route here.' Lines 1493-1504: Full pattern shown with err1 newVariable task."
+        },
+        {
+          "text": "Intermediate task then transitions to workflow_end",
+          "passed": true,
+          "evidence": "Skill lines 1501-1503: Shows transition from err1 to workflow_end. Line 855: 'Route error to an intermediate task... then route that to workflow_end'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 6,
+      "prompt": "Add an evaluation task to check if a job variable 'status' equals 'success'. Branch to continue on true, handle error on false.",
+      "assertions": [
+        {
+          "text": "evaluation has BOTH success AND failure transitions",
+          "passed": true,
+          "evidence": "Skill line 981: 'Conditional branching. MUST have BOTH success AND failure transitions.' Line 209: checklist 'evaluation tasks have both success AND failure transitions'. Line 1629: Gotcha #15."
+        },
+        {
+          "text": "Operand references use 'variable' field not 'value'",
+          "passed": true,
+          "evidence": "Skill line 987: 'Operand reference format (uses \"variable\", same as merge)'. Lines 998-1000: Example shows '{\"variable\": \"status\", \"task\": \"job\"}'. Line 1579: Variable syntax reference shows merge/evaluation refs use 'variable'."
+        },
+        {
+          "text": "evaluation_groups structure is correct with nested evaluations array",
+          "passed": true,
+          "evidence": "Skill lines 993-1005: Full example shows evaluation_groups as array containing objects with all_true_flag and nested evaluations array, each with operand_1, operator, operand_2."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 7,
+      "prompt": "Create a newVariable task that sets a job variable called 'result' to the value of another job variable 'computedResult'.",
+      "assertions": [
+        {
+          "text": "Does NOT use $var inside newVariable value field (stores literal)",
+          "passed": true,
+          "evidence": "Skill line 1088: 'GOTCHA: $var inside value does NOT resolve. The literal string is stored. Use merge + query to build dynamic values.' Line 1632: Gotcha #18 '$newVariable value with $var stores the literal string — use merge + query'."
+        },
+        {
+          "text": "Uses merge or query to resolve the dynamic value first",
+          "passed": true,
+          "evidence": "Skill line 1088: 'Use merge + query to build dynamic values.' Line 1632: Gotcha #18 reiterates 'use merge + query'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 8,
+      "prompt": "Build a workflow that pushes items into an array job variable called 'collectedResults' using the push task.",
+      "assertions": [
+        {
+          "text": "push job_variable is plain string name not $var reference",
+          "passed": true,
+          "evidence": "Skill lines 1109-1120: push section shows 'Array manipulation on job variables by name (plain string, NOT $var reference)'. Example shows 'job_variable: \"collectedResults\"'. Line 1120: 'GOTCHA: Pass \"myArray\", NOT \"$var.job.myArray\"'. Line 1631: Gotcha #17."
+        },
+        {
+          "text": "item_to_push uses $var reference correctly",
+          "passed": true,
+          "evidence": "Skill line 1115: Example shows 'item_to_push: \"$var.c3d4.return_data\"' — demonstrating correct $var usage for the item being pushed."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

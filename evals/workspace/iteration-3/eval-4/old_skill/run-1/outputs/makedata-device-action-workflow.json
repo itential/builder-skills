@@ -1,0 +1,104 @@
+{
+  "automation": {
+    "name": "Make Device Action JSON",
+    "description": "Builds a JSON string containing deviceName and action fields from job variables using makeData.",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 200 }
+      },
+      "e1a1": {
+        "name": "merge",
+        "canvasName": "merge",
+        "summary": "Build Device Action Data",
+        "description": "Combines the deviceName and action job variables into a single resolved object so makeData's variables field can reference it (a raw object literal with $var refs would not resolve).",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_to_merge": [
+              { "key": "deviceName", "value": { "task": "job", "variable": "deviceName" } },
+              { "key": "action", "value": { "task": "job", "variable": "action" } }
+            ]
+          },
+          "outgoing": {
+            "merged_object": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 600, "y": 312 }
+      },
+      "a1b2": {
+        "name": "makeData",
+        "canvasName": "makeData",
+        "summary": "Build Device Action JSON String",
+        "description": "Renders deviceName and action into a JSON-formatted string using <!var!> placeholder substitution against the merged object from e1a1.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "automatic",
+        "displayName": "Tools",
+        "variables": {
+          "incoming": {
+            "input": "{\"deviceName\": \"<!deviceName!>\", \"action\": \"<!action!>\"}",
+            "outputType": "string",
+            "variables": "$var.e1a1.merged_object"
+          },
+          "outgoing": {
+            "output": "$var.job.deviceActionJson"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 600, "y": 420 }
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 528 }
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "e1a1": { "type": "standard", "state": "success" }
+      },
+      "e1a1": {
+        "a1b2": { "type": "standard", "state": "success" }
+      },
+      "a1b2": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "deviceName": { "title": "deviceName", "type": "string" },
+        "action": { "title": "action", "type": "string" }
+      },
+      "required": ["deviceName", "action"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "deviceActionJson": { "title": "deviceActionJson", "type": "string" }
+      }
+    }
+  }
+}

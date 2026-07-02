@@ -1,0 +1,36 @@
+{
+  "eval_id": 2,
+  "eval_name": "childjob-loop-parallel-backup",
+  "prompt": "Create a workflow with a childJob that runs a child workflow called 'Device Backup' for each device in an array, running them in parallel.",
+  "expected_output": "childJob with actor 'job', task '', loopType 'parallel', data_array wired to $var, variables empty {}, job_details null, all unused fields present as empty strings",
+  "assertions": [
+    {
+      "text": "childJob actor is 'job' not 'Pronghorn'",
+      "type": "critical"
+    },
+    {
+      "text": "childJob task field is empty string",
+      "type": "critical"
+    },
+    {
+      "text": "childJob outgoing job_details is null",
+      "type": "critical"
+    },
+    {
+      "text": "childJob loopType is 'parallel'",
+      "type": "structural"
+    },
+    {
+      "text": "childJob variables is {} (empty) when using data_array",
+      "type": "structural"
+    },
+    {
+      "text": "All incoming fields present including unused ones (transformation: '')",
+      "type": "structural"
+    },
+    {
+      "text": "No $var references inside childJob variables object",
+      "type": "critical"
+    }
+  ]
+}

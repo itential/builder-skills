@@ -1,0 +1,139 @@
+{
+  "automation": {
+    "name": "Run Device Ticket Child And Extract Status",
+    "description": "Runs a single child workflow for a given ticket/device, passing ticketId and deviceName from the parent job, then extracts the child's taskStatus once the child completes.",
+    "type": "automation",
+    "canvasVersion": 3,
+    "encodingVersion": 1,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": {"x": 600, "y": 200}
+      },
+      "a1b1": {
+        "name": "childJob",
+        "canvasName": "childJob",
+        "summary": "Run Child Workflow For Ticket",
+        "description": "Runs 'Process Device Ticket - Child' as a single (non-loop) child job, passing the parent's ticketId and deviceName job variables.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "task": "",
+            "workflow": "Process Device Ticket - Child",
+            "variables": {
+              "ticketId": {"task": "job", "value": "ticketId"},
+              "deviceName": {"task": "job", "value": "deviceName"}
+            },
+            "data_array": "",
+            "transformation": "",
+            "loopType": ""
+          },
+          "outgoing": {
+            "job_details": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "job",
+        "scheduled": false,
+        "nodeLocation": {"x": 600, "y": 308}
+      },
+      "b2c2": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Extract Child Task Status",
+        "description": "Extracts taskStatus from the completed child job's job_details and writes it to the parent's childTaskStatus job variable.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "taskStatus",
+            "obj": "$var.a1b1.job_details"
+          },
+          "outgoing": {
+            "return_data": "$var.job.childTaskStatus"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": {"x": 600, "y": 416}
+      },
+      "c3d3": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Set Fallback Child Status",
+        "description": "Fallback handler if taskStatus could not be extracted from job_details (query returned null/undefined) — sets childTaskStatus to 'unknown' instead of leaving the job stuck.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "name": "childTaskStatus",
+            "value": "unknown"
+          },
+          "outgoing": {
+            "value": "$var.job.childTaskStatus"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": {"x": 864, "y": 524}
+      },
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": {"x": 600, "y": 632}
+      }
+    },
+    "transitions": {
+      "workflow_start": {
+        "a1b1": {"type": "standard", "state": "success"}
+      },
+      "a1b1": {
+        "b2c2": {"type": "standard", "state": "success"}
+      },
+      "b2c2": {
+        "workflow_end": {"type": "standard", "state": "success"},
+        "c3d3": {"type": "standard", "state": "failure"}
+      },
+      "c3d3": {
+        "workflow_end": {"type": "standard", "state": "success"}
+      },
+      "workflow_end": {}
+    },
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ticketId": {"title": "ticketId", "type": "string"},
+        "deviceName": {"title": "deviceName", "type": "string"}
+      },
+      "required": ["ticketId", "deviceName"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "childTaskStatus": {"title": "childTaskStatus", "type": "string"}
+      }
+    }
+  }
+}

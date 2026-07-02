@@ -1,0 +1,97 @@
+{
+  "expectations": [
+    {
+      "text": "childJob variables use {'task':'job','value':'varName'} syntax not $var",
+      "passed": true,
+      "evidence": "In outputs/run-child-workflow-extract-status.json, task a1a1 (childJob) has variables.incoming.variables: {\"ticketId\": {\"task\": \"job\", \"value\": \"ticketId\"}, \"deviceName\": {\"task\": \"job\", \"value\": \"deviceName\"}}. No raw $var string is used anywhere inside the childJob variables block. The transcript explicitly reasons about this: 'Variable passing uses {\"task\",\"value\"}, not $var... using $var strings inside childJob's variables block causes an indefinite runtime hang.'"
+    },
+    {
+      "text": "childJob loopType is '' for single mode",
+      "passed": true,
+      "evidence": "Task a1a1.variables.incoming.loopType is the empty string \"\" in the output JSON, matching Guide 4 Mode A (single-child) as described in the transcript's Design Decisions section ('Mode A, not Mode B... loopType: \"\"')."
+    },
+    {
+      "text": "Query uses flat variable name like 'taskStatus' not nested path",
+      "passed": true,
+      "evidence": "Task b2b2 (query).variables.incoming.query is the flat string \"taskStatus\", not a nested path like \"variables.job.taskStatus\". The transcript states this was verified against a real query task (task e4f3 in vendor-arista-eos.json 'Port Turn Up') that also uses a flat query path."
+    },
+    {
+      "text": "Query obj wired to $var.childJobTaskId.job_details",
+      "passed": true,
+      "evidence": "Task b2b2 (query).variables.incoming.obj is \"$var.a1a1.job_details\", where a1a1 is the actual task ID of the childJob task defined earlier in the same tasks object -- correctly wired to that task's job_details output."
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 1,
+      "Bash": 2,
+      "Write": 1
+    },
+    "total_tool_calls": 4,
+    "total_steps": 0,
+    "errors_encountered": 0,
+    "output_chars": 3736,
+    "transcript_chars": 18453
+  },
+  "timing": {},
+  "claims": [
+    {
+      "claim": "The skill's own example command for pulling a childJob example from helpers/assets/vendor-cisco-ios.json returns null because that file contains zero childJob tasks",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Independently ran `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == \"childJob\")] | length' helpers/assets/vendor-cisco-ios.json` and got 0, confirming the transcript's claim. Also confirmed via grep that SKILL.md points to vendor-cisco-ios.json for childJob examples at multiple lines (e.g. 211, 495, 1422, 1987, 2026, 2255, 2259, 2275, 2296-2297)."
+    },
+    {
+      "claim": "vendor-arista-eos.json contains 14 childJob task instances and was used as the real structural basis for the deliverable",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Independently ran the same jq count against helpers/assets/vendor-arista-eos.json and got 14, matching the transcript's claim exactly."
+    },
+    {
+      "claim": "Task IDs a1a1 and b2b2 are hex-only ([0-9a-f]{1,4})",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Both 'a1a1' and 'b2b2' consist only of characters in [0-9a-f] and are 4 characters long, matching the required regex and AGENTS.md rule 9 ('Task IDs are hex-only')."
+    },
+    {
+      "claim": "The output JSON is valid and ready to POST to /automation-studio/automations",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Ran `jq empty` on the output file and it parsed without error. The body is wrapped in {\"automation\": {...}} consistent with the documented POST-body scaffold referenced in the transcript (helpers/create/create-workflow.json)."
+    },
+    {
+      "claim": "No error transition is needed on the childJob task itself because real assets rely on the child's internal try-catch instead",
+      "type": "process",
+      "verified": false,
+      "evidence": "This is a reasonable judgment call consistent with the cited real examples (no error transition observed on childJob in vendor-arista-eos.json per the transcript), but it conflicts with AGENTS.md rule 19 ('Error transitions are mandatory on adapter/external tasks... without an error transition, task errors produce \"Job has no available transitions\" and the job gets stuck forever'). The transcript itself flags this as a judgment call and surfaces the risk to the engineer (workflow_end review point 4), so it is not silently omitted, but it is not independently verified as safe -- it is a plausible but unconfirmed design choice with a known documented risk in the same repo's own guidance."
+    },
+    {
+      "claim": "The 'workflow' field placeholder value REPLACE_WITH_CHILD_WORKFLOW_NAME and the missing failure transition off the query task are acceptable because no real platform/child workflow name was available",
+      "type": "quality",
+      "verified": true,
+      "evidence": "The transcript explicitly surfaces both gaps to the engineer in the 'Final answer' section as items 1 and 3, rather than hiding them or fabricating a plausible-looking but fake workflow name. This is honest and matches the task's actual constraints (no live platform, no named child workflow given in the prompt)."
+    }
+  ],
+  "user_notes_summary": {},
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Query obj wired to $var.childJobTaskId.job_details",
+        "reason": "This assertion is satisfied here, but a trivial/wrong build that hardcoded a task ID unrelated to the actual childJob task (or referenced a stale/nonexistent task ID) would still superficially match the pattern '$var.<hex>.job_details'. Consider adding a check that the referenced task ID matches the actual ID of the childJob task defined in the same tasks object, not just that the obj value has the right shape."
+      },
+      {
+        "reason": "No expectation checks that ticketId and deviceName are actually sourced from the parent's job-level variables (task: 'job') as opposed to some other task's output. The task prompt specifically said 'passes its own ticketId and deviceName job variables to the child' -- an assertion like 'childJob variables.incoming.variables.ticketId.task equals \"job\"' would directly verify this requirement rather than only checking the {task,value} syntax shape."
+      },
+      {
+        "reason": "No expectation checks whether the childJob task has an error transition or whether the query's failure path is wired, even though this is a real risk the executor itself flagged (a null/missing taskStatus would strand the job since pass_on_null is false and no failure transition exists). This is an important correctness/completeness dimension of a production-ready childJob+query build that the current expectations don't cover."
+      }
+    ],
+    "overall": "All four core structural expectations pass with genuine, verifiable evidence (not just superficial keyword matches) -- the transcript shows real cross-referencing against production asset files in the repo, and independent verification confirmed the executor's factual claims about vendor-cisco-ios.json vs vendor-arista-eos.json childJob counts. The expectations are reasonably discriminating for syntax correctness but don't cover whether the variables are sourced from the correct scope (job-level vs task-level) or whether the overall workflow is safely wired end-to-end (error handling / failure transitions), which is where the output has an acknowledged but unresolved gap."
+  }
+}

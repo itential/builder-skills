@@ -1,0 +1,79 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies that the merge is missing subscription_id and resource_group from schema.required",
+      "passed": true,
+      "evidence": "Transcript Diagnosis section: 'The merge task that builds the instance-write payload only supplies 2 of the 4 required fields (vnet_name, vlan_id). subscription_id and resource_group are missing.' The output file instance-write-merge-task-fixed.json's BEFORE_problem block shows data_to_merge with only vnet_name and vlan_id, and the AFTER_fixed block adds subscription_id and resource_group as new entries, matching the diagnosis exactly."
+    },
+    {
+      "text": "Explains that a missing required field causes the instance write to fail AFTER resources are already provisioned, orphaning them from LCM",
+      "passed": true,
+      "evidence": "Transcript Diagnosis: 'the underlying resource (e.g., the Azure VNet/VLAN) gets provisioned successfully by the earlier tasks in the workflow, but the LCM instance write step then fails schema validation because the object is incomplete. The result is an orphaned resource \u2014 something now exists in the target system that LCM has no record of, so it can never be tracked, updated, or deleted through subsequent LCM lifecycle actions.' This is also restated in the 'Final answer to the engineer' section and mirrored in the output file's top-level _comment field: 'All 4 must be present or the post-provisioning instance write will fail and the resource will be orphaned from LCM.' The sequencing (provisioning succeeds, then instance write fails, causing orphaning) is explicit and correctly ordered, not just a generic 'missing field is bad' statement."
+    },
+    {
+      "text": "Recommends reading schema.required before/while building the merge task (e.g. jq '.schema.required' on the model file)",
+      "passed": true,
+      "evidence": "Transcript 'Recommended fix' step 3: 'Re-verify against the actual model file for this use case with jq '.schema.required' helpers/assets/lcm/<model>.json ... confirm directly from the schema before finalizing the merge task.' This exact jq command also appears in the 'Final answer to the engineer' verbatim response and again in the output file's _notes array: 'Verify the exact 4 required field names against the real resource model file for this use case with: jq '.schema.required' helpers/assets/lcm/<model>.json'. The recommendation is not just copied from the skill's checklist wording but actively applied earlier in the transcript (Step 3) where the agent runs jq against six real LCM model files in helpers/assets/lcm/ to confirm the rule reflects real production models."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "note": "No metrics.json found in outputs_dir; per-tool call counts not available. Metrics below are inferred from the transcript narrative only.",
+    "total_steps": 5,
+    "errors_encountered": 0,
+    "output_chars": 3275,
+    "transcript_chars": 10931
+  },
+  "timing": {
+    "note": "No timing.json found at the run-1 directory level; timing data not available."
+  },
+  "claims": [
+    {
+      "claim": "Guide 1, Step 9 (Pre-submit checklist), at line 373 of SKILL.md contains the exact rule: 'LCM Create actions only: the instance-write merge task's data_to_merge covers every field in the resource model's schema.required array \u2014 missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's schema.required before building the merge task: jq '.schema.required' helpers/assets/lcm/<model>.json'",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by directly grepping /Users/ankitrbhansali/builderskills/builder-skills/.claude/skills/builder-agent/SKILL.md line 373 \u2014 the text matches verbatim."
+    },
+    {
+      "claim": "Real LCM models in helpers/assets/lcm/ carry non-empty schema.required arrays (e.g., lcm-fan-device-lifecycle-management.json requires becentralId, mac, serialNumber, customerId; lcm-interface-service-provisioning.json requires customerName, orderId)",
+      "type": "factual",
+      "verified": false,
+      "evidence": "Not independently re-verified by the grader (would require re-running jq against those model files), but the claim is consistent with the AGENTS.md description of these files and is a plausible, checkable process step reported in the transcript. Given the primary rule (line 373) and merge task documentation were independently confirmed verbatim, this ancillary claim is very likely accurate but was not re-checked directly."
+    },
+    {
+      "claim": "The general merge task rules (data_to_merge needs >= 2 items, reference field is 'variable' not 'value', {task:'job'} refs only for genuine workflow inputs else they incorrectly populate inputSchema.required) are documented in SKILL.md's ### merge section around line 1378",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed by reading SKILL.md lines 1370-1420: '### merge' section states 'Incoming: data_to_merge (array, min 2 items)', 'IMPORTANT: The field is \"variable\" NOT \"value\"', and the WARNING block: 'The platform scans every data_to_merge entry in merge tasks ... for {task:\"job\"} references and automatically adds that variable name to inputSchema.required ... Rule: only use {task:\"job\"} for variables that are genuine workflow inputs.' All match the transcript's paraphrase closely."
+    },
+    {
+      "claim": "AGENTS.md / Helper Templates table states every LCM action workflow must declare and output an 'instance' variable for state tracking between actions",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed via grep on /Users/ankitrbhansali/builderskills/builder-skills/AGENTS.md line 352: 'Key LCM rule: every action workflow must declare and output an instance variable \u2014 this is what LCM uses to track resource state between actions.'"
+    },
+    {
+      "claim": "The output file instance-write-merge-task-fixed.json presents a correct before/after fix with all 4 required fields wired using the same {task:'job', variable:...} pattern as the existing fields",
+      "type": "quality",
+      "verified": true,
+      "evidence": "Read instance-write-merge-task-fixed.json directly: AFTER_fixed.e1a1.variables.incoming.data_to_merge contains 4 entries (subscription_id, resource_group, vnet_name, vlan_id) each using {\"task\": \"job\", \"variable\": \"<name>\"}, consistent with the existing vnet_name/vlan_id wiring pattern. The file also includes appropriate caveats in _notes about verifying the actual source of each field (operator input vs. earlier task output) rather than blindly assuming {task:'job'} is correct, which reflects nuanced application of the merge task rules rather than a rote fix."
+    }
+  ],
+  "user_notes_summary": {},
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "All three expectations are satisfied almost verbatim by copying the checklist line at SKILL.md:373 \u2014 an executor that had never read the merge-task warning about {task:'job'} auto-populating inputSchema.required, or never understood the provisioning-then-instance-write ordering, could still pass all three assertions by simply quoting that one checklist bullet. None of the three expectations specifically require the executor to correctly distinguish which of subscription_id/resource_group should be wired as {task:'job'} vs. a producing-task ref \u2014 a genuinely harder judgment call that this run did engage with in its output notes. Consider adding an expectation that checks whether the fix correctly reasons about (or at least flags) the source of the two added fields, since a fix that blindly treats them as job inputs without that caveat would still 'look right' but could be wrong for a real model where one of the fields is computed internally."
+      },
+      {
+        "reason": "No assertion checks the produced JSON artifact's structural correctness (e.g., that data_to_merge entries use the 'variable' field rather than 'value', or that the merge task shape matches the platform's actual schema). This run got it right, but an executor that swapped 'variable' for 'value' (a documented common mistake per SKILL.md) would still satisfy all three current text-based expectations since they focus on narrative diagnosis rather than the JSON's mechanical correctness."
+      }
+    ],
+    "overall": "The three expectations are all clearly met with strong, verifiable evidence \u2014 the executor located the exact named rule in the skill (not an inference), correctly explained the orphaning failure mode with proper sequencing, and both stated and applied the jq schema.required verification step. However, the expectations largely reward finding and quoting one specific checklist line; consider strengthening them to also probe the harder judgment call (job-input vs. producing-task reference) and the mechanical correctness of the produced JSON fix, both of which this run happened to get right but which the current assertions would not have caught if wrong."
+  }
+}

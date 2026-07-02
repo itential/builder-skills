@@ -2,7 +2,7 @@
 
 Infrastructure delivery has never had a real operating model. Teams build automation ad hoc — no consistent structure, no traceability, no repeatable process from requirements through delivery.
 
-These skills introduce a new way of working: **Spec-Driven Development** for infrastructure automation. Every delivery follows the same six stages — Requirements → Feasibility → Design → Build → Test → As-Built — with AI agents doing the heavy lifting at each stage and engineers approving the artifacts that move it forward.
+These skills introduce a new way of working: **Spec-Driven Development** for infrastructure automation. Every delivery follows the same five stages — Requirements → Feasibility → Design → Build → As-Built — with AI agents doing the heavy lifting at each stage and engineers approving the artifacts that move it forward.
 
 The result is infrastructure automation that is traceable, repeatable, and delivered faster.
 
@@ -11,7 +11,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 ## How It Works
 
 ```
-Requirements → Feasibility → Design → Build → Test → As-Built
+Requirements  →  Feasibility  →  Design  →  Build  →  As-Built
 ```
 
 Each stage has a named agent, a clear input, and an artifact the engineer approves before moving forward. Nothing skips a stage. Nothing moves without sign-off.
@@ -23,13 +23,13 @@ Each stage has a named agent, a clear input, and an artifact the engineer approv
 **01 — Deliver from Spec**
 End-to-end delivery with artifact-based approvals at every stage.
 ```
-/itential-builder:spec-agent → /itential-builder:solution-arch-agent → /itential-builder:builder-agent → /itential-builder:qa-agent
+/itential-builder:spec-agent → /itential-builder:solution-arch-agent → /itential-builder:builder-agent
 ```
 
 **02 — FlowAgent to Spec**
 An agent proves a pattern. Spec-Driven Development productionizes it as a deterministic workflow.
 ```
-/itential-builder:flowagent-to-spec → /itential-builder:solution-arch-agent → /itential-builder:builder-agent → /itential-builder:qa-agent
+/itential-builder:flowagent-to-spec → /itential-builder:solution-arch-agent → /itential-builder:builder-agent
 ```
 
 **03 — Generate Spec from Project**
@@ -108,12 +108,7 @@ Claude connects to your platform, assesses feasibility, and produces `solution-d
 ```
 /itential-builder:builder-agent
 ```
-Claude builds all assets and tests each component individually.
-
-```
-/itential-builder:qa-agent
-```
-Claude drafts a test plan from your acceptance criteria (you approve it before anything runs live), runs static + acceptance tests against the delivered build, and produces `test-report.md` and `as-built.md`.
+Claude builds all assets, tests each component, delivers, and produces `as-built.md`.
 
 ---
 
@@ -134,7 +129,7 @@ Take an existing FlowAgent and convert its proven pattern to a deterministic wor
 ```
 /itential-builder:flowagent-to-spec
 ```
-Then continue with `/itential-builder:solution-arch-agent` → `/itential-builder:builder-agent` → `/itential-builder:qa-agent`.
+Then continue with `/itential-builder:solution-arch-agent` → `/itential-builder:builder-agent`.
 
 ---
 
@@ -156,7 +151,6 @@ Read an existing project and extract the spec and solution design.
 | Feasibility | `feasibility.md` | Platform capability assessment |
 | Design | `solution-design.md` | Component inventory, adapter mappings, build plan |
 | Build | `assets/` | Delivered workflows, templates, configs |
-| Test | `test-plan.md`, `test-report.md` | Approved test plan + evidence per acceptance criterion |
 | As-Built | `as-built.md` | Delivered state, deviations, learnings |
 
 Each artifact is approved by the engineer before the next stage begins.

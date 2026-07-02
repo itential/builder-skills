@@ -1,0 +1,81 @@
+{
+  "expectations": [
+    {
+      "text": "Explains that inputSchema.required is validated against each data_array element's own keys -- static childJob 'variables' do not count toward satisfying required fields",
+      "passed": true,
+      "evidence": "Transcript 'Diagnosis (root cause)' section: 'In loop mode, the platform does not read the static variables map at all -- each child iteration's entire input variable set is built by flat-spreading that iteration's data_array element... Because the array elements only contain subnet_name and subnet_cidr, and the static variables map is ignored entirely in loop mode, subscription_id and region are never delivered to any child job iteration... The child workflow's inputSchema.required lists both fields, so the platform's pre-flight schema validation for the child job fails immediately on missing required properties.' The final answer to the engineer repeats this explicitly: 'the childJob task's static variables field is not read at all... Each child iteration's entire set of input variables comes from flat-spreading that iteration's element of data_array -- nothing else.' This is the correct mechanism and matches the expectation precisely."
+    },
+    {
+      "text": "Recommends the forEach enrichment pattern: forEach over elements, merge in the shared fields, arrayPush into a new enriched array",
+      "passed": true,
+      "evidence": "Transcript 'Recommended fix' section lays out: forEach (data_array = $var.job.subnets) -> query x2 (extract subnet_name/subnet_cidr) -> merge (combine subnet_name + subnet_cidr + subscription_id + region) -> push (append merged object onto job.enrichedSubnets, last body task transition {}) -> childJob (data_array = enrichedSubnets, variables = {}). The output file outputs/childjob-loop-static-variables-fix.json implements exactly this: task a002 (forEach) -> a003/a004 (query) -> a005 (merge, data_to_merge combines the two extracted fields plus subscription_id/region from job vars) -> a006 (push, incoming job_variable='enrichedSubnets', item_to_push='$var.a005.merged_object', outgoing transition {} per forEach's mandatory-empty-last-transition rule) -> a1a1 (childJob). This is functionally the forEach -> merge -> array-append pattern the expectation describes, using the task literally named 'push' in the old skill's utility-task catalog (the same job_variable/item_to_push incoming shape the current skill's own 'arrayPush' shorthand documents)."
+    },
+    {
+      "text": "Final childJob uses data_array pointed at the enriched array, with variables: {}",
+      "passed": true,
+      "evidence": "outputs/childjob-loop-static-variables-fix.json, task 'a1a1' (after_fixed_patch.tasks.a1a1.variables.incoming): {\"task\": \"\", \"workflow\": \"Create Subnet\", \"variables\": {}, \"data_array\": \"$var.job.enrichedSubnets\", \"transformation\": \"\", \"loopType\": \"parallel\"} -- data_array points at the newly built enrichedSubnets array and variables is an empty object, exactly as required."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "tool_calls": {
+      "Read": 2,
+      "Bash": 5,
+      "Write": 1
+    },
+    "total_tool_calls": 8,
+    "total_steps": 7,
+    "errors_encountered": 0,
+    "output_chars": 9390,
+    "transcript_chars": 15017
+  },
+  "claims": [
+    {
+      "claim": "childJob has two live-tested wiring modes (Mode A: single child w/ static variables, Mode B: loop w/ data_array+loopType and variables:{}), and the skill scopes its 'tested and verified on a live platform' claim to only these two modes.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Not independently checkable against the exact ephemeral /tmp/eval-old-skill/builder-agent/SKILL.md (no longer present in the environment), but internally consistent across three separately-cited locations in the transcript (Guide 4 description, childJob checklist, Gotchas list) and corroborated by the current repo's SKILL.md, which documents the same Mode A / Mode B split for childJob."
+    },
+    {
+      "claim": "Every real, production-imported childJob task with a populated data_array (loop mode) in the shipped asset library has variables: {}, with no exception; all other childJob tasks (Mode A / single-child) have data_array empty and a populated variables map.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Independently re-ran the equivalent jq query against every file in helpers/assets/*.json and helpers/assets/lcm/*.json. The only childJob task anywhere in the library with a non-empty data_array is in helpers/assets/vendor-netbox.json: {\"data_array\":\"$var.1bd8.ipsInPrefix\",\"loopType\":\"sequential\",\"variables\":{}} -- confirming the claim exactly. Every other childJob task in the library has data_array:\"\" (Mode A) with a populated variables map."
+    },
+    {
+      "claim": "A production example (itential-platform-configuration-management.json, 'Iterate Over Each Device' forEach) shows a direct task-to-task reference to a non-nested forEach's current_item output, e.g. backUpDevice incoming \"name\": \"$var.1d07.current_item\".",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Re-ran the cited jq query against helpers/assets/itential-platform-configuration-management.json; confirmed task 'a6d5' (backUpDevice) has incoming {\"name\": \"$var.1d07.current_item\", \"options\": \"$var.5152.backupOptions\"} -- an exact match to the transcript's claim."
+    },
+    {
+      "claim": "There is no worked example of a populated 'transformation' field (the alleged 'childJob mode 3') anywhere in the shipped asset library -- every real childJob task has transformation: \"\".",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Re-running the jq incoming dump across all asset files shows every childJob's transformation field is either omitted or an empty string in every result printed; none contain a populated transformation. Consistent with the transcript's claim that this third mode is documented-but-unverified and was correctly excluded from the primary recommendation rather than fabricated."
+    },
+    {
+      "claim": "The task named 'push' used in the patch (job_variable/item_to_push incoming, job_variable as a plain string not a $var ref) is the correct utility task for appending to a job-variable array, as opposed to the platform's separate 'arrayPush' task (incoming arr/elementN).",
+      "type": "quality",
+      "verified": true,
+      "evidence": "platform/tasks.json contains two distinct catalog entries sharing canvasName 'push': {\"name\":\"arrayPush\",...,\"incoming\":{\"arr\":null,\"elementN\":null}} and {\"name\":\"push\",...,\"incoming\":{\"job_id\":null,\"job_variable\":null,\"item_to_push\":null}}. The output JSON's push task (a006) uses job_variable/item_to_push -- matching the 'push' task's real incoming schema, not 'arrayPush's' arr/elementN schema. So despite the current (newer) skill's shorthand calling this pattern step 'arrayPush', the old_skill run's literal task name ('push') is actually the more schema-accurate choice for the fields it uses."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Recommends the forEach enrichment pattern: forEach over elements, merge in the shared fields, arrayPush into a new enriched array",
+        "reason": "The word 'arrayPush' in this assertion is ambiguous against the actual platform task catalog: platform/tasks.json has two different tasks sharing canvasName 'push' -- one literally named 'arrayPush' (incoming arr/elementN) and one literally named 'push' (incoming job_variable/item_to_push). The old_skill run used the task named 'push' with job_variable/item_to_push fields, which is the functionally correct one for 'append to a job-variable array by name', but a grader checking for the literal string 'arrayPush' in the task's `name` field would have failed a genuinely correct answer (and, ironically, would have passed the current skill's own doc example, which mislabels this same job_variable/item_to_push task as 'arrayPush'). Consider rephrasing the assertion to check for the functional pattern (forEach -> merge -> append-to-job-variable-array task, regardless of exact task name) rather than the literal string 'arrayPush', or clarify in the skill which of the two same-canvasName tasks is intended."
+      },
+      {
+        "reason": "No assertion checks whether the delivered JSON patch is structurally valid against the platform's actual import/PUT schema (correct transitions, mandatory empty {} transition on the last loop-body task, hex-only task IDs, inputSchema additions wired as required). The transcript only claims python3 -m json.tool validation, which is pure JSON-syntax validation, not schema/wiring validation. In this run the patch does appear correct on manual inspection (hex IDs, correct loop/success transitions, empty transition on push), but a future weaker output with a wiring bug (e.g., wrong transition state, missing error transition) would still pass all three current assertions since none of them inspect the transitions or task IDs directly."
+      }
+    ],
+    "overall": "All three expectations are well-grounded and non-trivial -- verifying them required checking specific JSON fields (inputSchema semantics, the forEach/merge/push chain, and the final childJob's data_array/variables) rather than surface text matching, and the old_skill run genuinely earned all three passes through real investigation (cross-checked its claims against the live asset library rather than fabricating them). The one soft spot is the literal word 'arrayPush' in expectation 2, which doesn't cleanly match the platform's actual (confusingly dual-named) task catalog; see suggestion above."
+  }
+}

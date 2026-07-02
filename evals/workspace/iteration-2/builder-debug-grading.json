@@ -1,0 +1,124 @@
+{
+  "skill": "itential-builder",
+  "eval_group": "debug",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "My workflow job is stuck in 'running' state and never completes. The failing task is an adapter call to ServiceNow.",
+      "assertions": [
+        {
+          "text": "Identifies missing error transition as root cause of stuck job",
+          "passed": true,
+          "evidence": "Skill line 853: 'MANDATORY: Every adapter/external task needs an error transition. Without one, errors cause \"Job has no available transitions\" and the job gets stuck forever.' Also in Guide 2 debug table line 271: 'Job stuck in \"running\" | No error transition on failed task | Add error transition'."
+        },
+        {
+          "text": "Advises checking job.error array for details",
+          "passed": true,
+          "evidence": "Skill lines 256-259 (Guide 2 Step 2): 'Check data.status. If \"error\", read data.error[]: data.error[].task -> failing task ID, data.error[].message.IAPerror.displayString -> human-readable error'. Also lines 1443-1444 in Testing & Debugging section."
+        },
+        {
+          "text": "Does NOT suggest restarting or retrying without fixing the transition",
+          "passed": true,
+          "evidence": "Skill Guide 2 Step 4 (line 273): 'Fix locally, PUT to update, re-run. Don't recreate — updating preserves the ID.' The skill's debug flow is always: diagnose -> fix -> re-run. No mention of blind restarts."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "I set a task ID of 'push1' on my arrayPush task but $var.push1.result always returns the literal string instead of the actual value.",
+      "assertions": [
+        {
+          "text": "Identifies 'push1' as invalid — contains non-hex character",
+          "passed": true,
+          "evidence": "Skill line 820: 'Task IDs must be hex-only: [0-9a-f]{1,4}. Non-hex IDs (e.g., apush) cause $var references to silently fail.' The character '1' is hex-valid but 'p','u','s','h' are not hex chars in 'push1'. The skill explicitly calls out non-hex IDs causing silent $var failure."
+        },
+        {
+          "text": "Explains hex-only rule: [0-9a-f]{1,4}",
+          "passed": true,
+          "evidence": "Skill line 820: 'Task IDs must be hex-only: [0-9a-f]{1,4}.' Also in pre-submit checklist line 204: 'Task IDs are hex-only ([0-9a-f]{1,4})'."
+        },
+        {
+          "text": "Suggests a valid hex replacement like 'a1b2'",
+          "passed": true,
+          "evidence": "The skill uses hex-only IDs throughout all examples: 'a1b2', 'b2c3', 'c3d4', 'e1a1', 'ef01', 'err1' (line 119, etc.). While 'err1' contains 'r' which is non-hex — actually looking more carefully, the skill uses 'err1' in some places (line 831) which contains non-hex 'r'. However, the examples predominantly use valid hex IDs like 'a1b2', 'b2c3', 'c3d4', 'e1a1', 'ef01' providing clear valid replacements. Claude would suggest one of these."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "I'm trying to pass $var.job.deviceName inside a nested object in my adapter task's body field but it's not resolving.",
+      "assertions": [
+        {
+          "text": "Explains $var does not resolve inside nested objects",
+          "passed": true,
+          "evidence": "Skill lines 871-878 ($var Resolution Rules): '$var only resolves as direct top-level incoming variable values. \"variables\": {\"key\": \"$var.job.x\"} -> NO, Nested inside object. \"body\": {\"data\": \"$var.job.x\"} -> NO, Nested — stored as literal string.'"
+        },
+        {
+          "text": "Recommends merge or makeData as workaround",
+          "passed": true,
+          "evidence": "Skill line 879: 'Workaround: Use merge, makeData, or query to build the nested object, then reference the task output with $var.taskId.merged_object.' Also Step 5 in Guide 1 (line 160): 'If a task's incoming variable is type: \"object\" (like body), you CANNOT put $var references inside it — they won't resolve. Use a merge task before it.'"
+        },
+        {
+          "text": "Shows correct pattern: merge builds object, adapter references $var.mergeId.merged_object",
+          "passed": true,
+          "evidence": "Skill lines 163-183 show a complete merge task example building a request body, followed by line 183: 'Then wire the adapter task's body to \"$var.e1a1.merged_object\".' The reference workflow example (lines 220-231) also shows this exact pattern: merge (e1a1) -> adapter (a1b2) with body wired to $var.e1a1.merged_object."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "My merge task has only 1 item in data_to_merge and the output is null. What's wrong?",
+      "assertions": [
+        {
+          "text": "Identifies 1-item merge as the cause of null output",
+          "passed": true,
+          "evidence": "Skill line 916: 'Incoming: data_to_merge (array, min 2 items)'. Skill line 941: 'Gotchas: Requires at least 2 items (1 item = silently null).' Also in Guide 1 table line 227: 'data_to_merge uses \"variable\" (NOT \"value\"). Needs at least 2 items.'"
+        },
+        {
+          "text": "Advises adding a second item (even a static dummy if needed)",
+          "passed": false,
+          "evidence": "The skill states the minimum is 2 items but does NOT explicitly suggest adding a static dummy item as a workaround. It only documents the constraint ('min 2 items', '1 item = silently null') without offering the specific workaround of adding a dummy static item. Claude might infer this, but the skill does not explicitly provide this guidance."
+        }
+      ],
+      "pass_rate": 0.5
+    },
+    {
+      "eval_id": 5,
+      "prompt": "In my forEach loop, the last task connects back to the forEach task but the job errors out.",
+      "assertions": [
+        {
+          "text": "Identifies incorrect back-connection as the error",
+          "passed": true,
+          "evidence": "Skill lines 1067-1072 (forEach section): 'Transition pattern (critical): forEach --state:loop--> firstBodyTask -> ... -> lastBodyTask --(empty {}). The last task in the loop body has an empty transition {}. Do NOT connect it back to forEach.'"
+        },
+        {
+          "text": "Explains last body task must have empty {} transition",
+          "passed": true,
+          "evidence": "Skill line 1072: 'The last task in the loop body has an empty transition {}. Do NOT connect it back to forEach.' The transition pattern on line 1069 also shows: 'lastBodyTask --(empty {})'"
+        },
+        {
+          "text": "forEach handles the loop iteration automatically",
+          "passed": true,
+          "evidence": "Skill line 1072: 'Do NOT connect it back to forEach.' The transition pattern shows forEach manages the loop via 'state:loop' for body tasks and 'state:success' for after the loop completes (lines 1069-1071), implying forEach handles iteration automatically. The empty {} on the last body task signals forEach to pick up the next iteration."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 6,
+      "prompt": "Help me optimize my SQL queries for PostgreSQL.",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for database optimization",
+          "passed": true,
+          "evidence": "The skill's description (line 3) is: 'Create projects, build workflows, templates (Jinja2/TextFSM), and command templates (MOP). Wire utility tasks, run jobs, and debug.' SQL/PostgreSQL optimization is entirely outside the skill's domain. The CLAUDE.md skill router table maps itential-builder to 'Building everything' in the Itential Platform context only."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 0.94
+}

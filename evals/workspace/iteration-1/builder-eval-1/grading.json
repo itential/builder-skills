@@ -1,0 +1,43 @@
+{
+  "eval_id": 1,
+  "eval_name": "builder-merge-adapter-workflow",
+  "skill": "itential-builder",
+  "prompt": "Build a workflow that uses a merge task to assemble a request body from job variables deviceName and vlanId, then passes that body to a ServiceNow createChangeRequest adapter task.",
+  "expectations": [
+    {
+      "text": "merge data_to_merge uses 'variable' not 'value'",
+      "passed": true,
+      "evidence": "In the merge task e1a1, data_to_merge entries use {\"task\": \"job\", \"variable\": \"deviceName\"} and {\"task\": \"job\", \"variable\": \"vlanId\"} -- the field is 'variable' as required by the skill, not 'value'."
+    },
+    {
+      "text": "Adapter task body wired via $var to merge output, not inline $var inside object",
+      "passed": true,
+      "evidence": "The adapter task a1b2 wires body as a top-level incoming variable: \"body\": \"$var.e1a1.merged_object\". This is a direct $var reference, not an inline $var nested inside an object literal."
+    },
+    {
+      "text": "Adapter task has adapter_id in incoming variables",
+      "passed": true,
+      "evidence": "The adapter task a1b2 includes \"adapter_id\": \"$var.job.adapter_id\" in its incoming variables, as required by the skill (not in schema, always required)."
+    },
+    {
+      "text": "Adapter task has error transition",
+      "passed": true,
+      "evidence": "Transitions for a1b2 include both success (to workflow_end) and error (to ef01 newVariable handler). The error transition is {\"type\": \"standard\", \"state\": \"error\"}."
+    },
+    {
+      "text": "All task IDs are hex-only [0-9a-f]{1,4}",
+      "passed": true,
+      "evidence": "Task IDs used: e1a1, a1b2, ef01. All match the regex [0-9a-f]{1,4} -- only hex characters, 4 characters each."
+    },
+    {
+      "text": "Adapter app/locationType from apps.json not tasks.json",
+      "passed": true,
+      "evidence": "The response explicitly states looking up the app name from apps.json (e.g., Servicenow) and uses that for both app and locationType fields on the adapter task. The displayName (ServiceNow with capital N) comes from tasks.json as expected."
+    },
+    {
+      "text": "Does NOT re-pull bootstrap or discovery data (workspace contract)",
+      "passed": true,
+      "evidence": "The response only searches existing local files (tasks.json, apps.json, adapters.json) with jq commands and fetches task schemas (which is an allowed builder API call). It does not re-pull tasks.json, apps.json, adapters.json, applications.json, or openapi.json -- honoring the workspace contract that 'The builder NEVER re-pulls bootstrap or discovery data.'"
+    }
+  ]
+}

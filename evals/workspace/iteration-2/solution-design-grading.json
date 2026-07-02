@@ -1,0 +1,112 @@
+{
+  "skill": "solution-design",
+  "eval_group": "design",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "I approved my port turn-up spec. Design the solution. The environment has a ServiceNow adapter running and devices in inventory.",
+      "assertions": [
+        {
+          "text": "Authenticates and pulls bootstrap data AFTER spec approval (not before)",
+          "passed": true,
+          "evidence": "Skill lines 9-26 show the phase diagram: Phase 2 DISCOVER (auth + bootstrap) happens after GATE 1 (spec approval). Line 139: 'Now — and only now — connect to the platform.' Line 25: 'no API calls before Gate 1'."
+        },
+        {
+          "text": "Pulls spec-contingent data based on approved scope (devices, workflows)",
+          "passed": true,
+          "evidence": "Skill lines 198-210 document Phase 2C 'Pull Spec-Contingent Data' with a table showing when to pull devices.json, workflows.json, device-groups.json based on approved spec scope."
+        },
+        {
+          "text": "Resolves adapter names from apps.json not tasks.json",
+          "passed": true,
+          "evidence": "Skill line 388: 'Adapter app: from apps.json, NOT tasks/list'. Also line 436: 'tasks/list app field has WRONG casing for adapters — use apps/list'."
+        },
+        {
+          "text": "Produces component inventory with type and action (build/reuse/skip)",
+          "passed": true,
+          "evidence": "Skill lines 271-279 show the Component Inventory table format with columns for #, Component, Type, and Action (Build/Reuse). Phase 2F (line 234-236) also covers finding reuse opportunities."
+        },
+        {
+          "text": "Maps acceptance criteria to test methods",
+          "passed": true,
+          "evidence": "Skill line 283: Section F of solution-design.md is 'Acceptance Criteria → Tests — map each criterion to how to verify it'."
+        },
+        {
+          "text": "Presents design for approval (Gate 2) before building",
+          "passed": true,
+          "evidence": "Skill lines 285-301 document 'Present for Review' and lines 305-312 document 'GATE 2: Design Approval'. Line 287: 'Present the full solution design. Do NOT proceed to build until approved.'"
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "Design a solution for config backup. The environment has no ITSM adapter.",
+      "assertions": [
+        {
+          "text": "Does NOT invent adapters that aren't in the environment",
+          "passed": true,
+          "evidence": "Skill lines 226-232 document Phase 2E 'Resolve Integrations' which checks adapters against what's actually found in the environment. Missing adapters are marked as Blocked or Skipped, never invented."
+        },
+        {
+          "text": "Marks missing optional integration as 'skipped' with fallback",
+          "passed": true,
+          "evidence": "Skill line 231: 'Not found + Not Required? → Skipped'. The Requirements Resolution table example (lines 250-257) shows a 'SKIP' status with resolution note."
+        },
+        {
+          "text": "Marks missing required integration as 'blocked'",
+          "passed": true,
+          "evidence": "Skill line 230: 'Not found + Required? → Blocked (stop and discuss)'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "Build the solution design. I haven't approved the spec yet.",
+      "assertions": [
+        {
+          "text": "Does NOT skip Gate 1 — requires spec approval first",
+          "passed": true,
+          "evidence": "Skill lines 113-133 document GATE 1 explicitly. Line 115: 'Present the refined spec. Do NOT touch the platform until approved.' Line 133: 'When the engineer approves: the spec is locked.' The entire phase diagram (lines 11-26) enforces this ordering."
+        },
+        {
+          "text": "Asks engineer to review and approve spec before proceeding",
+          "passed": true,
+          "evidence": "Skill line 123: 'Ask: Here is your spec. Review it — add, remove, or change anything. When you approve it, I'll connect to your platform and design the solution.'"
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "The design includes child workflows. How will they be deployed into a project?",
+      "assertions": [
+        {
+          "text": "Warns about project move breaking childJob workflow references",
+          "passed": true,
+          "evidence": "Skill lines 395-397: 'If assets were built in global scope, move them with POST /projects/{id}/components/add — then fix childJob workflow refs (platform renames children but does NOT update parent references)'."
+        },
+        {
+          "text": "Recommends creating project first and building inside it",
+          "passed": true,
+          "evidence": "Skill line 395: 'Create the project FIRST — POST /automation-studio/projects → get projectId'. Line 396: 'Build all assets with names prefixed @{projectId}: so childJob refs are correct from the start'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 5,
+      "prompt": "Help me design a REST API in Express.js.",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for generic API design tasks",
+          "passed": true,
+          "evidence": "Skill lines 1-5 define scope: 'Take a use-case HLD spec and an engineer's environment, produce a solution design, refine it collaboratively, then build it. Use when an engineer wants to implement a use case from a spec file.' Express.js API design is entirely outside this scope. The skill's argument-hint is '[spec-file-path]' indicating it requires an Itential spec file context."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

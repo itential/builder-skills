@@ -1,0 +1,107 @@
+{
+  "skill": "itential-setup",
+  "eval_group": "setup",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "Connect me to my Itential platform. I have a cloud instance with OAuth credentials.",
+      "assertions": [
+        {
+          "text": "OAuth POST uses Content-Type: application/x-www-form-urlencoded not JSON",
+          "passed": true,
+          "evidence": "Skill lines 186-196 show OAuth uses 'Content-Type: application/x-www-form-urlencoded' and line 227 in Gotchas explicitly states 'OAuth MUST use Content-Type: application/x-www-form-urlencoded, not JSON'."
+        },
+        {
+          "text": "Checks for existing .env file before asking for credentials",
+          "passed": true,
+          "evidence": "Skill lines 43-49 under 'Authenticate' state 'Check for an env file first. If one exists, use it — don't ask questions.' and list the lookup order: {use-case}/.env then environments/*.env."
+        },
+        {
+          "text": "Uses Bearer token in Authorization header for subsequent calls",
+          "passed": true,
+          "evidence": "Skill line 196 states OAuth returns access_token and 'Use as Bearer header: Authorization: Bearer eyJhbG...'. This is explicit for OAuth/cloud auth."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "I want to build the port turn-up use case from the spec file.",
+      "assertions": [
+        {
+          "text": "Creates use-case directory",
+          "passed": true,
+          "evidence": "Skill lines 117-118 show 'mkdir -p {use-case-name}' in the Fork the spec step."
+        },
+        {
+          "text": "Forks spec to customer-spec.md (does not modify original in spec-files/)",
+          "passed": true,
+          "evidence": "Skill lines 119-120 show '[ ! -f {use-case}/customer-spec.md ] && cp spec-files/spec-port-turn-up.md {use-case}/customer-spec.md'. Line 123 confirms 'The forked file is now customer-spec.md'."
+        },
+        {
+          "text": "Does NOT authenticate or pull platform data for spec path",
+          "passed": true,
+          "evidence": "Skill line 98 explicitly states 'No auth here. No data pulls. Just route.' for Path B. Lines 149 and 254 reinforce: 'No bootstrap data, no environment analysis.'"
+        },
+        {
+          "text": "Tells engineer what happens next (understand, Gate 1, discover, design, Gate 2, build)",
+          "passed": true,
+          "evidence": "Skill lines 129-138 lay out the exact 6-step plan: Understand, Approve the spec (Gate 1), Discover, Design, Approve the design (Gate 2), Build. Includes 'You own both gates.'"
+        },
+        {
+          "text": "Hands off to /solution-design with only the forked spec file",
+          "passed": true,
+          "evidence": "Skill lines 142-149 under 'Hand off to /solution-design' state 'Artifact-based handoff. The workspace contains exactly one file: customer-spec.md — forked spec (untouched, unanalyzed). No auth. No bootstrap data. No environment analysis.'"
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "Set up my environment. Platform is at localhost:4000, username admin, password admin.",
+      "assertions": [
+        {
+          "text": "Uses POST /login with JSON body for password auth",
+          "passed": true,
+          "evidence": "Skill lines 177-181 show 'POST /login' with 'Content-Type: application/json' and body '{\"username\": \"admin\", \"password\": \"admin\"}'."
+        },
+        {
+          "text": "Uses token as query parameter for local dev (not Bearer header)",
+          "passed": true,
+          "evidence": "Skill line 183 states 'Returns a token string. Use as query parameter: GET /endpoint?token=TOKEN'. The bootstrap curl examples on lines 59-63 also show '?token=TOKEN' pattern."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "I already ran setup yesterday. The working directory has all the files. Just let me build.",
+      "assertions": [
+        {
+          "text": "Reuses existing working directory without overwriting files",
+          "passed": true,
+          "evidence": "Skill line 20 shows 'Already set up? → Reuse existing working directory' in the flow diagram. Line 33 states 'If the user already has a working directory from a previous session, offer to reuse it.' Line 119 uses '[ ! -f ... ] &&' guard to avoid overwriting."
+        },
+        {
+          "text": "Checks what artifacts exist (customer-spec.md, solution-design.md) to determine where in the flow to resume",
+          "passed": false,
+          "evidence": "The skill mentions reusing an existing directory (lines 20, 33) but does NOT explicitly document checking for specific artifacts like customer-spec.md or solution-design.md to determine where to resume in the flow. There is no logic described for inspecting workspace contents to pick up where the user left off."
+        }
+      ],
+      "pass_rate": 0.5
+    },
+    {
+      "eval_id": 5,
+      "prompt": "How do I configure my router?",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for generic networking questions",
+          "passed": true,
+          "evidence": "The skill description (line 3) states it is for 'Connect to an Itential Platform, then choose ad-hoc exploration or spec-driven build.' The skill content is entirely about Itential platform setup and routing — it contains no generic router configuration guidance. A generic networking question would not match this skill's domain."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 0.92
+}

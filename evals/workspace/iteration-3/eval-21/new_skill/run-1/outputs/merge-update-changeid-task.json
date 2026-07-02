@@ -1,0 +1,154 @@
+{
+  "_comment": "Merge task that builds the update-request body from the changeId produced by an earlier query task, plus a static status field. Task IDs are placeholders (hex-only) — rename to fit the existing workflow's numbering.",
+
+  "context_tasks": {
+    "b2c3": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract Change ID",
+      "description": "Extracts the changeId from the ServiceNow adapter response",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "response.sys_id",
+          "obj": "$var.<createOrQueryTaskId>.result"
+        },
+        "outgoing": {
+          "return_data": "$var.job.changeId"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 420 }
+    },
+
+    "d4e5": {
+      "name": "merge",
+      "canvasName": "merge",
+      "summary": "Build Update Request Body",
+      "description": "Builds the body for the ServiceNow update call from the extracted changeId and a static status value",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "data_to_merge": [
+            {
+              "key": "changeId",
+              "value": {
+                "task": "b2c3",
+                "variable": "return_data"
+              }
+            },
+            {
+              "key": "status",
+              "value": {
+                "task": "static",
+                "variable": "in_progress"
+              }
+            }
+          ]
+        },
+        "outgoing": {
+          "merged_object": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 528 }
+    },
+
+    "e5f6": {
+      "name": "updateChangeRequest",
+      "canvasName": "updateChangeRequest",
+      "summary": "Update Change Request",
+      "description": "Applies the merged body (changeId + status) to the ServiceNow change request. Placeholder task name — replace with the actual downstream task from tasks.json.",
+      "location": "Adapter",
+      "locationType": "Servicenow",
+      "app": "Servicenow",
+      "type": "automatic",
+      "displayName": "Servicenow",
+      "variables": {
+        "incoming": {
+          "body": "$var.d4e5.merged_object",
+          "adapter_id": "$var.job.adapterId"
+        },
+        "outgoing": {
+          "result": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 636 }
+    },
+
+    "ef01": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Handle Update Error",
+      "description": "Error sink for the update call — routes to workflow_end since success and error can't both target the same key",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "taskStatus",
+          "value": "error"
+        },
+        "outgoing": {
+          "value": "$var.job.taskStatus"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 936, "y": 636 }
+    }
+  },
+
+  "transitions": {
+    "b2c3": {
+      "d4e5": { "type": "standard", "state": "success" }
+    },
+    "d4e5": {
+      "e5f6": { "type": "standard", "state": "success" }
+    },
+    "e5f6": {
+      "workflow_end": { "type": "standard", "state": "success" },
+      "ef01": { "type": "standard", "state": "error" }
+    },
+    "ef01": {
+      "workflow_end": { "type": "standard", "state": "success" }
+    }
+  },
+
+  "key_wiring_notes": [
+    "data_to_merge item format is {\"key\": \"<targetFieldName>\", \"value\": {\"task\": ..., \"variable\": ...}} — confirmed against helpers/assets/vendor-servicenow.json 'Create Change Request' (task aab9) and 'Update Change Request' (task ade8).",
+    "changeId is NOT wired as {\"task\": \"job\", \"variable\": \"changeId\"} even though the query task's outgoing already binds it to $var.job.changeId. The platform scans merge data_to_merge entries for {task:'job'} refs and auto-adds that variable name to inputSchema.required — that would incorrectly prompt operators to supply changeId as a workflow input, even though it's produced internally by the query task. Instead it references the producing task directly: {\"task\": \"b2c3\", \"variable\": \"return_data\"}.",
+    "status is static, so it uses {\"task\": \"static\", \"variable\": \"in_progress\"} — replace 'in_progress' with whatever literal status value the target system expects (e.g. a ServiceNow state code).",
+    "merge requires at least 2 items in data_to_merge (1 item resolves silently to null) — this task has exactly 2 (changeId, status), which satisfies the minimum.",
+    "outgoing.merged_object must be declared as null (not {}), or it becomes unreachable.",
+    "Downstream adapter task (e5f6, placeholder name) wires body to $var.d4e5.merged_object — the merge output — because $var references do not resolve inside nested object literals.",
+    "e5f6 is an adapter task, so it requires BOTH a success and an error transition; error routes to a newVariable sink (ef01) before workflow_end, since JSON can't have duplicate 'workflow_end' keys under the same task's transitions."
+  ]
+}

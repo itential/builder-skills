@@ -119,7 +119,7 @@ Show:
 
 After pulling platform data, check for `{use-case}/use-case-memory.md`:
 - **Exists** → read it. It has context from a previous session — platform URL, prior decisions, open items.
-- **Missing** → create it from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md`. Populate Platform URL, `Stage: requirements` (explore is freeform — set the real stage once the engineer commits to a delivery path), `Status: active`, and any adapter/app names discovered in Step 2.
+- **Missing** → create it from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md`. Populate Platform URL, Status: `in-progress`, and any adapter/app names discovered in Step 2.
 
 ---
 

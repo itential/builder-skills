@@ -1,0 +1,124 @@
+{
+  "skill": "itential-mop",
+  "eval_group": "itential-mop",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "Build a pre-check command template that validates interface status and VLAN assignment on a Cisco IOS device.",
+      "assertions": [
+        {
+          "text": "Uses <!variable!> syntax not {{ }} or $var",
+          "passed": true,
+          "evidence": "Skill line 17 defines variable syntax as <!variable_name!>, line 60-61 shows <!interface!> in example, line 179 explicitly states the syntax and distinguishes from Jinja2 and $var."
+        },
+        {
+          "text": "passRule set at template and command level",
+          "passed": true,
+          "evidence": "Skill lines 56/62 show passRule at both levels in the example. Lines 103-108 document the two-level passRule logic explicitly."
+        },
+        {
+          "text": "Rules have eval, severity, and rule fields",
+          "passed": true,
+          "evidence": "Skill lines 96-98 document 'rule', 'eval', and 'severity' as rule fields. Lines 63-68 and 73-78 show complete rule examples with all three fields."
+        },
+        {
+          "text": "Uses 'contains' eval type (not 'Contains' or 'CONTAINS')",
+          "passed": true,
+          "evidence": "Skill line 127 states 'Eval types are case-sensitive.' Line 131 shows 'contains' (lowercase) in the eval table. Gotcha #6 (line 411) reiterates case-sensitivity."
+        },
+        {
+          "text": "Wrapped in {mop: {...}} for API call",
+          "passed": true,
+          "evidence": "Skill line 48 states 'The body uses a {\"mop\": {...}} wrapper.' Lines 50-83 show the full example wrapped in {\"mop\": {...}}."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "Create a command template that uses regex to check if interface error counters are below a threshold.",
+      "assertions": [
+        {
+          "text": "Uses 'RegEx' not 'regex' or 'Regex' (case-sensitive)",
+          "passed": true,
+          "evidence": "Skill line 134 shows 'RegEx' in the eval table with note '(capital R and E!)'. Lines 127, 411 (gotcha #6) emphasize eval types are case-sensitive."
+        },
+        {
+          "text": "Regex pattern in /pattern/ format",
+          "passed": true,
+          "evidence": "Skill line 134 shows example '/\\\\d+\\\\.\\\\d+/' in /pattern/ format. Lines 153-154 show /pattern/ format for #comparison regex as well."
+        },
+        {
+          "text": "For numeric comparison, uses #comparison with evaluator",
+          "passed": true,
+          "evidence": "Skill lines 148-163 document #comparison in detail with rule/ruleB regex patterns and evaluator field for numeric comparison operators (=, !=, <, >, <=, >=, %)."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "My MOP template passes even though the device output clearly doesn't match. Variables are set but the command seems to be skipped.",
+      "assertions": [
+        {
+          "text": "Identifies missing variable causing silent skip/pass",
+          "passed": true,
+          "evidence": "Skill line 181 states 'If a variable is missing, the command is SKIPPED (not failed!) and counts as PASSED'. Gotcha #1 (line 398) reiterates: 'Missing variable = skip = PASS (not fail)'."
+        },
+        {
+          "text": "Advises verifying variables are passed correctly in the RunCommandTemplate call",
+          "passed": true,
+          "evidence": "Gotcha #1 (line 398) explicitly states 'Verify variables are passed correctly.' Lines 217-219 show the RunCommandTemplate call with variables object."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "I want to use MOP to push a VLAN configuration change to my switches.",
+      "assertions": [
+        {
+          "text": "Refuses to use MOP for config push -- MOP is read-only",
+          "passed": true,
+          "evidence": "Skill line 11 states 'MOP is for read-only validation only -- never use it to push configuration to devices.' Gotcha #9 (line 417) reiterates: 'MOP is read-only -- command templates run show commands and evaluate output. Never use MOP to push configuration changes.'"
+        },
+        {
+          "text": "Recommends Jinja2 templates for config generation",
+          "passed": true,
+          "evidence": "Skill line 11 states 'Use Jinja2 templates and workflow tasks for config changes.' Gotcha #9 (line 417) repeats: 'Use Jinja2 templates and workflow adapter tasks for config changes.'"
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 5,
+      "prompt": "Update my existing command template to add a new rule. I only want to send the changed fields.",
+      "assertions": [
+        {
+          "text": "Warns that update is full replacement",
+          "passed": true,
+          "evidence": "Skill line 307 states 'The body is a full replacement -- include ALL fields, not just changed ones.' Gotcha #8 (line 415) reiterates: 'Update is full replacement -- POST /mop/updateTemplate/{mopID} replaces the entire template. Include ALL fields when updating, not just changed ones.'"
+        },
+        {
+          "text": "Advises fetching current template first, then sending complete body",
+          "passed": true,
+          "evidence": "Skill line 28 documents GET /mop/listATemplate/{name} for retrieving templates. Lines 306-307 show the update endpoint and full replacement requirement. The skill implicitly requires fetching first to include all fields, and gotcha #8 makes this clear."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 6,
+      "prompt": "Write me a Terraform module for AWS VPC.",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for Terraform tasks",
+          "passed": true,
+          "evidence": "The skill description (line 3) scopes it to 'command templates with validation rules, run CLI checks against devices, and use analytic templates for pre/post comparison.' Terraform is entirely outside this scope. The CLAUDE.md skill router maps Terraform-like tasks to /iag, not /itential-mop."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

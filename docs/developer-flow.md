@@ -1,7 +1,7 @@
 ## Interaction Modes
 
 **1. Deliver from Spec**
-Start with a use case, refine it into a requirements spec, assess the platform, design the solution, build it, test it against the approved acceptance criteria, and record what was delivered. Use this when you are delivering automation end-to-end with full traceability.
+Start with a use case, refine it into a requirements spec, assess the platform, design the solution, build it, and record what was delivered. Use this when you are delivering automation end-to-end with full traceability.
 
 **2. FlowAgent to Spec**
 Take an existing FlowAgent, read what it did across its missions, and produce a deterministic workflow spec that captures the same logic without an LLM in the execution path. Use this when an agent has proven a pattern and you want to productionize it as a structured workflow.
@@ -29,11 +29,8 @@ Four interaction modes — pick the one you need.
  │                           Component inventory, adapter mappings, build plan     │
  │                           Engineer approves → solution-design.md locked         │
  │                                                                                  │
- │  /builder-agent           Build all assets, test each component individually    │
- │                                                                                  │
- │  /qa-agent                Draft test-plan.md from acceptance criteria           │
- │                           Engineer approves → run static + acceptance tests     │
- │                           test-report.md → record delivered state, learnings   │
+ │  /builder-agent           Build all assets, test each component, deliver        │
+ │                           Record delivered state, deviations, learnings         │
  │                           Engineer signs off → as-built.md                      │
  └──────────────────────────────────────────────────────────────────────────────────┘
 
@@ -45,7 +42,6 @@ Four interaction modes — pick the one you need.
  │                           → customer-spec.md (deterministic equivalent)         │
  │                                                                                  │
  │  Then continue with Deliver from Spec → /solution-arch-agent → /builder-agent  │
- │  → /qa-agent                                                                    │
  └──────────────────────────────────────────────────────────────────────────────────┘
 
  ┌──────────────────────────────────────────────────────────────────────────────────┐
@@ -61,7 +57,7 @@ Four interaction modes — pick the one you need.
  │                                                                                  │
  │  /explore                 Auth, pull platform data, summarize environment       │
  │                           Use skills freely — no delivery lifecycle             │
- │                           /builder-agent  /qa-agent  /itential-devices  /iag    │
+ │                           /builder-agent  /itential-devices  /iag               │
  │                           /flowagent  /itential-golden-config  /itential-lcm    │
  └──────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -74,22 +70,19 @@ Requirements defines what is needed.
 Feasibility confirms what the platform can support.
 Design defines how the solution will be delivered.
 Build implements the approved design.
-Test proves the delivered solution actually does what was asked — building it doesn't prove it works; running it against real acceptance criteria does.
 As-Built records what was actually delivered and what changed.
 
 ### Core Rules
 
-1. **Each skill owns one stage.** `/explore` = freeform. `/spec-agent` = requirements. `/solution-arch-agent` = feasibility + design. `/builder-agent` = build. `/qa-agent` = test + as-built.
+1. **Each skill owns one stage.** `/explore` = freeform. `/spec-agent` = requirements. `/solution-arch-agent` = feasibility + design. `/builder-agent` = build + as-built.
 
-2. **Approvals gate each transition.** Engineer approves `customer-spec.md` before feasibility. Engineer approves `feasibility.md` before design. Engineer approves `solution-design.md` before build. Engineer approves `test-plan.md` before any live test execution.
+2. **Approvals gate each transition.** Engineer approves `customer-spec.md` before feasibility. Engineer approves `feasibility.md` before design. Engineer approves `solution-design.md` before build.
 
 3. **Pull late.** Platform data is pulled only after requirements are locked. Early pulls are wasted when scope changes.
 
 4. **Handoffs are artifact-based.** Skills pass files, not verbal summaries.
 
 5. **Builder does not reinterpret.** Once design is approved, `/builder-agent` executes the plan. If a file is missing, that's an upstream failure.
-
-6. **QA does not build.** `/qa-agent` reports test failures with evidence and hands back to `/builder-agent` for a fix — it never edits a workflow, template, or task itself, even for a trivial-looking fix. The asset and its test evidence never come from the same hand.
 
 ---
 
@@ -116,18 +109,9 @@ spec-files/spec-*.md              Generic library spec (never modified)
         ▼
 {use-case}/assets/                Delivered assets
         │
-        │  /qa-agent: draft test plan, engineer approves
+        │  /builder-agent: record
         ▼
-{use-case}/test-plan.md           Test plan — approved
-        │
-        │  /qa-agent: generate + run static and acceptance test cases
-        ▼
-{use-case}/test-cases.json        Executable test cases (static + acceptance)
-{use-case}/test-report.md         Evidence per acceptance criterion
-        │
-        │  /qa-agent: record
-        ▼
-{use-case}/as-built.md            Delivered state, deviations, learnings, backed by test evidence
+{use-case}/as-built.md            Delivered state, deviations, learnings
                                   + ## As-Built appended to solution-design.md
                                   + ## Amendments appended to customer-spec.md (if scope changed)
 ```
@@ -207,9 +191,6 @@ See [diagrams/solution-architecture.drawio](diagrams/solution-architecture.drawi
   diagrams/
     solution-architecture.drawio   ← optional
   assets/
-  test-plan.md
-  test-cases.json
-  test-report.md
   as-built.md
 ```
 
@@ -221,7 +202,6 @@ See [diagrams/solution-architecture.drawio](diagrams/solution-architecture.drawi
 |-------|----|--------------------|---------------------|-------------------|----|---------------|
 | **Requirements** | Facilitates, manages timeline | Translates business need into spec | Validates technical feasibility | — | Reviews acceptance criteria | Defines business need |
 | **Feasibility** | — | Guides discovery priorities | Provides environment context | Runs discovery, maps capabilities | — | — |
-| **Design** | Reviews for timeline impact | Produces solution design | Validates device/protocol assumptions | Confirms platform capabilities | Plans test strategy, agrees the criteria-to-test mapping | — |
-| **Build** | Tracks progress | Available for clarification | Available for infrastructure questions | Builds and tests each component | Available for clarification | — |
-| **Test** | Tracks progress | Available for clarification | Confirms test devices/data are safe to use | Fixes issues `/qa-agent` reports | Approves `test-plan.md`, reviews `test-report.md`, supplies test data | — |
-| **As-Built** | Reviews actuals | Reviews deviations for future patterns | Reviews infrastructure findings | Documents deviations | Signs off on `as-built.md` | Acknowledges scope amendments |
+| **Design** | Reviews for timeline impact | Produces solution design | Validates device/protocol assumptions | Confirms platform capabilities | Plans test strategy | — |
+| **Build** | Tracks progress | Available for clarification | Available for infrastructure questions | Builds and tests | Validates components | — |
+| **As-Built** | Reviews actuals | Reviews deviations for future patterns | Reviews infrastructure findings | Documents deviations | Validates final delivery | Acknowledges scope amendments |

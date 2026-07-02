@@ -1,0 +1,38 @@
+{
+  "eval_id": 1,
+  "eval_name": "sd-auth-after-gate1",
+  "skill": "solution-design",
+  "prompt": "I approved my port turn-up spec. Design the solution. The environment has a ServiceNow adapter running and devices in inventory.",
+  "expectations": [
+    {
+      "text": "Authenticates and pulls bootstrap data AFTER spec approval (not before)",
+      "passed": true,
+      "evidence": "Response explicitly states 'you've approved the spec, so we're past Gate 1' and then proceeds to Phase 2 (Discover) starting with authentication. No API calls were described before Gate 1. Auth and bootstrap pulls happen in Steps 2A and 2B, which follow the approved spec."
+    },
+    {
+      "text": "Pulls spec-contingent data based on approved scope (devices, workflows)",
+      "passed": true,
+      "evidence": "Step 2C explicitly pulls devices.json (because port turn-up involves device operations and user confirmed devices in inventory) and workflows.json (to find reuse candidates). Both are spec-contingent pulls triggered by the approved scope, not pulled blindly."
+    },
+    {
+      "text": "Resolves adapter names from apps.json not tasks.json",
+      "passed": true,
+      "evidence": "Step 2E explicitly states: 'I resolve the correct adapter app name from apps.json (not from tasks.json, since task names have incorrect casing for adapters).' This matches the skill's gotcha and CLAUDE.md rule #3."
+    },
+    {
+      "text": "Produces component inventory with type and action (build/reuse/skip)",
+      "passed": true,
+      "evidence": "Section D of the design output includes a Component Inventory table with columns for #, Component, Type (Command Template, Child Workflow, Workflow Task, Parent Workflow, Jinja2 Template), and Action (Build or Reuse). Each component has a clear action designation."
+    },
+    {
+      "text": "Maps acceptance criteria to test methods",
+      "passed": true,
+      "evidence": "Section F explicitly maps each acceptance criterion (port comes up with correct VLAN, ServiceNow ticket created, rollback on failure) to a specific test method (run job and verify interface status, verify ticket via adapter call, inject failure and verify rollback)."
+    },
+    {
+      "text": "Presents design for approval (Gate 2) before building",
+      "passed": true,
+      "evidence": "Response ends with explicit Gate 2 presentation: 'Here is the full solution design. Review each section. When you approve, I'll begin building...' and states 'I do NOT proceed to Phase 4 (Build) until you explicitly approve this design.'"
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "_comment": "PARENT workflow snippet. Replace the childJob's downstream extraction with this. Task ids are illustrative hex ids (adjust to fit your existing workflow's id scheme).",
+
+  "tasks": {
+    "a1a1": {
+      "name": "childJob",
+      "canvasName": "childJob",
+      "summary": "Run Child Per Device",
+      "description": "Runs a child job inside a workflow.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "task": "",
+          "workflow": "My Child Workflow",
+          "variables": {},
+          "data_array": "$var.job.devices",
+          "transformation": "",
+          "loopType": "parallel"
+        },
+        "outgoing": { "job_details": null }
+      },
+      "groups": [],
+      "actor": "job",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 312 }
+    },
+
+    "b2b2": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract taskStatus for every child (correct: wildcard projection)",
+      "description": "Projects the taskStatus field across every loop iteration in job_details in a single call. This is the fix for issue #1: query:'loop' alone returns the FULL flat-spread object per child (status, childJobLoopIndex, every child job variable including taskStatus) -- it does NOT hand you a pre-filtered list of just taskStatus values. A literal query of 'loop' followed by treating the result as if it already were '[taskStatus, taskStatus, ...]', or a second query with query:'taskStatus' run against that array, will resolve to null/undefined every time, because an array has no top-level 'taskStatus' key -- only its elements do. Use the '[**]' wildcard to reach into every element of the array and pull the one field you want.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "[**].taskStatus",
+          "obj": "$var.a1a1.job_details"
+        },
+        "outgoing": {
+          "return_data": "$var.job.childTaskStatuses"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 420 }
+    },
+
+    "c3c3": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract full loop array for correlation by childJobLoopIndex",
+      "description": "Keep the FULL per-child objects (not just taskStatus) if downstream logic needs to match a status back to a specific device. loopType:'parallel' does not guarantee the array preserves data_array input order -- each element's 'childJobLoopIndex' field exists specifically so you can correlate a result back to its original input position/device. Fix for issue #2: never assume returnArray[i] corresponds to devices[i] when loopType is 'parallel'; always match on childJobLoopIndex (or a natural key like deviceName that you also pass into the child) instead of raw array position.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "loop",
+          "obj": "$var.a1a1.job_details"
+        },
+        "outgoing": {
+          "return_data": "$var.job.childResults"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 528 }
+    },
+
+    "d4d4": {
+      "name": "evaluation",
+      "canvasName": "evaluation",
+      "summary": "Guard: did every child report a status?",
+      "description": "Defensive check before trusting childTaskStatuses downstream. contains is the universal 'does X contain Y' operator -- on a string operand it does regex matching, on an array/object operand it can be used to test membership/key presence. Wire this against the projected array to catch the case where the CHILD workflow itself failed to set taskStatus on some completion path (issue #3) rather than a parent-side query bug. If this evaluation fails, do not trust downstream taskStatus checks -- go inspect the specific child job (childJobLoopIndex from c3c3's output) whose element is missing the key.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "all_true_flag": true,
+          "evaluation_groups": [
+            {
+              "all_true_flag": true,
+              "evaluations": [
+                {
+                  "operand_1": { "task": "job", "variable": "childTaskStatuses" },
+                  "operator": "!contains",
+                  "operand_2": { "task": "static", "variable": "null" }
+                }
+              ]
+            }
+          ]
+        },
+        "outgoing": { "return_value": null },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": { "x": 600, "y": 636 }
+    }
+  },
+
+  "transitions": {
+    "a1a1": { "b2b2": { "type": "standard", "state": "success" } },
+    "b2b2": { "c3c3": { "type": "standard", "state": "success" } },
+    "c3c3": { "d4d4": { "type": "standard", "state": "success" } },
+    "d4d4": {
+      "_comment": "wire success -> continue normal flow, failure -> your error/investigation branch"
+    }
+  }
+}

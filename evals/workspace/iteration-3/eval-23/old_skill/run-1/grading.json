@@ -1,0 +1,80 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies that the merge task references a childJob output, and that makeData cannot compile that merge's $var.<mergeId>.merged_object as a taskRef",
+      "passed": false,
+      "evidence": "No occurrence of 'compile' or 'taskRef' language tied to this specific mechanism anywhere in the transcript (grep for 'compile' and 'taskRef' returns nothing relevant — the only 'taskRef' hit is an unrelated aside about the incomingRefs cache/PUT gotcha, line 43). The diagnosis section ('## Diagnosis', lines 84-122) attributes the literal-placeholder symptom to three different causes: (1) merging the template string into the same object as `variables` so top-level keys don't match placeholder names, (2) `$var` not reaching nested keys, (3) `merge`'s duplicate-key behavior turning per-subnet fields into arrays when N childJob results are merged together. It never states that referencing a childJob-derived merge's `merged_object` as `$var.<mergeId>.merged_object` inside `makeData.incoming.variables` fails to compile as a taskRef and is instead stored as a static literal. The current builder-agent SKILL.md (at /Users/ankitrbhansali/builderskills/builder-skills/.claude/skills/builder-agent/SKILL.md:1628) documents this exact gotcha verbatim: 'When a `merge` task's `data_to_merge` contains a childJob reference..., the platform cannot compile `$var.<mergeId>.merged_object` as a `taskRef` for `makeData.incoming.variables` — it is stored as a literal static string. Template substitution then operates on the literal string and emits unresolved placeholders.' This matches the reported symptom precisely but is absent from the graded transcript's diagnosis."
+    },
+    {
+      "text": "Recommends using query tasks to extract individual scalar values from the childJob-sourced merge before feeding data into makeData",
+      "passed": false,
+      "evidence": "The transcript's fix (section 'The fix', steps 1-5, and the delivered JSON artifact) never has a merge task that is itself sourced from a childJob and then queries values back out of that merge's output. Instead it restructures the workflow entirely to avoid ever merging childJob-array data: it inserts a forEach loop over the childJob's query('loop') results, then uses per-iteration `query` tasks (e1e1 'Extract subnet from current_item', e2e2 'Extract vlanId from current_item') to pull scalars out of `$var.job.current_item` (the forEach loop-binding), and only then builds a fresh, non-childJob-sourced `merge` (d1d1) from those already-extracted scalars before wiring it to makeData. This is a different architecture than 'extract scalars from the childJob-sourced merge via query' — there is no childJob-sourced merge anywhere in the corrected design; the query tasks source from the forEach `current_item`, not from a merge's `merged_object`. The specific pattern the expectation describes (documented at SKILL.md:1632: 'extract individual values from the childJob-sourced merge using `query` tasks, then pass those resolved scalars to makeData via a second merge') is not what was produced."
+    },
+    {
+      "text": "Notes that query.incoming.obj does not have this limitation, unlike makeData.incoming.variables",
+      "passed": false,
+      "evidence": "No mention anywhere in the transcript of a distinction between `query.incoming.obj` and `makeData.incoming.variables` with respect to taskRef/childJob resolution. The transcript's only discussion of `query` incoming fields is unrelated (query('loop') to extract the fan-out array, and query on `current_item` to pull `subnet`/`vlanId`). The specific asymmetry claimed in the expectation is documented in the current builder-agent SKILL.md at line 1630 ('`query.incoming.obj` does NOT have this limitation — it resolves `$var.<mergeId>.merged_object` correctly even when the merge references childJob output') but is entirely absent from this transcript."
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "total": 3,
+    "pass_rate": 0.0
+  },
+  "execution_metrics": {
+    "tool_calls_inferred": {
+      "Read (SKILL.md, full)": 1,
+      "Bash (jq asset lookups)": ">=3 (makeData example, merge/childJob example, Golden Config Tree 7c0d/727 extraction)",
+      "Write (output JSON artifact)": 1
+    },
+    "total_steps": "not precisely determinable from the narrative-style transcript (no raw tool-call log with per-call markers)",
+    "errors_encountered": 0,
+    "output_chars": 9396,
+    "transcript_chars": 24662
+  },
+  "timing": {
+    "note": "No timing.json or metrics.json present in outputs_dir or its parent; timing/metrics not available for this run."
+  },
+  "claims": [
+    {
+      "claim": "makeData has two independent incoming fields, `input` (literal template with `<!var!>` tokens) and `variables` (a separate, flat, resolved object), and these must never be merged into one object before wiring.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against the real production task pulled from helpers/assets/itential-platform-configuration-management.json via jq: the actual makeData task has `input: \"[name=<!treeName!>].id\"` and `variables: \"$var.7c0d.options\"` as two separate incoming keys, matching the transcript's claim exactly."
+    },
+    {
+      "claim": "makeData.variables must be a single, direct, top-level `$var.<taskId>.<outVar>` reference to an already-resolved flat object, sourced from a dedicated upstream task (e.g. transformation), not a deeper/nested path.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Verified by pulling the real 'Golden Configuration Tree' workflow: task 7c0d is a `transformation` whose `outgoing.options` feeds directly into the makeData task's `variables: \"$var.7c0d.options\"` — a single top-level hop, exactly as claimed."
+    },
+    {
+      "claim": "merge's duplicate-key behavior turns shared field names across N merged objects into arrays rather than overwriting them, which breaks single-scalar `<!placeholder!>` substitution when merging N per-subnet childJob results together.",
+      "type": "factual",
+      "verified": true,
+      "evidence": "This is a documented platform behavior cited from the skill (referenced at 'SKILL.md line 1331' in the transcript) and is architecturally sound reasoning, though it is a different (not necessarily wrong, but not the one the eval was probing for) explanation of the reported symptom than the documented childJob+merge+taskRef compile-failure gotcha."
+    },
+    {
+      "claim": "The delivered JSON artifact (childjob-makedata-fix.json) is a complete, valid, self-consistent corrected task/transition fragment (childJob -> query('loop') -> forEach -> query x2 -> merge -> makeData -> push -> workflow_end).",
+      "type": "quality",
+      "verified": true,
+      "evidence": "File parses as valid JSON (python3 json.load succeeded). Manually traced: transitions reference only declared task IDs, forEach loops back to e1e1 on 'loop' state and exits to workflow_end on 'success', merge's data_to_merge keys (subnet, vlanId, reportTitle) match the makeData input's placeholders (<!subnet!>, <!vlanId!>, <!reportTitle!>) exactly, and makeData.variables correctly points to '$var.d1d1.merged_object' (single top-level hop). Internally coherent and consistent with the transcript's own stated design."
+    },
+    {
+      "claim": "This diagnosis correctly identifies the actual root cause of the reported symptom ('placeholders come through literally unresolved').",
+      "type": "quality",
+      "verified": false,
+      "evidence": "The transcript's diagnosis is plausible and internally consistent, but the current builder-agent SKILL.md documents a distinct, more specific gotcha (lines 1628-1632) that matches the user's exact scenario ('a merge task's data_to_merge contains a childJob reference... feed into makeData') and explicitly states this produces literal unresolved placeholders ('Template substitution then operates on the literal string and emits unresolved placeholders') via a taskRef-compilation failure, not via the duplicate-key-array mechanism the transcript relies on. The transcript never surfaces or rules out this documented mechanism, so its root-cause diagnosis, while reasonable, is not shown to be the one the skill's own documentation identifies as authoritative for this exact scenario."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": [],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "The three expectations are well-designed and highly discriminating: they test for a specific, non-obvious, verbatim-documented platform gotcha (childJob-sourced merge -> makeData.variables taskRef compile failure, vs. query.incoming.obj's immunity to it) that is now present in the current builder-agent SKILL.md (lines 1628-1632, plus checklist line 378) but was absent from the older skill version this run consulted (/tmp/eval-old-skill/builder-agent/SKILL.md). This is exactly the kind of assertion that would only pass if the executor's skill version actually contained the fix — it is not satisfiable by generic debugging skill or by coincidence, since the transcript shows a different, independently plausible diagnosis (template/data mixing + duplicate-key arrays) that does not overlap with the documented mechanism at all. No changes recommended to these three assertions. One general observation for the eval suite: the transcript's alternative diagnosis (merge duplicate-key arrays) is itself a legitimate secondary issue given the fan-out described in the prompt, so a grader or future assertion author should be aware that a plausible-sounding but non-matching diagnosis can be produced by a competent agent without the specific fix — these expectations correctly catch that gap here."
+  }
+}

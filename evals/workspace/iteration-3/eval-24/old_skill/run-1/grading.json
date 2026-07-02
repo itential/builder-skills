@@ -1,0 +1,36 @@
+{
+  "expectations": [
+    {
+      "text": "Identifies that restCall has no response/result wrapper -- it returns the parsed JSON body directly",
+      "passed": true,
+      "evidence": "Transcript 'Diagnosis' section: 'restCall is different. It is a WorkFlowEngine utility task, not an adapter task, and it returns the already-parsed JSON response body directly as its outgoing value \u2014 there is no response or result wrapper at all.' Matches SKILL.md line 1680 verbatim. Also repeated in the output artifact's c3c3 task description and the final verbatim answer to the engineer."
+    },
+    {
+      "text": "Corrects the query path to 'access_token' (not 'response.access_token')",
+      "passed": true,
+      "evidence": "Transcript 'Fix' section instructs changing \"query\": \"response.access_token\" to \"query\": \"access_token\". outputs/restcall-query-fix.json contains corrected task c3c3 with \"query\": \"access_token\", plus a c3c3_WRONG_EXAMPLE_query task retaining the broken path for contrast, explicitly labeled as the broken version."
+    },
+    {
+      "text": "Contrasts this with adapter tasks, which DO wrap responses in {response, headers, metrics}",
+      "passed": true,
+      "evidence": "Transcript Diagnosis and 'General rule to remember' state adapter tasks (genericAdapterRequest, createChangeRequest) always wrap the upstream HTTP response in {response, headers, metrics}, matching SKILL.md line 1688 verbatim. Repeated again in the final answer to the engineer."
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 0,
+    "total": 3,
+    "pass_rate": 1
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "No expectation checks whether the response correctly leaves the restCall task itself unmodified rather than also altering the working call \u2014 the transcript does this correctly, but an expectation checking scope-of-fix would catch a plausible over-correction failure mode."
+      },
+      {
+        "reason": "All three expectations are satisfiable by prose alone; none requires the JSON artifact to be internally consistent (e.g., obj pointing at the correct task ID, wrong-example task excluded from transitions). This run's artifact was in fact consistent, but a structural check on the artifact would be a more discriminating test."
+      }
+    ],
+    "overall": "Evals are solid and discriminating: each expectation requires citing/applying specific documented restCall behavior that can only be satisfied by actually reading and correctly using the SKILL.md restCall subsection, not generic guessing. All three passed with direct, verifiable evidence in the transcript and output artifact, and this was cross-checked against the live SKILL.md and AGENTS.md content plus repo greps for factual/process claims."
+  }
+}

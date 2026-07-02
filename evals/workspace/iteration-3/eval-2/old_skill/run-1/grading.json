@@ -1,0 +1,56 @@
+{
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "reason": "None of the 7 expectations check that the childJob's `workflow` field actually equals the requested child workflow name (\"Device Backup\") or that `data_array` points at the input array. A childJob with all the correct internal field mechanics (actor=job, task='', etc.) but pointed at the wrong child workflow or a nonexistent variable would still pass every listed expectation. Consider adding: 'childJob workflow field equals \"Device Backup\"' and 'data_array references the devices input variable'."
+      },
+      {
+        "reason": "No expectation verifies that the childJob task is actually wired into the workflow graph (i.e., reachable from workflow_start and leading to workflow_end via transitions). A syntactically correct but orphaned/disconnected childJob task block would still satisfy all 7 field-level assertions. Consider adding an end-to-end wiring check."
+      }
+    ],
+    "overall": "The 7 expectations are well-chosen, specific, and directly mirror the skill's own childJob checklist (actor, task, job_details, loopType, variables shape, incoming field completeness, no stray $var refs) \u2014 they are hard to satisfy by accident and all passed with genuine, verifiable evidence, not surface compliance. The gap is that they only validate the childJob task's internal field shape, not that it's wired to the correct child workflow name or connected end-to-end in the transition graph \u2014 both of which happen to be correct in this run but aren't covered by any assertion."
+  },
+  "expectations": [
+    {
+      "text": "childJob actor is 'job' not 'Pronghorn'",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"actor\": \"job\". Confirmed distinct from the two query tasks (b2b2, c3c3) which correctly use \"actor\": \"Pronghorn\". Matches the skill's own checklist item 'actor is \"job\" (NOT \"Pronghorn\")' in SKILL.md line 639."
+    },
+    {
+      "text": "childJob task field is empty string",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"variables\":{\"incoming\":{\"task\": \"\", ...}}. Matches SKILL.md Guide 4 Mode B template and checklist ('task is \"\" (empty string)')."
+    },
+    {
+      "text": "childJob outgoing job_details is null",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"outgoing\": {\"job_details\": null}. Matches SKILL.md Mode B template and checklist ('job_details outgoing is null')."
+    },
+    {
+      "text": "childJob loopType is 'parallel'",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"loopType\": \"parallel\" inside variables.incoming, matching the eval task's explicit request for parallel execution."
+    },
+    {
+      "text": "childJob variables is {} (empty) when using data_array",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"variables\": {} while \"data_array\": \"$var.job.devices\" is set. Verified directly with `jq '.automation.tasks.a1a1.variables.incoming.variables'` which returned `{}`. Matches SKILL.md Guide 4 Mode B instruction: 'Each element in data_array becomes the child's input variables for that iteration. Set variables: {} (empty).'"
+    },
+    {
+      "text": "All incoming fields present including unused ones (transformation: '')",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1 incoming object contains all six fields from the Mode B schema: task, workflow, variables, data_array, transformation (set to \"\"), and loopType. Matches SKILL.md checklist 'All incoming fields present \u2014 even unused ones: \"data_array\": \"\", \"transformation\": \"\", \"loopType\": \"\"' (transformation correctly left as empty string since it isn't needed here)."
+    },
+    {
+      "text": "No $var references inside childJob variables object",
+      "passed": true,
+      "evidence": "outputs/device-backup-parallel-orchestrator.json, task a1a1: \"variables\": {} \u2014 the object is empty, so it contains no $var references of any kind. Confirmed the incoming.data_array field ($var.job.devices) is a sibling field, not inside the variables object itself, consistent with Guide 4 Mode B's documented pattern where data_array carries the $var reference and variables stays empty in loop mode."
+    }
+  ],
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "pass_rate": 1
+  }
+}

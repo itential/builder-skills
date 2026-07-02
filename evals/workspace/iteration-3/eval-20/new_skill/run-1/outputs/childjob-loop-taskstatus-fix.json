@@ -1,0 +1,109 @@
+{
+  "_comment": "Fix for: query('loop') against $var.<childJobId>.job_details returning null taskStatus values even though every child in the parallel loop completed successfully. Pattern taken from builder-agent SKILL.md Guide 4 (childJob) 'If the query returns null' workaround, grounded against real merge/query task shapes pulled from helpers/assets/vendor-servicenow.json and helpers/assets/itential-platform-configuration-management.json.",
+
+  "tasks": {
+    "a1a1": {
+      "name": "childJob",
+      "canvasName": "childJob",
+      "summary": "Run Child Per Device",
+      "description": "Fans out one child job per device in the loop, running all children in parallel",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "task": "",
+          "workflow": "Device Config Child Workflow",
+          "variables": {},
+          "data_array": "$var.job.devices",
+          "transformation": "",
+          "loopType": "parallel"
+        },
+        "outgoing": {
+          "job_details": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "job",
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 312}
+    },
+
+    "m1m1": {
+      "name": "merge",
+      "canvasName": "merge",
+      "summary": "Capture childJob job_details via taskRef",
+      "description": "Workaround for $var.<childJobId>.job_details resolving as a literal string in downstream query.obj on some platform versions. Re-captures job_details through a taskRef in data_to_merge, which resolves reliably.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "data_to_merge": [
+            {"task": "a1a1", "variable": "job_details"},
+            {"task": "static", "value": {}}
+          ]
+        },
+        "outgoing": {
+          "merged_object": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 420}
+    },
+
+    "b2b2": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract taskStatus from every loop iteration",
+      "description": "Reads the merged_object (not the raw $var.a1a1.job_details) so the loop array actually resolves. Query path uses [**] to pull one field from every element in the loop results.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "loop[**].taskStatus",
+          "obj": "$var.m1m1.merged_object"
+        },
+        "outgoing": {
+          "return_data": "$var.job.childTaskStatuses"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 528}
+    }
+  },
+
+  "transitions": {
+    "a1a1": {
+      "m1m1": {"type": "standard", "state": "success"}
+    },
+    "m1m1": {
+      "b2b2": {"type": "standard", "state": "success"}
+    }
+  },
+
+  "_notes": [
+    "Root cause: on some platform versions, query.incoming.obj set directly to \"$var.<childJobId>.job_details\" does not resolve as a live object reference after a parallel childJob loop -- it is treated as a literal string, so every property path read off it (including 'loop' and 'loop[**].taskStatus') comes back null even though job_details is populated and every child completed with taskStatus: success.",
+    "Why it looks intermittent / 'sometimes': it is not actually intermittent per se -- it is deterministic per platform version/build. It looks intermittent to the team because the same workflow JSON is reused across environments (dev vs prod) or across platform upgrades where the underlying $var resolution behavior for childJob job_details changed. Confirm by inspecting the query task's raw incoming/outgoing on the completed job (GET job) -- if obj resolved to the literal string '$var.a1a1.job_details' instead of an object, that is the signature of this bug.",
+    "Fix: insert a merge task between the childJob and the query task. The merge's data_to_merge uses a taskRef {task: <childJobId>, variable: 'job_details'} (NOT a $var string) to re-capture job_details -- taskRefs in merge resolve reliably even when the $var string form does not. A second static {} entry is required because merge needs at least 2 items in data_to_merge (SKILL.md Gotcha #16: 'merge requires at least 2 items -- 1 item silently returns null').",
+    "Then point the query's obj at $var.m1m1.merged_object (the merge output) instead of $var.a1a1.job_details directly.",
+    "Query path for loop mode: use 'loop[**].taskStatus' (or 'loop' first, then a nested [**].taskStatus pass) to pull one field across every element of the parallel loop's results array.",
+    "Sanity check before assuming this bug: confirm every child really did report taskStatus itself. Per SKILL.md 'Building the child workflow', the child MUST set an explicit taskStatus job variable on both its success and error paths (task --success--> newVariable(taskStatus=success) -> workflow_end, task --error--> newVariable(taskStatus=error) -> workflow_end). If the child does not explicitly set taskStatus, job_details will legitimately have taskStatus: null regardless of the merge/query wiring -- that is a separate, child-workflow-side bug, not the childJob/query wiring bug this fix addresses."
+  ]
+}

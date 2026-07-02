@@ -1,0 +1,199 @@
+{
+  "automation": {
+    "name": "Check Device Names",
+    "description": "Iterates over a list of device names, evaluates each against a naming pattern, and exposes the last iteration's evaluation result to the rest of the workflow via a job variable.",
+    "type": "automation",
+    "canvasVersion": 3,
+    "font_size": 12,
+    "tasks": {
+      "workflow_start": {
+        "name": "workflow_start",
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 200 }
+      },
+
+      "1a2b": {
+        "name": "forEach",
+        "canvasName": "forEach",
+        "summary": "Iterate Over Device Names",
+        "description": "Iterate Over Device Names",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "data_array": "$var.job.deviceNames"
+          },
+          "outgoing": {
+            "current_item": null
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 600, "y": 312 }
+      },
+
+      "3c4d": {
+        "name": "evaluation",
+        "canvasName": "evaluation",
+        "summary": "Check Device Name Pattern",
+        "description": "Loop-body task. Checks whether the current device name contains the expected prefix. Outgoing is bound to a job variable ($var.job.lastCheckResult) — NOT left as a bare task outgoing — so it can be read safely from outside the loop after forEach's success transition fires.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "all_true_flag": true,
+            "evaluation_groups": [
+              {
+                "all_true_flag": true,
+                "evaluations": [
+                  {
+                    "operand_1": { "task": "1a2b", "variable": "current_item" },
+                    "operator": "contains",
+                    "operand_2": { "task": "static", "variable": "IOS" }
+                  }
+                ]
+              }
+            ]
+          },
+          "outgoing": {
+            "return_value": "$var.job.lastCheckResult"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 600, "y": 420 }
+      },
+
+      "5e6f": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Mark Device Checked (match)",
+        "description": "Last task in the loop body on the success/match branch. Transition is an empty {} — it does NOT connect back to forEach.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "taskStatus", "value": "checked" },
+          "outgoing": { "value": "$var.job.taskStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 336, "y": 528 }
+      },
+
+      "7a8b": {
+        "name": "newVariable",
+        "canvasName": "newVariable",
+        "summary": "Mark Device Checked (no match)",
+        "description": "Last task in the loop body on the failure/no-match branch. Transition is also an empty {} — it does NOT connect back to forEach.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "name": "taskStatus", "value": "skipped" },
+          "outgoing": { "value": "$var.job.taskStatus" },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 864, "y": 528 }
+      },
+
+      "9c0d": {
+        "name": "query",
+        "canvasName": "query",
+        "summary": "Read Evaluation Result Outside The Loop",
+        "description": "Runs once, after the loop finishes (forEach's success transition, not loop). Reads the evaluation task's result via the job variable it was bound to ($var.job.lastCheckResult), NOT via $var.3c4d.return_value. Note this only reflects the LAST loop iteration's evaluation, since 3c4d executed once per device and each pass overwrote the same job variable.",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": {
+            "pass_on_null": false,
+            "query": "",
+            "obj": "$var.job.lastCheckResult"
+          },
+          "outgoing": {
+            "return_data": "$var.job.finalCheckResult"
+          },
+          "error": "",
+          "decorators": []
+        },
+        "groups": [],
+        "actor": "Pronghorn",
+        "scheduled": false,
+        "nodeLocation": { "x": 600, "y": 636 }
+      },
+
+      "workflow_end": {
+        "name": "workflow_end",
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 744 }
+      }
+    },
+
+    "transitions": {
+      "workflow_start": {
+        "1a2b": { "type": "standard", "state": "success" }
+      },
+      "1a2b": {
+        "3c4d": { "type": "standard", "state": "loop" },
+        "9c0d": { "type": "standard", "state": "success" }
+      },
+      "3c4d": {
+        "5e6f": { "type": "standard", "state": "success" },
+        "7a8b": { "type": "standard", "state": "failure" }
+      },
+      "5e6f": {},
+      "7a8b": {},
+      "9c0d": {
+        "workflow_end": { "type": "standard", "state": "success" }
+      },
+      "workflow_end": {}
+    },
+
+    "groups": [],
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "deviceNames": {
+          "title": "deviceNames",
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["deviceNames"]
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "lastCheckResult": { "title": "lastCheckResult", "type": "boolean" },
+        "finalCheckResult": { "title": "finalCheckResult", "type": "boolean" },
+        "taskStatus": { "title": "taskStatus", "type": "string" }
+      }
+    }
+  }
+}

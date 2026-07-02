@@ -1,0 +1,28 @@
+{
+  "eval_id": "project-import",
+  "eval_name": "builder-project-import-approach",
+  "skill": "itential-builder",
+  "prompt": "The design includes child workflows. How will they be deployed into a project?",
+  "expectations": [
+    {
+      "text": "Recommends project import (POST /projects/import) as the primary approach",
+      "passed": true,
+      "evidence": "Response leads with 'you should use project import (POST /automation-studio/projects/import) as the deployment approach' and explicitly states 'do NOT use the create-then-move pattern'. The skill's section 'Preferred: Import a project' and 'Why import instead of create + move' table both strongly guide toward this recommendation."
+    },
+    {
+      "text": "Warns about project move breaking childJob workflow references",
+      "passed": true,
+      "evidence": "Response explicitly warns: 'When assets are moved into a project, they get renamed with a @projectId: prefix, but internal references -- specifically the workflow field inside childJob tasks -- are NOT updated. This means your parent workflow's childJob tasks will fail with Cannot find workflow errors.' The skill documents this in the comparison table and the Warning on the legacy components/add section."
+    },
+    {
+      "text": "Explains pre-computing project _id so childJob @projectId: refs can be wired before import",
+      "passed": true,
+      "evidence": "Response includes step 1: 'Pre-compute the project _id -- generate a 24-character hex string (MongoDB ObjectId format) before you build anything' and step 2: 'Pre-wire childJob references -- in every parent workflow's childJob task, set the workflow field to include the @{projectId}: prefix using the pre-computed ID.' Includes a concrete example with a sample hex ID."
+    },
+    {
+      "text": "Mentions import is atomic — single call creates everything inside the project",
+      "passed": true,
+      "evidence": "Response states: 'a single POST /automation-studio/projects/import call creates the project with everything inside it. There is no intermediate state where workflows exist outside the project or where references are broken.' The comparison table also lists 'Single POST' vs 'Multiple' API calls and 'Never' vs temporary intermediate state."
+    }
+  ]
+}

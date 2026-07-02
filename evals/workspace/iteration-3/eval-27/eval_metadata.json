@@ -1,0 +1,20 @@
+{
+  "eval_id": 27,
+  "eval_name": "issue54-lcm-create-completeness",
+  "prompt": "I'm building the Create action workflow for a new LCM resource model. The model's schema.required lists subscription_id, resource_group, vnet_name, and vlan_id. My instance-write merge task's data_to_merge currently only includes vnet_name and vlan_id. Is that a problem?",
+  "expected_output": "Yes. The merge is missing subscription_id and resource_group from schema.required. If even one required field is missing from the instance-write merge, the action provisions the underlying resources successfully but then fails the instance write \u2014 orphaning those resources from LCM with no tracked state. Fix: read the model's schema.required (e.g. via jq) and ensure data_to_merge covers every field in it before building or submitting the Create action workflow.",
+  "assertions": [
+    {
+      "text": "Identifies that the merge is missing subscription_id and resource_group from schema.required",
+      "type": "critical"
+    },
+    {
+      "text": "Explains that a missing required field causes the instance write to fail AFTER resources are already provisioned, orphaning them from LCM",
+      "type": "critical"
+    },
+    {
+      "text": "Recommends reading schema.required before/while building the merge task (e.g. jq '.schema.required' on the model file)",
+      "type": "structural"
+    }
+  ]
+}

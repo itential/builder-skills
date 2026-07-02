@@ -1,0 +1,118 @@
+{
+  "_comment": "Fragment illustrating the fix for extracting access_token after a restCall to the Azure AD OAuth token endpoint. Task ID/field names for restCall follow WorkFlowEngine utility-task conventions documented in the builder-agent skill (query/merge examples). In a live session, pull the exact restCall incoming field names from tasks.json + POST /automation-studio/multipleTaskDetails before finalizing — do not treat the incoming field names below as authoritative without that lookup.",
+
+  "tasks": {
+    "a1a1": {
+      "name": "restCall",
+      "canvasName": "restCall",
+      "summary": "Get Azure AD OAuth Token",
+      "description": "POSTs client_credentials grant to the Azure AD v2.0 token endpoint",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "uri": "https://login.microsoftonline.com/$var.job.tenantId/oauth2/v2.0/token",
+          "method": "POST",
+          "headers": {"Content-Type": "application/x-www-form-urlencoded"},
+          "body": "$var.b2b2.merged_object",
+          "contentType": "application/x-www-form-urlencoded"
+        },
+        "outgoing": {
+          "result": null
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 420}
+    },
+
+    "c3c3_WRONG_EXAMPLE_query": {
+      "_comment": "This is the BROKEN version — shown for contrast only, not part of the wired workflow.",
+      "name": "query",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "response.access_token",
+          "obj": "$var.a1a1.result"
+        },
+        "outgoing": {
+          "return_data": "$var.job.accessToken"
+        }
+      }
+    },
+
+    "c3c3": {
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract Access Token",
+      "description": "restCall returns the parsed JSON body directly — no response/result wrapper — so the path targets the body field by name.",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "access_token",
+          "obj": "$var.a1a1.result"
+        },
+        "outgoing": {
+          "return_data": "$var.job.accessToken"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 528}
+    },
+
+    "ef01": {
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "OAuth Token Request Failed",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "taskStatus",
+          "value": "error"
+        },
+        "outgoing": {
+          "value": "$var.job.taskStatus"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {"x": 864, "y": 420}
+    }
+  },
+
+  "transitions": {
+    "a1a1": {
+      "c3c3": {"type": "standard", "state": "success"},
+      "ef01": {"type": "standard", "state": "error"}
+    },
+    "c3c3": {
+      "workflow_end": {"type": "standard", "state": "success"},
+      "ef01": {"type": "standard", "state": "failure"}
+    },
+    "ef01": {
+      "workflow_end": {"type": "standard", "state": "success"}
+    }
+  }
+}

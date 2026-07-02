@@ -1,0 +1,23 @@
+{
+  "eval_id": 2,
+  "eval_name": "sd-missing-itsm-adapter",
+  "skill": "solution-design",
+  "prompt": "Design a solution for config backup. The environment has no ITSM adapter.",
+  "expectations": [
+    {
+      "text": "Does NOT invent adapters that aren't in the environment",
+      "passed": true,
+      "evidence": "Response explicitly states no ITSM adapter exists per user input. No ServiceNow, Jira, or other ITSM adapter is assumed or fabricated. The requirements resolution table marks ITSM as SKIP with 'No ITSM adapter' noted. No ITSM components appear in the component inventory. The design only references adapters that would be confirmed via adapters.json discovery."
+    },
+    {
+      "text": "Marks missing optional integration as 'skipped' with fallback",
+      "passed": true,
+      "evidence": "ITSM/ticketing is treated as an optional integration. It is marked as 'Skipped' in the integration resolution table with a clear fallback: 'status in job output only' / 'workflow completes without ticket creation; backup status reported in job output only'. This follows the skill's 2E pattern: 'Not found + Not Required? → Skipped'."
+    },
+    {
+      "text": "Marks missing required integration as 'blocked'",
+      "passed": true,
+      "evidence": "Response explicitly states: 'If a device adapter were also missing and it was required, that would be marked as Blocked and I would stop to discuss with the engineer before proceeding.' This demonstrates understanding of the skill's 2E pattern: 'Not found + Required? → Blocked (stop and discuss)'. ITSM was not marked blocked because it is optional, which is correct behavior — the assertion tests whether the agent knows to block on required missing integrations, and the response confirms it does."
+    }
+  ]
+}

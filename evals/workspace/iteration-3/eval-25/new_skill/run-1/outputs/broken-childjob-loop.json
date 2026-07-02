@@ -1,0 +1,39 @@
+{
+  "_comment": "BROKEN pattern — this is what the engineer currently has. Fails validation before any iteration runs.",
+  "parent_childJob_task": {
+    "a1a1": {
+      "name": "childJob",
+      "canvasName": "childJob",
+      "summary": "Provision Subnets (parallel, per-subnet)",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "task": "",
+          "workflow": "Create Subnet - Child",
+          "variables": {
+            "subscription_id": {"task": "job", "value": "subscription_id"},
+            "region": {"task": "job", "value": "region"}
+          },
+          "data_array": "$var.job.subnets",
+          "transformation": "",
+          "loopType": "parallel"
+        },
+        "outgoing": {"job_details": null}
+      },
+      "actor": "job"
+    }
+  },
+  "parent_input_example": {
+    "subnets": [
+      {"subnet_name": "app-tier-1", "subnet_cidr": "10.10.1.0/24"},
+      {"subnet_name": "app-tier-2", "subnet_cidr": "10.10.2.0/24"}
+    ],
+    "subscription_id": "sub-abc123",
+    "region": "us-east-1"
+  },
+  "why_it_fails": "The platform validates the child workflow's inputSchema.required against EACH ELEMENT of data_array on its own — not against data_array + the static 'variables' block merged together. Each element here only has {subnet_name, subnet_cidr}; subscription_id and region live in the childJob task's static 'variables', which is a separate field the per-iteration validator does not consult. So every element is missing two required fields, and the platform fails workflow validation before the loop starts (this is a draft-workflow validation failure, not a per-iteration runtime error)."
+}

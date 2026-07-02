@@ -1,0 +1,166 @@
+{
+  "_comment": "Workflow fragment: query (existing, provided by engineer) -> newVariable constant-holder (status) -> merge (build update body) -> updateChangeRequest adapter task -> error handler. Task IDs are hex-only per platform requirement. Field/app names for the adapter task are taken verbatim from helpers/assets/vendor-servicenow.json's real 'Update Change Request' workflow (task id 2ad1 in that asset) as the closest production reference for a ServiceNow update call.",
+
+  "tasks": {
+
+    "b2c3": {
+      "_comment": "EXISTING TASK, per engineer's description. Shown here only for context/wiring reference - do not overwrite the engineer's current query task unless the query path needs correction.",
+      "name": "query",
+      "canvasName": "query",
+      "summary": "Extract Change ID",
+      "description": "Extracts the changeId from the ServiceNow createChangeRequest adapter response",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "pass_on_null": false,
+          "query": "response.sys_id",
+          "obj": "$var.a1b2.result"
+        },
+        "outgoing": {
+          "return_data": "$var.job.changeId"
+        },
+        "error": "",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 312}
+    },
+
+    "c9a1": {
+      "_comment": "NEW - constant-holder for the static status value. Per skill gotcha: task:\"static\" reference objects (used directly inside merge's data_to_merge) resolve to null at runtime on a freshly API-created/PUT workflow until the workflow is opened and saved once in Automation Studio. newVariable's own incoming.value literal does NOT have this problem - it resolves correctly immediately after API create. So the static status value is parked here and pulled into the merge task by task-reference instead of by task:\"static\".",
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Set Update Status Constant",
+      "description": "Holds the static status value used when building the change request update payload",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "updateStatus",
+          "value": "REPLACE_WITH_ACTUAL_STATUS_LITERAL"
+        },
+        "outgoing": {
+          "value": ""
+        }
+      },
+      "actor": "Pronghorn",
+      "groups": [],
+      "nodeLocation": {"x": 600, "y": 420}
+    },
+
+    "e1a1": {
+      "_comment": "NEW - the merge task requested. Builds the update request body object from (1) the changeId set by the query task's outgoing (job variable, pulled with {task:\"job\", variable:\"changeId\"}) and (2) the static status value held by c9a1 (pulled with {task:\"c9a1\", variable:\"value\"} instead of {task:\"static\", variable:...} to avoid the null-until-Studio-save gotcha). Exactly 2 items - satisfies merge's 'minimum 2 items' requirement.",
+      "name": "merge",
+      "canvasName": "merge",
+      "summary": "Build Update Request Body",
+      "description": "Builds the changeId + status payload for the ServiceNow update call",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "data_to_merge": [
+            {
+              "key": "changeId",
+              "value": {"task": "job", "variable": "changeId"}
+            },
+            {
+              "key": "status",
+              "value": {"task": "c9a1", "variable": "value"}
+            }
+          ]
+        },
+        "outgoing": {
+          "merged_object": null
+        }
+      },
+      "actor": "Pronghorn",
+      "groups": [],
+      "nodeLocation": {"x": 600, "y": 528}
+    },
+
+    "f4d2": {
+      "_comment": "NEW - the adapter update call consuming the merge output. Field names (app, locationType, displayName, adapter_id job var naming convention 'adapterId') taken from the real production 'Update Change Request' workflow in helpers/assets/vendor-servicenow.json (task 2ad1). In that real asset, changeId is actually a SEPARATE top-level incoming field (not inside body) - see note in the transcript/answer below about confirming this against the target adapter's actual schema before wiring 'changeId' only inside the merged body.",
+      "name": "updateChangeRequest",
+      "canvasName": "updateChangeRequest",
+      "summary": "Update Change Request",
+      "description": "Updates the ServiceNow change request with the new status",
+      "location": "Adapter",
+      "locationType": "Servicenow",
+      "app": "Servicenow",
+      "type": "automatic",
+      "displayName": "Servicenow",
+      "variables": {
+        "incoming": {
+          "changeId": "$var.job.changeId",
+          "body": "$var.e1a1.merged_object",
+          "adapter_id": "$var.job.adapterId"
+        },
+        "outgoing": {
+          "result": "$var.job.updatedCR"
+        },
+        "error": "$var.job.serviceNowError",
+        "decorators": []
+      },
+      "groups": [],
+      "actor": "Pronghorn",
+      "scheduled": false,
+      "nodeLocation": {"x": 600, "y": 636}
+    },
+
+    "ef01": {
+      "_comment": "NEW - shared error handler. Needed because JSON cannot have duplicate keys, so success and error can't both route directly to workflow_end from the same task.",
+      "name": "newVariable",
+      "canvasName": "newVariable",
+      "summary": "Handle Update Error",
+      "description": "Marks the update as failed for downstream/parent inspection",
+      "location": "Application",
+      "locationType": null,
+      "app": "WorkFlowEngine",
+      "type": "operation",
+      "displayName": "WorkFlowEngine",
+      "variables": {
+        "incoming": {
+          "name": "taskStatus",
+          "value": "error"
+        },
+        "outgoing": {
+          "value": ""
+        }
+      },
+      "actor": "Pronghorn",
+      "groups": [],
+      "nodeLocation": {"x": 864, "y": 636}
+    }
+  },
+
+  "transitions": {
+    "b2c3": {
+      "c9a1": {"type": "standard", "state": "success"}
+    },
+    "c9a1": {
+      "e1a1": {"type": "standard", "state": "success"}
+    },
+    "e1a1": {
+      "f4d2": {"type": "standard", "state": "success"}
+    },
+    "f4d2": {
+      "workflow_end": {"type": "standard", "state": "success"},
+      "ef01": {"type": "standard", "state": "error"}
+    },
+    "ef01": {
+      "workflow_end": {"type": "standard", "state": "success"}
+    }
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "skill": "iag",
+  "eval_group": "iag",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "Build an IAG Python service that connects to a Cisco XR device via SSH, runs 'show bgp summary', and returns parsed neighbor data as JSON. Device credentials should be stored as secrets.",
+      "assertions": [
+        {"text": "Decorator $id matches the service name (not 'root')", "passed": true, "evidence": "Skill lines 101-103 and 509-515 explicitly document '$id: my-service # should match service name' and 'The $id should match the service name'"},
+        {"text": "Decorator schema has additionalProperties: false", "passed": true, "evidence": "Skill line 537 shows 'additionalProperties: false # reject unknown params (recommended)' and line 1004 checklist says 'Service has a decorator with additionalProperties: false'"},
+        {"text": "Service type is python-script", "passed": true, "evidence": "Skill line 90 documents python-script type and line 130 shows 'type: python-script' in the complete example"},
+        {"text": "Secrets use type: env with target: ENV_VAR_NAME", "passed": true, "evidence": "Skill lines 136-142 show secrets with 'type: env' and 'target: DEVICE_USERNAME' / 'target: DEVICE_PASSWORD'"},
+        {"text": "runtime.req-file points to requirements.txt", "passed": true, "evidence": "Skill line 144 shows 'req-file: requirements.txt # or pyproject.toml -- installs dependencies'"},
+        {"text": "Python script uses argparse for decorator schema inputs", "passed": true, "evidence": "Skill line 151 states 'Inputs arrive as --property_name CLI args. Decorator schema property names become argparse flags.' and lines 167-171 show argparse usage"},
+        {"text": "Python script uses os.environ for secrets (not argparse)", "passed": true, "evidence": "Skill line 152 states 'Credentials arrive as env vars from the secrets block. Use os.environ.get(...)' and lines 173-174 show os.environ.get usage"},
+        {"text": "Python script outputs JSON to stdout via print(json.dumps(...))", "passed": true, "evidence": "Skill line 154 states 'Output: JSON to stdout. Always print(json.dumps(result))' and line 180 shows the pattern"},
+        {"text": "Python script uses sys.exit(0) for success and sys.exit(1) for failure", "passed": true, "evidence": "Skill line 155 states 'Exit code: 0 for any parseable result... 1 only for fatal setup failures' and line 177 shows sys.exit(1)"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "Create an IAG Ansible service that runs health check show commands on a Cisco XR device. I need show version, show platform, and show ip interface brief.",
+      "assertions": [
+        {"text": "Service type is ansible-playbook", "passed": true, "evidence": "Skill line 91 documents ansible-playbook type, line 261 shows 'type: ansible-playbook' in example"},
+        {"text": "runtime.inventory references inventory file", "passed": true, "evidence": "Skill lines 269-270 show 'inventory: # REQUIRED for Ansible' with inventory file reference"},
+        {"text": "runtime.config-file references ansible.cfg", "passed": true, "evidence": "Skill line 271 shows 'config-file: ansible.cfg # optional -- custom ansible config'"},
+        {"text": "runtime.req-file references requirements.txt with paramiko", "passed": true, "evidence": "Skill lines 349-352 show requirements.txt with paramiko, and line 432 states 'paramiko in requirements.txt -- IAG installs it in the service venv'"},
+        {"text": "runtime.env includes ANSIBLE_HOST_KEY_CHECKING: false", "passed": true, "evidence": "Skill line 273 shows 'ANSIBLE_HOST_KEY_CHECKING: \"false\" # disable SSH host key checking'"},
+        {"text": "runtime.env includes ANSIBLE_STDOUT_CALLBACK: json", "passed": true, "evidence": "Skill line 274 shows 'ANSIBLE_STDOUT_CALLBACK: json # JSON output -- critical for structured results'"},
+        {"text": "Inventory uses network_cli connection with ansible_network_os set", "passed": true, "evidence": "Skill lines 379-382 show inventory with 'ansible_connection: network_cli' and 'ansible_network_os: cisco.iosxr.iosxr'"},
+        {"text": "Inventory uses Jinja2 {{ var }} references to decorator schema properties", "passed": true, "evidence": "Skill lines 369-383 show inventory using '{{ device_ip }}', '{{ device_username }}' etc., and line 435 states 'Inventory uses {{ var }} Jinja2 refs matching decorator schema property names'"},
+        {"text": "ansible.cfg includes [paramiko_connection] look_for_keys = False", "passed": true, "evidence": "Skill lines 355-367 show ansible.cfg with '[paramiko_connection]' and 'look_for_keys = False', and line 433 restates this"},
+        {"text": "Playbook uses cisco.iosxr.iosxr_command or ansible.netcommon.cli_command (not ansible.builtin.raw)", "passed": true, "evidence": "Skill line 32 states 'Use cisco.iosxr.iosxr_command (or ansible.netcommon.cli_command) for show commands -- NOT ansible.builtin.raw' and lines 395-398 show iosxr_command in the example playbook"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "Build an IAG OpenTofu service that provisions infrastructure. It needs variables for environment and region.",
+      "assertions": [
+        {"text": "Service type is opentofu-plan", "passed": true, "evidence": "Skill line 92 documents opentofu-plan type, line 470 shows 'type: opentofu-plan'"},
+        {"text": "Uses 'vars' field NOT 'plan-vars'", "passed": true, "evidence": "Skill line 22 states 'field names are vars and var-files (NOT plan-vars / plan-var-files)' and line 481 restates this"},
+        {"text": "Uses 'var-files' field NOT 'plan-var-files'", "passed": true, "evidence": "Skill line 22 states 'field names are vars and var-files (NOT plan-vars / plan-var-files)' and line 481 restates this"},
+        {"text": "Includes action field (apply, plan, or destroy)", "passed": true, "evidence": "Skill line 22 states 'OpenTofu services require action: apply|plan|destroy' and line 475 shows 'action: apply # REQUIRED: apply, plan, or destroy'"},
+        {"text": "Includes state-file field (null or path)", "passed": true, "evidence": "Skill line 478 shows 'state-file: null # optional: custom state file path'"},
+        {"text": "Secrets use TF_VAR_ prefix convention for OpenTofu variables", "passed": true, "evidence": "Skill lines 483-503 show secrets with 'target: TF_VAR_aws_access_key' and line 499 states '# OpenTofu reads TF_VAR_* as variables'"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "I'm getting an error importing my IAG service. The decorator schema has $id set to 'root' and no additionalProperties setting.",
+      "assertions": [
+        {"text": "Identifies $id: root as incorrect -- should match service name", "passed": true, "evidence": "Skill lines 509-515 explicitly state '$id: my-service # match service name, not \"root\"'"},
+        {"text": "Recommends additionalProperties: false", "passed": true, "evidence": "Skill line 537 shows 'additionalProperties: false # reject unknown params (recommended)' and the checklist at line 1004 includes this"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 5,
+      "prompt": "My OpenTofu IAG service YAML has plan-vars and plan-var-files fields but iagctl validate fails. What's wrong?",
+      "assertions": [
+        {"text": "Identifies plan-vars as wrong -- correct field is vars", "passed": true, "evidence": "Skill line 22 explicitly warns 'field names are vars and var-files (NOT plan-vars / plan-var-files)' and line 481 restates: 'The fields are vars and var-files, NOT plan-vars / plan-var-files'"},
+        {"text": "Identifies plan-var-files as wrong -- correct field is var-files", "passed": true, "evidence": "Same references: line 22 and line 481 both explicitly call out that plan-var-files is wrong and var-files is correct"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 6,
+      "prompt": "My Ansible IAG service using network_cli fails with 'No existing session' on a Cisco XR device. I'm using password auth.",
+      "assertions": [
+        {"text": "Identifies look_for_keys = False as the fix for 'No existing session' with password auth", "passed": true, "evidence": "Skill line 32 states 'Ansible network_cli needs paramiko + look_for_keys = False... Without look_for_keys = False, password auth fails with \"No existing session\"' and line 433 restates this"},
+        {"text": "Recommends adding [paramiko_connection] section to ansible.cfg", "passed": true, "evidence": "Skill lines 365-367 show the [paramiko_connection] section in ansible.cfg and line 32 mentions 'in ansible.cfg add [paramiko_connection] look_for_keys = False'"},
+        {"text": "Mentions paramiko needs to be in requirements.txt (runtime.req-file)", "passed": true, "evidence": "Skill line 32 states 'add paramiko to runtime.req-file (requirements.txt)' and lines 349-352 show paramiko in requirements.txt"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 7,
+      "prompt": "How do I run an OpenTofu IAG service with iagctl? I tried 'iagctl run service opentofu-plan my-service --set env=dev' but it fails.",
+      "assertions": [
+        {"text": "Identifies missing action subcommand (apply/destroy) in CLI syntax", "passed": true, "evidence": "Skill line 33 states 'OpenTofu CLI syntax differs -- iagctl run service opentofu-plan apply <name> --set key=value (the apply/destroy subcommand goes between the type and service name)'"},
+        {"text": "Shows correct syntax: iagctl run service opentofu-plan apply <name> --set key=value", "passed": true, "evidence": "Skill lines 646-649 show 'iagctl run service opentofu-plan apply my-plan --set region=us-east-1' and 'iagctl run service opentofu-plan destroy my-plan'"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 8,
+      "prompt": "I want to build one Python script that handles multiple IAG services -- like list, create, and delete operations for the same API.",
+      "assertions": [
+        {"text": "Describes one-file-multi-service pattern using runtime.env", "passed": true, "evidence": "Skill lines 189-228 document the 'One-file-multi-service pattern' with 'Same Python file, different services with different runtime.env'"},
+        {"text": "Each service definition has different runtime.env values", "passed": true, "evidence": "Skill lines 200-201 show 'OPERATION: add' and lines 214-215 show 'OPERATION: delete' for different services sharing the same file"},
+        {"text": "Script uses os.environ to read the action selector", "passed": true, "evidence": "Skill line 227 shows 'operation = os.environ.get(\"OPERATION\") or args.op'"},
+        {"text": "All services share the same filename and working-directory", "passed": true, "evidence": "Skill lines 196 and 210 both show 'filename: aws-ec2.py' and lines 197 and 211 both show 'working-directory: aws-operations'"}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 9,
+      "prompt": "Write me a standalone Ansible playbook for my home lab.",
+      "assertions": [
+        {"text": "Skill is not triggered for generic Ansible tasks outside IAG context", "passed": true, "evidence": "The skill description states it is for 'Build and run IAG (Itential Automation Gateway) services'. A standalone Ansible playbook for a home lab has no IAG context. The skill's argument-hint is '[action or service-name]' indicating IAG-specific actions. CLAUDE.md routing table maps /iag to 'Automation Gateway' domain only."}
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 10,
+      "prompt": "Help me write a Terraform module for AWS.",
+      "assertions": [
+        {"text": "Skill is not triggered for generic Terraform/OpenTofu tasks outside IAG context", "passed": true, "evidence": "The skill is scoped to IAG service building (YAML service definitions, iagctl imports). Writing a generic Terraform module is not IAG service building. CLAUDE.md routing table maps /iag to 'Automation Gateway' domain, not general IaC."}
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

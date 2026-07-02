@@ -1,7 +1,7 @@
 {
   "name": "itential-builder",
-  "description": "AI agent skills for the Itential Platform — deliver infrastructure automation from spec through acceptance testing and as-built documentation. Covers requirements, feasibility, design, build, QA/acceptance testing, FlowAgent, IAG, and MOP.",
-  "version": "1.5.0",
+  "description": "AI agent skills for the Itential Platform — deliver infrastructure automation from spec through build. Covers requirements, feasibility, design, build, as-built documentation, FlowAgent, IAG, and MOP.",
+  "version": "1.4.0",
   "author": {
     "name": "Itential"
   },

@@ -1,0 +1,139 @@
+{
+  "skill": "flowagent",
+  "eval_group": "flowagent",
+  "results": [
+    {
+      "eval_id": 1,
+      "prompt": "Set up an AI agent that monitors device health and creates ServiceNow tickets for issues. I have a Claude provider already configured.",
+      "assertions": [
+        {
+          "text": "Agent has identity with agent_account and agent_password",
+          "passed": true,
+          "evidence": "Skill lines 254-256 show identity with agent_account and agent_password in the create example. Line 291 documents these fields explicitly."
+        },
+        {
+          "text": "llm.provider references an existing provider name",
+          "passed": true,
+          "evidence": "Skill line 258 shows 'provider': 'Production Claude' in the example. Line 293 documents 'llm.provider -- name of a provider instance'."
+        },
+        {
+          "text": "messages array has system prompt first, then user objective",
+          "passed": true,
+          "evidence": "Skill lines 263-270 show messages with system role first, then user role. Line 595 states 'messages array order matters: system prompt first, then user objective'."
+        },
+        {
+          "text": "Tool identifiers use // format (e.g., ServiceNow//createChangeRequest)",
+          "passed": true,
+          "evidence": "Skill line 585 states 'Tool identifiers use // as separator: adapter_name//method_name'. Lines 277-278 show examples like 'ServiceNow//createChangeRequest'."
+        },
+        {
+          "text": "Body wrapped in {details: {...}}",
+          "passed": true,
+          "evidence": "Skill lines 248-285 show the full create agent example wrapped in {\"details\": {...}}."
+        },
+        {
+          "text": "capabilities.toolset is an array of tool identifiers",
+          "passed": true,
+          "evidence": "Skill lines 276-279 show capabilities.toolset as an array. Line 295 documents 'capabilities.toolset -- array of tool identifiers the agent can use'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 2,
+      "prompt": "I want to test a ServiceNow tool before giving it to my agent. How do I call it directly?",
+      "assertions": [
+        {
+          "text": "Maps adapter tool identifier to POST /AdapterName/methodName route",
+          "passed": true,
+          "evidence": "Skill lines 98-104 provide a table mapping tool type and identifier to direct test route. Line 100 shows adapter 'ServiceNow//createChangeRequest' maps to 'POST /ServiceNow/createChangeRequest'."
+        },
+        {
+          "text": "Suggests checking openapi.json for the correct request body",
+          "passed": true,
+          "evidence": "Skill lines 117-119 show checking openapi.json for ServiceNow endpoints and request body: 'jq .paths[\"/ServiceNow/createChangeRequest\"].post.requestBody openapi.json'."
+        },
+        {
+          "text": "Tests the tool directly before assigning to agent",
+          "passed": true,
+          "evidence": "Skill lines 75-77 state 'Don't give an agent a tool you haven't tested yourself. Every tool is a platform API call -- test it directly first.' Step 5 header is 'Test the tools BEFORE giving them to the agent'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 3,
+      "prompt": "My agent mission failed. The conclusion says the tool returned an error about missing fields. How do I debug this?",
+      "assertions": [
+        {
+          "text": "Checks mission details: conclusion, toolStats, tokenUsage",
+          "passed": true,
+          "evidence": "Skill lines 190-193 describe checking mission: 'conclusion -- what the agent said at the end', 'toolStats.tools -- which tools were called', 'tokenUsage -- if very high, the agent may be looping'. Lines 714-719 show the debug scenario steps."
+        },
+        {
+          "text": "Tests the failing tool directly outside the agent",
+          "passed": true,
+          "evidence": "Skill lines 195-197 state 'Identify which tool failed' then 'Test that tool directly -- call the same API endpoint with the same parameters the agent used.'"
+        },
+        {
+          "text": "Updates system prompt to guide correct tool usage",
+          "passed": true,
+          "evidence": "Skill lines 199-203 show 'Fix the system prompt -- if the agent is passing wrong parameters, add guidance' with concrete examples. Line 205 shows the iterate loop: update agent via PUT, call again, check mission."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 4,
+      "prompt": "Create a quick one-off agent to check if a device is reachable. Don't save it.",
+      "assertions": [
+        {
+          "text": "Uses adhoc_agent endpoint, not agents create+call",
+          "passed": true,
+          "evidence": "Skill line 242 documents 'POST /flowai/adhoc_agent -- Run a one-off agent without saving it'. Lines 334-343 show the full adhoc_agent example."
+        },
+        {
+          "text": "Mentions default_provider must be configured",
+          "passed": true,
+          "evidence": "Skill line 343 states 'Requires default_provider to be set in app properties.' Gotcha on line 588 reiterates: 'adHocAgent requires default_provider set in FlowAI app properties'."
+        },
+        {
+          "text": "Includes tools array with correct // identifier format",
+          "passed": true,
+          "evidence": "Skill line 339 shows 'tools': ['AutomationGateway//sendCommand'] in the adhoc_agent example, using the // identifier format."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 5,
+      "prompt": "I get 'Tool names must be unique' when creating my agent. I have two adapters with getDevice methods.",
+      "assertions": [
+        {
+          "text": "Identifies duplicate tool names as the cause",
+          "passed": true,
+          "evidence": "Skill line 597 documents: '\"Tool names must be unique\" error -- happens when multiple adapters expose methods with the same name (e.g., getDevice on two adapters). The LLM provider rejects duplicate tool names.' Troubleshooting table line 214 also lists this."
+        },
+        {
+          "text": "Advises filtering capabilities.toolset to specific adapter",
+          "passed": true,
+          "evidence": "Skill line 597 continues: 'Use specific tool identifiers in capabilities.toolset to avoid loading conflicting tools.' Line 214 says 'Remove conflicting tools from capabilities'."
+        }
+      ],
+      "pass_rate": 1.0
+    },
+    {
+      "eval_id": 6,
+      "prompt": "Build me a React app with authentication.",
+      "assertions": [
+        {
+          "text": "Skill is not triggered for generic web dev tasks",
+          "passed": true,
+          "evidence": "The skill description (line 3) scopes it to 'Create and run AI agents on the Itential Platform.' React/web dev is entirely outside this scope. The CLAUDE.md skill router maps flowagent to 'AI Agents' only."
+        }
+      ],
+      "pass_rate": 1.0
+    }
+  ],
+  "overall_pass_rate": 1.0
+}

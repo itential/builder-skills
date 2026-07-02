@@ -1,0 +1,89 @@
+{
+  "_comment": "Diagnosis artifact for: 'forEach loop last task connects back to forEach and job errors out.' Both patterns below use the real forEach task shape documented in builder-agent SKILL.md (### forEach) and verified against the production asset helpers/assets/itential-platform-configuration-management.json, workflow 'Golden Configuration Tree', forEach task id 'c1c3'.",
+
+  "broken_pattern": {
+    "_comment": "WRONG — this is almost certainly what's in the engineer's workflow today. The last body task (eadb/d8cb/2065-equivalent, here generalized as 'lastBodyTask') has an explicit transition back to the forEach task id. This is the documented anti-pattern.",
+    "tasks": {
+      "c1c3": {
+        "name": "forEach",
+        "canvasName": "forEach",
+        "summary": "For Each Item",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "data_array": "$var.job.itemsToProcess" },
+          "outgoing": { "current_item": null },
+          "error": ""
+        },
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 420 }
+      },
+      "firstBodyTask": { "...": "first task in loop body, wired from forEach state:loop" },
+      "lastBodyTask": { "...": "last task in loop body" }
+    },
+    "transitions": {
+      "c1c3": {
+        "firstBodyTask": { "type": "standard", "state": "loop" },
+        "nextTaskAfterLoop": { "type": "standard", "state": "success" }
+      },
+      "lastBodyTask": {
+        "c1c3": { "type": "standard", "state": "success" }
+      }
+    },
+    "why_this_breaks": "The forEach task's iteration/continuation is managed internally by the workflow engine via the 'loop' state — it re-invokes the loop body itself for each element in data_array and detects completion on its own. It is NOT a task you manually re-enter with a transition. Wiring lastBodyTask -> c1c3 makes the engine receive an unexpected incoming transition into a forEach node that is already mid-iteration (or has already completed/moved to its success branch). Symptoms reported by engineers: the job errors out (task state conflict / task already in progress) after the first iteration, or the loop appears to restart from scratch each time using stale data_array context, or the job hangs. This is documented as SKILL.md gotcha #20 and in the '### forEach' section: 'The last task in the loop body has an empty transition {}. Do NOT connect it back to forEach.'"
+  },
+
+  "fixed_pattern": {
+    "_comment": "CORRECT — mirrors the verified production example (Golden Configuration Tree workflow, forEach task 'c1c3', loop body ending at task 'da7f' with transitions['da7f'] = {}).",
+    "tasks": {
+      "c1c3": {
+        "name": "forEach",
+        "canvasName": "forEach",
+        "summary": "For Each Item",
+        "location": "Application",
+        "locationType": null,
+        "app": "WorkFlowEngine",
+        "type": "operation",
+        "displayName": "WorkFlowEngine",
+        "variables": {
+          "incoming": { "data_array": "$var.job.itemsToProcess" },
+          "outgoing": { "current_item": null },
+          "error": ""
+        },
+        "groups": [],
+        "nodeLocation": { "x": 600, "y": 420 }
+      },
+      "firstBodyTask": { "...": "first task in loop body, wired from forEach state:loop" },
+      "lastBodyTask": { "...": "last task in loop body" },
+      "nextTaskAfterLoop": { "...": "task run once, after the loop fully completes" }
+    },
+    "transitions": {
+      "c1c3": {
+        "firstBodyTask": { "type": "standard", "state": "loop" },
+        "nextTaskAfterLoop": { "type": "standard", "state": "success" }
+      },
+      "lastBodyTask": {}
+    },
+    "why_this_works": "lastBodyTask has an EMPTY transitions entry ({}). The workflow engine treats reaching the end of the loop body (no outgoing transition) as 'this iteration is done' and internally loops the forEach task back to the next data_array element on its own. When all elements are exhausted, the engine fires the forEach task's own 'success' state transition to nextTaskAfterLoop. The developer never wires an explicit edge back into c1c3."
+  },
+
+  "reference_verified_in_repo": {
+    "asset_file": "helpers/assets/itential-platform-configuration-management.json",
+    "workflow_name": "Golden Configuration Tree",
+    "forEach_task_id": "c1c3",
+    "forEach_transitions": {
+      "eadb": { "type": "standard", "state": "loop" },
+      "9ef7": { "type": "standard", "state": "success" }
+    },
+    "loop_body_chain": "c1c3 --loop--> eadb (query) -> d8cb (getComplianceReportDetail) -> 2065 (renderJinjaTemplate) -> 5507 (query) -> 19c1 (evaluation) --failure--> 850c (ViewData, transitions {} )",
+    "second_forEach_in_same_workflow": {
+      "task_id": "5208",
+      "summary": "For Each Errored Device",
+      "loop_body_chain": "5208 --loop--> f77d (evaluation) --failure--> da7f (ViewData, transitions {} )",
+      "note": "In BOTH forEach usages in this real, production-imported workflow, the final task in the loop body has an empty transitions object ({}). Neither loop body task ever transitions back to the forEach task id (5208 or c1c3)."
+    }
+  }
+}
