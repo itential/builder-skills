@@ -173,6 +173,20 @@ Type meanings (commit-side):
 
 **Merge commits are not allowed** on PR branches — the CI rejects them. Use squash or rebase to integrate updates from `main`.
 
+**`git revert`'s default message never conforms** — it produces `Revert "<original message>"`, and `Revert` isn't a valid type. Reword it before pushing:
+
+```bash
+git revert --no-edit <sha>
+git commit --amend -m "fix: revert <what and why>"
+```
+
+If reverting multiple commits, squash them into a single properly-typed commit instead of leaving several auto-generated `Revert "..."` messages:
+
+```bash
+git reset --soft <sha-before-the-commits-being-reverted>
+git commit -m "fix: revert <what and why>"
+```
+
 Examples:
 - `feat(auth): add JWT token validation`
 - `fix: handle empty response from upstream`
