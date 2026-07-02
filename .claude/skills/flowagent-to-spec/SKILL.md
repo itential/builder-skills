@@ -1,6 +1,6 @@
 ---
 name: flowagent-to-spec
-description: Convert a FlowAgent into a deterministic workflow spec. Reads the agent config, tools, and mission history to understand what the agent does, then produces a customer-spec.md that describes the same use case as structured, deterministic automation. Turns agentic → deterministic.
+description: Convert a FlowAgent into a deterministic workflow spec. Reads the agent definition, tools, and session history (GA Agent Project Service / Agent Session Manager APIs) to understand what the agent does, then produces a customer-spec.md that describes the same use case as structured, deterministic automation. Turns agentic → deterministic.
 argument-hint: "[agent-name or agent-id]"
 ---
 
@@ -28,87 +28,93 @@ Non-deterministic                  Same result every run
 
 The spec produced by this skill describes the deterministic equivalent — same outcome, no LLM in the loop.
 
+**Note on GA's typed `inputSchema`:** unlike the old prototype (a free-form chat objective), a GA agent's `inputSchema` already declares its input contract as typed fields. This makes Step 3's "identify inputs" analysis mostly a lookup, not an inference — read the agent's `inputSchema` directly rather than reverse-engineering input variance across session objectives.
+
 ---
 
 ## Step 1: Read the Agent
 
-Pull the agent configuration:
+Pull the agent definition:
 
 ```
-GET /flowai/agents/{agentId}
+GET /agent-project-service/agents/{agentId}
 ```
 
-Or find by name:
+Or find it by name (no direct name-search endpoint — filter client-side):
 ```
-GET /flowai/agents
+GET /agent-project-service/agent-names/accessible
 ```
 
 Extract:
-- **`details.messages`** — the system prompt (tells you the agent's purpose and constraints) and user message template (tells you what objective it's given)
-- **`details.capabilities.toolset`** — which tools the agent is allowed to use (in `AdapterName//methodName` format)
-- **`details.llm`** — which LLM provider (not needed for the spec, but useful context)
-- **`details.identity`** — which platform user the agent runs as
+- **`instructions`** — the system prompt; tells you the agent's purpose and constraints
+- **`inputSchema`** — the declared, typed input contract (properties + required) — this is your starting point for the deterministic workflow's `inputSchema`, not something you need to infer from session history
+- **`tools`** — array of `{referenceId, decoratorId?}` the agent can use. Resolve each `referenceId` via `GET /tools/{referenceId}` to get its name/description; if a `decoratorId` is present, fetch `GET /tools/decorators/{decoratorId}` too — the decorator's `toolInputSchema` is what the agent actually sends, not the tool's native schema
+- **`provider`** — `{profile, model}` UUIDs (not needed for the spec, but useful context on which LLM ran it)
+- **`operators`** — who could invoke this agent (informational, not usually spec-relevant)
+
+There is no equivalent of the old `identity.agent_account`/`agent_password` (the platform user the agent ran as) in this service — if you need to know what permissions the agent's tool calls actually exercised, infer it from which adapters/apps the tools in `tools[]` touch, not from an execution-identity field.
 
 Save to `{use-case}/agent-config.json`.
 
 ---
 
-## Step 2: Read Mission History
+## Step 2: Read Session History
 
-Pull completed missions to understand what the agent actually did:
+Pull completed sessions to understand what the agent actually did:
 
 ```
-GET /flowai/missions?limit=20
+GET /agent-session-manager/sessions?filters=[{"field":"agentDefinitionId","value":"<agentId>"}]&sortBy=startedAt&sortOrder=desc&limit=20
 ```
 
-For the most recent successful missions for this agent:
+For the most recent successful sessions for this agent:
 ```
-GET /flowai/missions/{missionId}
-```
-
-From each mission extract:
-- **`objective`** — what was the agent asked to do?
-- **`conclusion`** — what did the agent report at the end?
-- **`toolStats.tools`** — which tools were called and how many times
-- **`startTime` / `endTime`** — how long did it take?
-
-Then read the mission events to see the actual tool call sequence:
-```
-GET /flowai/missions/{missionId}/events
+GET /agent-session-manager/sessions/{sessionId}
 ```
 
-Events contain the full execution trace:
-- AI messages (the LLM's reasoning and decisions)
-- Tool calls (which tool, with what inputs)
-- Tool results (what came back)
+From each session extract:
+- **`inputs`** — what the session was started with (the typed inputs, matching the agent's `inputSchema` — no need to reverse-engineer these from free text)
+- **`status`** — `COMPLETE` vs `FAILED` vs `CANCELED`; `errorMessage`/`errorCategory` on failure
+- **`totalToolCallCount`** / **`iterationCount`** — how much work it did
+- **`startedAt`** / **`endTime`** / **`duration`** — how long it took
 
-Save representative missions to `{use-case}/mission-samples.json`.
+Then read the session's activity log to see the actual tool call sequence:
+```
+GET /agent-session-manager/sessions/{sessionId}/messages?sortBy=timestamp&sortOrder=asc
+```
+
+Messages contain the full execution trace, now with a formal type taxonomy:
+- `category: AGENT_REASONING` (`type: inference-succeeded`/`inference-failed`) — the LLM's reasoning and decisions (`text` field)
+- `category: TOOL_CALLED` (`type: tool-execution`) — which tool, with what inputs/outputs (`data` field — fetch `GET .../messages/{eventId}` for the untruncated payload)
+- `category: AGENT_STATUS` — lifecycle transitions (paused/resumed/completed/failed/canceled)
+
+Save representative sessions to `{use-case}/session-samples.json`.
 
 ---
 
 ## Step 3: Analyze the Pattern
 
-From the agent config and mission events, reconstruct the deterministic pattern.
+From the agent config and session messages, reconstruct the deterministic pattern.
 
 ### Identify the fixed sequence
 
-Look across multiple missions for the tool call pattern that repeats. The LLM may phrase things differently each time, but the underlying tool sequence is usually consistent:
+Look across multiple sessions for the tool call pattern that repeats. The LLM may phrase its reasoning differently each time, but the underlying tool sequence is usually consistent:
 
 ```
-Example from mission events:
+Example from session messages (category: TOOL_CALLED):
   1. ServiceNow//getChangeRequest   (input: changeId)
   2. Infoblox//getHostRecord        (input: hostname)
   3. Infoblox//updateHostRecord     (input: hostname, ipv4addr)
   4. ServiceNow//updateChangeRequest (input: changeId, work_notes)
 ```
+(Tool names here are shown resolved from `referenceId` via `GET /tools/{referenceId}` — the raw session message will reference the opaque `referenceId`/`toolId`, not a readable name. Resolve every distinct tool call in the sequence before presenting it.)
 
 This becomes your deterministic workflow task sequence.
 
 ### Identify the decision points
 
 Where did the LLM branch? Look for:
-- Missions where different tools were called based on a condition
-- AI messages that say "since X is Y, I will call Z instead of W"
+- Sessions where different tools were called based on a condition
+- `AGENT_REASONING` messages that say "since X is Y, I will call Z instead of W"
 - Tool results that caused the agent to take a different path
 
 Each branch point becomes an `evaluation` task in the deterministic workflow.
@@ -122,16 +128,16 @@ For each tool call in the sequence:
 
 ### Identify error handling
 
-Where did missions fail, and what did the agent do?
+Where did sessions fail (`status: FAILED`), and what did the agent do?
 - Did it retry? → add retry logic or `revert` transitions
-- Did it stop and report? → add error transitions to `workflow_end`
+- Did it stop and report (`errorMessage`/`errorCategory`)? → add error transitions to `workflow_end`
 - Did it create a ticket? → add a ServiceNow error-handling task
 
 ### Identify inputs and outputs
 
-**Inputs:** What did the objective vary across missions? These become the workflow `inputSchema`.
+**Inputs:** Read the agent's `inputSchema` directly (Step 1) — GA agents already declare a typed input contract, so this is a lookup, not an inference. Cross-check against the `inputs` actually supplied across several sessions (Step 2) to confirm which declared properties are used in practice vs. rarely populated.
 
-**Outputs:** What did the conclusion always contain? These become the workflow `outputSchema`.
+**Outputs:** What did the final `AGENT_REASONING` message (the session's concluding text) consistently report? These become the workflow `outputSchema`.
 
 ---
 
@@ -158,7 +164,7 @@ Convert each observed agent behavior to a workflow construct:
 Write the spec for the deterministic equivalent.
 
 ```markdown
-# Use Case: {Derived from agent system prompt and mission objectives}
+# Use Case: {Derived from agent instructions and inputSchema}
 
 > **Note:** This spec was derived from FlowAgent `{agentName}` ({agentId}).
 > It describes the same use case as deterministic automation — no LLM in the execution path.
@@ -168,7 +174,7 @@ Write the spec for the deterministic equivalent.
 {Derived from agent system prompt — what problem was the agent solving?}
 
 ## 2. High-Level Flow
-{Derived from the dominant tool call sequence across missions}
+{Derived from the dominant tool call sequence across sessions}
 
 ## 3. Phases
 {One phase per logical cluster of tool calls}
@@ -188,28 +194,28 @@ Example:
 
 ## 5. Scope
 
-**In scope (observed in missions):**
+**In scope (observed in sessions):**
 {tools used, systems touched}
 
 **Not in scope:**
 {things the agent could theoretically do with its tools but didn't}
 
 ## 6. Risks & Mitigations
-{Derived from mission failures and error patterns}
+{Derived from session failures (status: FAILED) and error patterns}
 
 ## 7. Requirements
 
 ### Capabilities
 | Capability | Required | Source |
 |-----------|----------|--------|
-| {e.g., Update DNS records} | Yes | Observed in all missions |
+| {e.g., Update DNS records} | Yes | Observed in all sessions |
 
 ### Integrations
 | System | Purpose | Adapter Used |
 |--------|---------|-------------|
 | {e.g., ServiceNow} | Change tickets | Servicenow |
 
-### Inputs (from mission objectives)
+### Inputs (from agent's inputSchema)
 | Variable | Type | Description |
 |----------|------|-------------|
 | {e.g., changeId} | string | ServiceNow change request ID |
@@ -218,7 +224,7 @@ Example:
 {Did the agent loop over multiple items? If so, describe the pattern}
 
 ## 9. Acceptance Criteria
-{Derived from mission conclusions and final tool states}
+{Derived from session concluding messages and final tool states}
 1. {e.g., DNS record updated and verified}
 2. {e.g., Change ticket updated with work notes}
 3. {e.g., Workflow completes within N seconds}
@@ -231,15 +237,15 @@ Example:
 Show the spec with clear attribution — what was observed vs what was inferred:
 
 **Observed (high confidence):**
-- Tool call sequence that appeared in >80% of missions
-- Input variables that varied across missions
-- Output values the agent always reported in its conclusion
+- Tool call sequence that appeared in >80% of sessions
+- The agent's declared `inputSchema` (already typed — not inferred)
+- Output values the agent always reported in its final message
 
 **Inferred (needs verification):**
-- Business purpose (from system prompt interpretation)
+- Business purpose (from `instructions` interpretation)
 - Phase boundaries (grouping of tool calls)
-- Error handling intent (from failure missions)
-- Acceptance criteria (from conclusion patterns)
+- Error handling intent (from failed sessions)
+- Acceptance criteria (from concluding-message patterns)
 
 Ask the engineer:
 1. "Does this correctly capture what the agent was doing?"
@@ -255,14 +261,16 @@ Then offer next steps:
 
 ## Gotchas
 
-**LLM verbosity ≠ complexity:** The agent may write long conclusions but the actual tool sequence is short. Focus on tool calls, not the LLM's narrative.
+**LLM verbosity ≠ complexity:** The agent may write long reasoning messages but the actual tool sequence is short. Focus on `TOOL_CALLED` messages, not the LLM's narrative (`AGENT_REASONING`).
 
-**One-off missions aren't reliable:** Look for the pattern across 5+ missions. A single mission may show unusual branching.
+**One-off sessions aren't reliable:** Look for the pattern across 5+ sessions. A single session may show unusual branching.
 
-**Tool name → adapter mapping:** Agent tools use `AdapterName//methodName` format. Map back to `app` (from apps.json) and `adapter_id` (from adapters.json) for the workflow.
+**Tool identity is opaque now, not a fixed `AdapterName//methodName` string.** GA tools are addressed by an opaque `referenceId` — resolve each one via `GET /tools/{referenceId}` to get its actual name/description before mapping back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow. Don't assume the old slash-separated format still holds; confirm against a live `GET /tools` call.
+
+**Decorators change what the agent actually sent.** If a tool reference has a `decoratorId`, the decorator's `toolInputSchema` — not the tool's native schema — is what the LLM populated. Fetch `GET /tools/decorators/{decoratorId}` to see the real, narrowed input contract the agent was working with.
 
 **LLM error recovery:** The agent may retry tools on failure — that's agentic behavior that doesn't directly translate. In the deterministic version, use explicit error transitions and define the recovery path.
 
-**Stateful reasoning:** If the agent said "I checked earlier and the device was reachable" — that's stateful context the LLM maintained. In the deterministic version, that check must be an explicit task that stores its result in a job variable.
+**Stateful reasoning:** If an `AGENT_REASONING` message said "I checked earlier and the device was reachable" — that's stateful context the LLM maintained. In the deterministic version, that check must be an explicit task that stores its result in a job variable.
 
-**Sub-agents:** If the agent called sub-agents, each sub-agent becomes a candidate child workflow. Recurse — pull each sub-agent's missions and apply the same analysis.
+**Sub-agents / delegation has no documented GA equivalent.** The old prototype let an agent call other agents by name (`capabilities.agents`); this doesn't appear anywhere in the GA Agent Project Service schemas. If session messages show what looks like delegation (a `sessionType: child` session, or tool calls that look like they're invoking another agent), treat each as its own candidate deterministic workflow and confirm with the engineer how the two were actually being orchestrated — don't assume a direct agent-to-agent call pattern still exists.
