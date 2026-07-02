@@ -18,7 +18,7 @@ FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollam
 - **Agent** — a named AI entity: `instructions` (system prompt), a typed `inputSchema` (what parameters it accepts), a `provider` reference (which LLM profile + model it uses), a `tools` list, and an `operators` access list.
 - **Profile** — a configured, credentialed instance of an LLM provider (e.g., "Production Anthropic"). Owned by Model Registry Service. Holds masked credentials and a curated list of enabled models, each with its own UUID.
 - **Model** — one specific model enabled on a profile (e.g., a Claude or GPT model), addressed by a UUID assigned when it's added to the profile. An agent's `provider` field is `{profile: <uuid>, model: <uuid>}` — both required together.
-- **Tool** — a callable platform capability (adapter method, IAG service, app method), addressed by an opaque `referenceId`. Discovered via `POST /tools/discover`, never created by hand.
+- **Tool** — a callable platform capability (adapter method, IAG service, app method), addressed by a structured `referenceId` (`<type>:<source>:<method>`, e.g. `application:ConfigurationManager:runCompliancePlan`). Discovered via `POST /tools/discover`, never created by hand.
 - **Decorator** — a standalone, ID-addressed override of a tool's description and input schema for a specific use case. Cloneable and portable (bulk export/import). An agent attaches a decorator to a specific tool reference, not globally.
 - **Session** — a single run of an agent. Replaces the old "mission." Has an 8-state lifecycle (`PENDING` → `RUNNING` → `COMPLETE`/`FAILED`/`CANCELED`, plus `PAUSING`/`PAUSED`/`CANCELING`) and a typed activity log (`messages`).
 - **Operators** — an agent-level access-control list (account/group IDs) granting specific callers the right to run that agent, independent of their project role. Only project owners can edit it.
@@ -158,6 +158,8 @@ Look up the exact route and request body from `openapi.json` (`jq '.paths | keys
 **If the tool's native schema is too broad or the LLM keeps sending wrong/incomplete inputs**, create a decorator (Step 9) — but only after confirming the native tool actually works when called correctly.
 
 ### Step 8: Create the agent
+
+**Prefer building the project + agent(s) locally and importing as one bundle** (`POST /agent-project-service/project-bundles/import` — see API Reference) over the single-agent inline call below, especially once a project has more than one agent. The inline call is fine for a single quick agent in an existing project.
 
 ```
 POST /agent-project-service/projects/{projId}/agents
@@ -300,6 +302,69 @@ Attach it to the agent by adding `decoratorId` to that tool's entry (via `PATCH`
 }
 ```
 Roles: `owner` | `editor` | `viewer`. **Only owners can update `members`.** This is a full field replacement per the PATCH body shape (only send what you're changing — `name`, `description`, `members` are each independently optional, but if you send `members` at all, send the complete list).
+
+### Project Bundles (Import/Export) — the preferred way to create a project + agents together
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/agent-project-service/project-bundles/{projId}/export` | Export a project and all its agents as a portable bundle |
+| POST | `/agent-project-service/project-bundles/import` | Import a bundle to create (or merge into) a project |
+
+**Prefer this over individual `POST /projects` + `POST /projects/{projId}/agents` calls** when creating a project with one or more agents — same rationale as Automation Studio's project import: build the whole thing locally, import atomically, avoid multi-call intermediate state.
+
+**Confirmed real bundle shape** (from a live export — `agentProjectBundleVersion: 1`):
+```json
+{
+  "_id": "<project-uuid>",
+  "name": "NERC Compliance",
+  "description": "Runs NERC-CIP compliance plan, collects device violations, ...",
+  "agentProjectBundleVersion": 1,
+  "created": "2026-07-01T13:59:16.070Z",
+  "createdBy": { "provenance": "CloudAAA", "username": "joksan.flores@itential.com" },
+  "agents": [
+    {
+      "_id": "<agent-uuid>",
+      "name": "NERC CIP Compliance",
+      "description": "",
+      "instructions": "You are a NERC-CIP compliance automation engineer...",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["device"],
+        "properties": { "device": { "type": "string" } }
+      },
+      "created": "2026-07-01T14:09:15.000Z",
+      "createdBy": { "username": "joksan.flores@itential.com", "provenance": "CloudAAA" },
+      "provider": { "profileName": "anthropic-selab-gw", "modelName": "claude-sonnet-4-6" },
+      "tools": [
+        { "referenceId": "application:ConfigurationManager:runCompliancePlan", "lastKnownName": "runCompliancePlan", "decoratorId": "6a453e7b025a4623ad3df433" },
+        { "referenceId": "application:ConfigurationManager:searchCompliancePlanInstances", "lastKnownName": "searchCompliancePlanInstances" },
+        { "referenceId": "adapter:Servicenow:ServiceNow:createChangeRequest", "lastKnownName": "createChangeRequest", "decoratorId": "6a4522569c7614ba882f176c" },
+        { "referenceId": "gatewayService:selab-iag5-standalone:04a19e29-f2dc-41f7-b9c7-102e6b19df08", "lastKnownName": "sleep-and-echo" }
+      ]
+    }
+  ]
+}
+```
+
+**Confirms:** `provider` is de-identified on export to `{profileName, modelName}` strings (not the live UUIDs) — portable across environments where those UUIDs would differ. `agents[]` supports multiple agents per project. `tools[].decoratorId` is present only on entries that have one attached.
+
+**Import:**
+```
+POST /agent-project-service/project-bundles/import
+```
+```json
+{
+  "bundle": { "...same shape as export, agentProjectBundleVersion: 1..." },
+  "conflictMode": "keep-both",
+  "name": "Network Operations",
+  "description": "optional override of the bundle's project name/description",
+  "providerResolutions": {
+    "<agent identifier from the bundle>": { "profileName": "Production Anthropic", "modelName": "claude-sonnet-4-6" }
+  }
+}
+```
+`conflictMode`: `keep-both` (duplicate) | `replace` (overwrite an existing project/agent with matching identity). `providerResolutions` remaps each agent's `profileName`/`modelName` to a profile/model that actually exists in the **target** environment — required because profiles are environment-specific (different credentials per environment) even though the bundle references them by portable name. **The named profile/model must already exist in the target environment before import** — bundle import does not create profiles.
 
 ### Agents (Agent Project Service)
 
@@ -491,7 +556,15 @@ POST /tools/discover
 ```
 No body. Scans adapters, IAG services, and app methods, persisting each as a registry entry addressed by `referenceId`. Safe to re-run — refreshes the registry rather than duplicating entries.
 
-**Note on tool identity:** tools are addressed by an opaque `referenceId` (not a composite `"adapter//method"` string). The response schema for tool objects is not formally typed in the OpenAPI spec, so **confirm the actual `referenceId` format and shape on your deployment** via a live `GET /tools` call before writing code that parses or constructs one.
+**Tool identity — `referenceId` format (confirmed from a live project-bundle export):** a colon-separated `<type>:<source>:<method>` string, where `type` is one of at least `application`, `adapter`, or `gatewayService`:
+
+| Type | Example `referenceId` | Structure |
+|---|---|---|
+| `application` | `application:ConfigurationManager:runCompliancePlan` | `application:<app-name>:<method>` |
+| `adapter` | `adapter:Servicenow:ServiceNow:createChangeRequest` | `adapter:<adapter-instance-id>:<app-type-name>:<method>` |
+| `gatewayService` | `gatewayService:selab-iag5-standalone:04a19e29-f2dc-41f7-b9c7-102e6b19df08` | `gatewayService:<cluster-id>:<service-uuid>` |
+
+The response schema for `GET /tools`/`GET /tools/{referenceId}` is still not formally typed in the OpenAPI spec beyond this — verify the exact `type` enum and any additional fields against a live call on your deployment before writing code that parses one.
 
 There is **no create/update/delete for individual tools** — the registry is populated only by discovery.
 
