@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+import sys
+sys.dont_write_bytecode = True
+
 """Deterministic IAG4 usage analysis for the /iag4-to-iag5 skill.
 
 Pure analysis over already-pulled data in a working directory's tmp/ folder. Reads
