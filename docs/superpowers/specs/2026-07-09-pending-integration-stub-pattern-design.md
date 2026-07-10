@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-09
 **Status:** Approved
-**Source:** useCase-lightningAi (EmailOpensource adapter not installed on customer cloud instance)
+**Source:** field engagement (EmailOpensource adapter not installed on customer cloud instance)
 
 ---
 
@@ -20,7 +20,7 @@ The goal: let delivery proceed in full, demonstrate progress to the customer via
 - Guidance for solution-arch-agent (feasibility status + design deliverables)
 - Guidance for builder-agent (stub workflow structure + placeholder task pattern)
 - Guidance for qa-agent (pending criteria handling)
-- Four new AGENTS.md key rules from Lightning AI learnings
+- Four new AGENTS.md key rules from field engagement learnings
 
 **Out of scope:**
 - Promoting integration-model files to helpers/ (pattern only — files stay per use-case)
@@ -158,7 +158,7 @@ Example test report entry:
 
 ---
 
-### 6. AGENTS.md Key Rules (Lightning AI learnings)
+### 6. AGENTS.md Key Rules (cloud/SaaS engagement learnings)
 
 Four rules to add, applying to any cloud/SaaS Itential engagement:
 
@@ -185,9 +185,9 @@ Four rules to add, applying to any cloud/SaaS Itential engagement:
 
 ## Connections to Use Case
 
-All patterns in this spec are directly derived from `useCase-lightningAi`:
+All patterns in this spec are directly derived from a field engagement:
 - Stub status and `integration-model-*.json` files — 10 integration models produced during design
-- `LightningAI-Integration-Questions.xlsx` — the questionnaire pattern (format changed to Markdown)
+- Integration questionnaire — the questionnaire pattern (format changed to Markdown)
 - `newVariable` placeholder for EmailOpensource — the placeholder task pattern
 - As-built activation recipe for `d4e5` task — the activation section pattern
 - Rules 26–29 — direct from `as-built.md` Learnings section
