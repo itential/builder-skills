@@ -28,13 +28,17 @@ import sys
 sys.dont_write_bytecode = True
 
 # --- verbatim recommendation strings (keep in sync with readiness-report-template.md) ---
-REC_ANSIBLE = "register playbook as an IAG5 ansible-playbook service; call via GatewayManager.runService"
-REC_PYTHON = "re-implement as an IAG5 python-script service; call via GatewayManager.runService"
+# NOTE: these strings are rendered into the markdown report, which must NOT contain "iag"/"IAG4"/
+# "IAG5" — use "Gateway4"/"Gateway5" instead. Literal API/app names (GatewayManager.runService,
+# AG Manager) and actual adapter names stay verbatim so the reader can identify them on the platform.
+REC_ANSIBLE = "register playbook as a Gateway5 ansible-playbook service; call via GatewayManager.runService"
+REC_PYTHON = "re-implement as a Gateway5 python-script service; call via GatewayManager.runService"
 REC_SELFMGMT = "move to the Inventory Manager application; drop this task"
-REC_FORM = "rebind to the IAG5/replacement endpoint — returns no data once IAG4 is removed."
-REC_DEVICE = "device sourced from an IAG4 gateway adapter; re-home it in Inventory Manager before removing IAG4"
+REC_FORM = "rebind to the Gateway5/replacement endpoint — returns no data once Gateway4 is removed."
+REC_DEVICE = "device sourced from a Gateway4 adapter; re-home it in Inventory Manager before removing Gateway4"
 
-# IAG4 application name (agmanager). GatewayManager (IAG5) must NEVER be flagged.
+# Gateway4 application name (agmanager). GatewayManager (Gateway5) must NEVER be flagged.
+# (Internal constant name kept as IAG4_APP — script-internal only, never rendered.)
 IAG4_APP = "AGManager"
 # adapter package that identifies the IAG4 automation_gateway adapter
 IAG4_ADAPTER_PACKAGE = "automation_gateway"
@@ -128,6 +132,51 @@ def classify(task):
     return "python-script", REC_PYTHON
 
 
+def task_interface(task):
+    """Which Gateway4 interface a task runs over (req a — needed for Gateway5 cluster mapping):
+      - "AG Manager"  when the task uses the AGManager application (app == "AGManager")
+      - the ACTUAL adapter name otherwise (the adapter-backed automation_gateway task) — returned
+        verbatim from the task's own `app`/`location` so the reader recognizes it on the platform.
+    Only ever called for a task already confirmed IAG4 by is_iag4_task()."""
+    if task.get("app") == IAG4_APP:
+        return "AG Manager"
+    return task.get("app") or task.get("location") or IAG4_ADAPTER_TYPE
+
+
+def find_referrers(tasks, tid):
+    """req (b) — other tasks in the SAME workflow that consume this Gateway4 task's output.
+    A consumer references it either as a `$var.<tid>.<field>` string (wiring an input from its
+    output) or as a structural job reference `{"task":"<tid>", ...}` (childJob / merge / evaluation).
+    Returns [{task_id, task_name}] sorted by task id."""
+    pat_var = re.compile(r"\$var\." + re.escape(tid) + r"\b")
+    pat_task = re.compile(r'"task"\s*:\s*"' + re.escape(tid) + r'"')
+    refs = []
+    for oid, ot in (tasks or {}).items():
+        if oid == tid or oid in ("workflow_start", "workflow_end"):
+            continue
+        blob = json.dumps(ot)
+        if pat_var.search(blob) or pat_task.search(blob):
+            refs.append({"task_id": oid, "task_name": (ot or {}).get("name")})
+    refs.sort(key=lambda x: x["task_id"])
+    return refs
+
+
+def child_workflow_names(tasks):
+    """The workflow NAMES this workflow calls via childJob (req c call-graph edges).
+    A childJob task runs on the WorkFlowEngine app and names its target in
+    variables.incoming.workflow. Returns a sorted, de-duplicated list of names."""
+    names = set()
+    for tid, t in (tasks or {}).items():
+        if tid in ("workflow_start", "workflow_end") or not isinstance(t, dict):
+            continue
+        if t.get("app") != "WorkFlowEngine":
+            continue
+        child = (((t.get("variables") or {}).get("incoming") or {}).get("workflow"))
+        if isinstance(child, str) and child.strip():
+            names.add(child.strip())
+    return sorted(names)
+
+
 _PREFIX_RE = re.compile(r"^@([0-9a-fA-F]+):\s*(.*)$")
 
 
@@ -160,27 +209,98 @@ def wf_location(wf, project_names):
     return "global", None, None, prefix_id, display
 
 
-def in_scope(project_id, prefix_id, display, raw, scope):
+def build_pool(wf_rows, project_names):
+    """Normalize every workflow doc once. Each pool entry carries its display name, id, resolved
+    location, its raw `tasks` map, and the child workflow names it calls (childJob edges)."""
+    pool = []
+    for wf in wf_rows or []:
+        if not isinstance(wf, dict) or not isinstance(wf.get("tasks"), dict):
+            continue
+        raw = wf.get("name") or ""
+        loc_type, project_id, project_name, prefix_id, display = wf_location(wf, project_names)
+        pool.append({
+            "raw": raw,
+            "display": display,
+            "prefix_id": prefix_id,
+            "workflow_id": wf.get("_id"),
+            "location_type": loc_type,
+            "project_id": project_id,
+            "project_name": project_name,
+            "tasks": wf.get("tasks") or {},
+            "child_names": child_workflow_names(wf.get("tasks") or {}),
+        })
+    return pool
+
+
+def seed_indices(pool, scope):
+    """Indices of pool entries that DIRECTLY match the requested scope (before closure)."""
     mode = scope["mode"]
     if mode == "all":
-        return True
+        return set(range(len(pool)))
+    seeds = set()
     if mode == "projects":
-        want = scope["value"]
-        return (project_id in want) or (prefix_id in want)
-    if mode == "workflows":
-        wanted = scope["value"]
-        return raw in wanted or display in wanted
-    return False
+        want = set(scope["value"])
+        for i, w in enumerate(pool):
+            if (w["project_id"] in want) or (w["prefix_id"] in want):
+                seeds.add(i)
+    elif mode == "workflows":
+        want = set(scope["value"])
+        for i, w in enumerate(pool):
+            if w["raw"] in want or w["display"] in want:
+                seeds.add(i)
+    return seeds
+
+
+def resolve_scope(pool, scope):
+    """Transitive-closure scope (req 3): start at the seed workflows and walk DOWN every childJob
+    reference, pulling referenced children into scope — nothing else on the platform is analyzed.
+    Returns (in_scope_indices, unresolved_children) where unresolved_children are child workflow
+    names referenced from in-scope workflows but NOT present in the local pool (drives the skill's
+    scoped-pull loop, and — as a last resort — a report warning)."""
+    name_index = {}
+    for i, w in enumerate(pool):
+        name_index.setdefault(w["display"], []).append(i)
+        if w["raw"] != w["display"]:
+            name_index.setdefault(w["raw"], []).append(i)
+
+    in_scope = set(seed_indices(pool, scope))
+    unresolved = set()
+    queue = list(in_scope)
+    while queue:
+        idx = queue.pop()
+        for child_name in pool[idx]["child_names"]:
+            matches = name_index.get(child_name)
+            if not matches:
+                unresolved.add(child_name)
+                continue
+            for m in matches:
+                if m not in in_scope:
+                    in_scope.add(m)
+                    queue.append(m)
+    return in_scope, sorted(unresolved)
 
 
 def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
-    workflows, n_tasks = [], 0
-    for wf in wf_rows or []:
-        raw = wf.get("name") or ""
-        loc_type, project_id, project_name, prefix_id, display = wf_location(wf, project_names)
-        if not in_scope(project_id, prefix_id, display, raw, scope):
-            continue
-        tasks = wf.get("tasks") or {}
+    pool = build_pool(wf_rows, project_names)
+    in_scope, unresolved_children = resolve_scope(pool, scope)
+
+    # call graph over the IN-SCOPE set only (rule 3 — never look outside scope): display-name -> the
+    # in-scope indices that carry that name, so we can list a child's in-scope parent callers.
+    scope_by_name = {}
+    for i in in_scope:
+        scope_by_name.setdefault(pool[i]["display"], []).append(i)
+    callers = {}  # child index -> [parent index, ...]
+    for i in in_scope:
+        for child_name in pool[i]["child_names"]:
+            for c in scope_by_name.get(child_name, []):
+                callers.setdefault(c, [])
+                if i not in callers[c]:
+                    callers[c].append(i)
+
+    workflows, n_tasks, adapter_names = [], 0, set()
+    for i in sorted(in_scope):
+        w = pool[i]
+        tasks = w["tasks"]
         hits = []
         for tid, t in tasks.items():
             if tid in ("workflow_start", "workflow_end"):
@@ -188,27 +308,69 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
             if not is_iag4_task(t, instance_ids, prefixes):
                 continue
             iag4_type, rec = classify(t)
+            iface = task_interface(t)
+            if iface != "AG Manager":
+                adapter_names.add(iface)
             hits.append({
                 "task_id": tid,
                 "task_name": t.get("name"),
                 "app": t.get("app"),
                 "summary": t.get("summary"),
-                "iag4_type": iag4_type,
-                "short_recommendation": rec,
+                "interface": iface,                       # req (a): "AG Manager" or actual adapter name
+                "iag4_type": iag4_type,               # internal: used ONLY by the end Repo-Structure section
+                "short_recommendation": rec,          # internal: used ONLY by the end checklist, never the analysis
+                "referenced_by": find_referrers(tasks, tid),  # req (b)
             })
         if hits:
             hits.sort(key=lambda x: x["task_id"])
+            # distinct interfaces (req a) in task-id order — factual AG Manager vs adapter, for the index
+            interfaces = []
+            for h in hits:
+                if h["interface"] not in interfaces:
+                    interfaces.append(h["interface"])
+            called_by = [
+                {"workflow_name": pool[p]["display"], "workflow_id": pool[p]["workflow_id"]}
+                for p in callers.get(i, [])
+            ]
+            called_by.sort(key=lambda x: (x["workflow_name"], x["workflow_id"] or ""))
             workflows.append({
-                "workflow_name": display,
-                "workflow_id": wf.get("_id"),
-                "location_type": loc_type,
-                "project_id": project_id,
-                "project_name": project_name,
+                "workflow_name": w["display"],
+                "workflow_id": w["workflow_id"],
+                "location_type": w["location_type"],
+                "project_id": w["project_id"],
+                "project_name": w["project_name"],
+                "interfaces": interfaces,                 # req (a): distinct interfaces (AG Manager / adapter names)
+                "called_by": called_by,                   # req (c)
                 "tasks": hits,
             })
             n_tasks += len(hits)
     workflows.sort(key=lambda w: (w["workflow_name"], w["project_id"] or "", w["workflow_id"] or ""))
-    return workflows, n_tasks
+    return workflows, n_tasks, unresolved_children, sorted(adapter_names)
+
+
+def group_workflows(workflows):
+    """Group the (already name-sorted) workflows by location so the report can headline each project
+    then list its workflows. Deterministic: projects first (by project name, then id), then Global
+    LAST; workflows within a group keep the flat name/id order. Each group carries a `label`
+    («project_name» (project_id) or "Global") and the same workflow dicts (no data change)."""
+    buckets = {}
+    for w in workflows:
+        if w["location_type"] == "project":
+            key = ("0", w["project_name"] or "", w["project_id"] or "")
+            label = "«%s» (%s)" % (w["project_name"], w["project_id"])
+        else:
+            key = ("1", "", "")
+            label = "Global"
+        if key not in buckets:
+            buckets[key] = {
+                "label": label,
+                "location_type": w["location_type"],
+                "project_id": w.get("project_id"),
+                "project_name": w.get("project_name"),
+                "workflows": [],
+            }
+        buckets[key]["workflows"].append(w)
+    return [buckets[k] for k in sorted(buckets.keys())]
 
 
 def _endpoint_urls(field):
@@ -326,7 +488,14 @@ def build_checklist(workflows, forms):
             key = (t["task_name"], t["app"], t["short_recommendation"])
             agg[key] = agg.get(key, 0) + 1
     wf_items = [
-        {"key": k[0], "app": k[1], "count": c, "recommendation": k[2]}
+        {
+            "key": k[0],
+            "app": k[1],
+            # display app: AGManager -> "AG Manager" (matches the task Interface label); adapter type as-is
+            "app_display": "AG Manager" if k[1] == IAG4_APP else k[1],
+            "count": c,
+            "recommendation": k[2],
+        }
         for k, c in agg.items()
     ]
     wf_items.sort(key=lambda x: (x["recommendation"], str(x["key"]), str(x["app"])))
@@ -338,59 +507,121 @@ def build_checklist(workflows, forms):
     return {"workflows": wf_items, "forms": form_items}
 
 
+def extract_workflows(obj):
+    """Pull workflow docs out of an arbitrary local JSON value so the skill can run against files on
+    disk with no API (local-files-only mode). Handles: a bare workflow doc (has a `tasks` map), a
+    project export (`components[]` where type=="workflow" -> `document`), and list wrappers
+    (`items`/`data`/`results`/`workflows` or a bare array)."""
+    out = []
+    if isinstance(obj, dict):
+        if isinstance(obj.get("tasks"), dict):
+            out.append(obj)
+        for c in obj.get("components") or []:
+            if isinstance(c, dict) and c.get("type") == "workflow" and isinstance(c.get("document"), dict):
+                out.append(c["document"])
+        for key in ("items", "data", "results", "workflows"):
+            v = obj.get(key)
+            if isinstance(v, list):
+                for it in v:
+                    out.extend(extract_workflows(it))
+    elif isinstance(obj, list):
+        for it in obj:
+            out.extend(extract_workflows(it))
+    return out
+
+
+def load_local_workflows(dirs):
+    """Scan every *.json in the given dirs for workflow docs. Deduped by _id (docs without an _id
+    are all kept). Returns a list of workflow docs."""
+    seen_ids, rows = set(), []
+    for d in dirs:
+        if not d or not os.path.isdir(d):
+            continue
+        for fn in sorted(os.listdir(d)):
+            if not fn.endswith(".json"):
+                continue
+            try:
+                obj = load_json(os.path.join(d, fn))
+            except (ValueError, OSError):
+                continue
+            for wf in extract_workflows(obj):
+                wid = wf.get("_id")
+                if wid and wid in seen_ids:
+                    continue
+                if wid:
+                    seen_ids.add(wid)
+                rows.append(wf)
+    return rows
+
+
 def parse_args(argv):
-    p = argparse.ArgumentParser(description="Deterministic IAG4 usage analysis (workflows + JSON forms).")
-    p.add_argument("--tmp", required=True, help="tmp dir holding wf_all.ndjson, apps.json, adapters.json, json-forms.json")
+    p = argparse.ArgumentParser(description="Deterministic Gateway4 usage analysis (workflows + JSON forms).")
+    p.add_argument("--tmp", required=True, help="tmp/output dir; also holds apps.json, adapters.json, json-forms.json and (live mode) wf_all.ndjson")
     p.add_argument("--out", help="output path (default <tmp>/analysis.json)")
+    p.add_argument("--local", action="store_true",
+                   help="local-files-only mode: no API was used; missing/unresolvable data becomes a warning, not a hard error")
+    p.add_argument("--local-dir",
+                   help="comma-separated dirs of *.json workflow/project-export files to scan (local mode); defaults to --tmp")
     g = p.add_mutually_exclusive_group(required=True)
-    g.add_argument("--all", action="store_true", help="scan every workflow")
-    g.add_argument("--projects", help="comma-separated project ids (workflows named @<id>: ...)")
-    g.add_argument("--workflows", help="semicolon-separated workflow names (full or display)")
+    g.add_argument("--all", action="store_true", help="scan every workflow (not recommended — bulk)")
+    g.add_argument("--projects", help="comma-separated project ids (scope seed; closure follows childJob refs)")
+    g.add_argument("--workflows", help="semicolon-separated workflow names (scope seed; closure follows childJob refs)")
     return p.parse_args(argv)
 
 
 def main(argv):
     args = parse_args(argv)
     tmp = args.tmp
+    warnings = []
+
+    # Build the workflow pool. Live mode reads wf_all.ndjson (the scoped/paginated pull). Local mode
+    # (and, additively, any run) reads workflow docs straight from local *.json files (bare workflow
+    # docs, project exports, or list wrappers) so the skill can analyze a working directory with NO
+    # API access at all.
     wf_path = os.path.join(tmp, "wf_all.ndjson")
-    if not os.path.exists(wf_path):
-        sys.stderr.write("error: %s not found — run the skill's pull step first\n" % wf_path)
-        return 2
+    wf_rows = load_ndjson(wf_path) if os.path.exists(wf_path) else []
+    local_dirs = [s.strip() for s in (args.local_dir or "").split(",") if s.strip()] or ([tmp] if args.local else [])
+    if local_dirs:
+        wf_rows = wf_rows + load_local_workflows(local_dirs)
 
-    # An EMPTY wf_all.ndjson is NOT "no IAG4 usage" — it means the workflow pull returned nothing
-    # (almost always a silent auth failure: the OAuth token was sent as a ?token= query param
-    # instead of an 'Authorization: Bearer <token>' header, so every page 401'd and `.items[]`
-    # matched nothing). Fail loudly here rather than emitting a misleading all-zeros report.
-    wf_rows = load_ndjson(wf_path)
-    if not wf_rows:
-        sys.stderr.write(
-            "error: %s is empty — the workflow pull returned 0 workflows. Do NOT trust an all-zeros "
-            "report; the pull failed. For OAuth (AUTH_METHOD=oauth) the token MUST be sent as an "
-            "'Authorization: Bearer <token>' HEADER, never a ?token= query param. Re-run the Step 1 "
-            "pull, confirm the ndjson line count matches the workflows 'total', then re-run this script.\n"
-            % wf_path
-        )
-        return 2
+    has_tasks = any(isinstance(w, dict) and isinstance(w.get("tasks"), dict) for w in wf_rows)
 
-    # A NON-EMPTY ndjson that holds no workflow documents is ALSO a failed pull, not "no IAG4 usage".
-    # The usual cause is a mid-pull auth failure (token expiry, or an OAuth token sent as ?token=
-    # instead of the Bearer header): the paginated GETs return error bodies like
-    # {"message":"Unauthorized"} that parse as JSON and land in the ndjson, so the empty-check above
-    # passes but every row lacks a `tasks` map. Every REAL workflow carries a `tasks` object (at
-    # minimum workflow_start/workflow_end), so if NOT ONE row has one, the file is non-workflow data.
-    # Fail loudly here — otherwise the scan finds nothing and emits a misleading "0 workflows / 0
-    # tasks" report that exits 0 and looks successful. (A platform with genuinely zero IAG4 usage
-    # still has real workflows WITH tasks, so this guard never fires on a legitimate zero result.)
-    if not any(isinstance(w, dict) and isinstance(w.get("tasks"), dict) for w in wf_rows):
-        sys.stderr.write(
-            "error: %s has %d rows but none are workflow documents (no `tasks` object on any row). "
-            "The workflow pull FAILED — almost always a mid-pull auth failure that wrote error bodies "
-            "(e.g. {\"message\":\"Unauthorized\"}) into the ndjson instead of workflows. Do NOT trust a "
-            "0-workflow report. For OAuth the token MUST be an 'Authorization: Bearer <token>' HEADER "
-            "(never a ?token= query param); confirm the ndjson line count matches the workflows "
-            "'total', then re-run this script.\n" % (wf_path, len(wf_rows))
-        )
-        return 2
+    if args.local:
+        # LOCAL mode — never hard-fail on missing/empty data (req 4: analyze what's on disk, warn as a
+        # last resort). If there is nothing to analyze, emit an empty report WITH a warning, exit 0.
+        if not has_tasks:
+            warnings.append(
+                "local mode: no workflow documents found on disk (looked in: %s) — nothing to analyze. "
+                "Point --local-dir at a directory of workflow/project-export JSON files." % ", ".join(local_dirs)
+            )
+    else:
+        # LIVE mode — an empty or non-workflow ndjson is a FAILED PULL, not "no Gateway4 usage"
+        # (almost always a silent auth failure: an OAuth token sent as a ?token= query param instead
+        # of the 'Authorization: Bearer <token>' header, so every page 401'd). Fail loudly rather
+        # than emitting a misleading all-zeros report. (A platform with genuinely zero Gateway4 usage
+        # still has real workflows WITH a `tasks` object, so this guard never fires on a legit zero.)
+        if not os.path.exists(wf_path):
+            sys.stderr.write("error: %s not found — run the skill's pull step first (or pass --local)\n" % wf_path)
+            return 2
+        if not wf_rows:
+            sys.stderr.write(
+                "error: %s is empty — the workflow pull returned 0 workflows. Do NOT trust an all-zeros "
+                "report; the pull failed. For OAuth (AUTH_METHOD=oauth) the token MUST be sent as an "
+                "'Authorization: Bearer <token>' HEADER, never a ?token= query param. Re-run the Step 1 "
+                "pull, confirm the ndjson line count matches the workflows 'total', then re-run this script.\n"
+                % wf_path
+            )
+            return 2
+        if not has_tasks:
+            sys.stderr.write(
+                "error: %s has %d rows but none are workflow documents (no `tasks` object on any row). "
+                "The workflow pull FAILED — almost always a mid-pull auth failure that wrote error bodies "
+                "(e.g. {\"message\":\"Unauthorized\"}) into the ndjson instead of workflows. Do NOT trust a "
+                "0-workflow report. For OAuth the token MUST be an 'Authorization: Bearer <token>' HEADER "
+                "(never a ?token= query param); confirm the ndjson line count matches the workflows "
+                "'total', then re-run this script.\n" % (wf_path, len(wf_rows))
+            )
+            return 2
 
     if args.all:
         scope = {"mode": "all", "value": None}
@@ -401,19 +632,32 @@ def main(argv):
 
     adapter_type, instance_ids, prefixes = resolve_identifiers(os.path.join(tmp, "adapters.json"))
     project_names = load_project_names(os.path.join(tmp, "projects.json"))
-    workflows, n_tasks = scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names)
+    workflows, n_tasks, unresolved_children, adapter_names = scan_workflows(
+        wf_rows, instance_ids, prefixes, scope, project_names)
     forms = scan_forms(os.path.join(tmp, "json-forms.json"), prefixes)
     devices = scan_devices(os.path.join(tmp, "devices.json"), instance_ids)
     checklist = build_checklist(workflows, forms)
+
+    # Referenced child workflows we could NOT find in the pool. In live mode the skill's closure loop
+    # should pull them and re-run; anything still unresolved (or all of them in local mode) becomes a
+    # last-resort report warning — the skill must NOT invent what those workflows contain.
+    if unresolved_children:
+        warnings.append(
+            "referenced child workflow(s) not available for analysis: %s — could not follow these "
+            "childJob references. Pull them into scope (live) or add their JSON to --local-dir, then "
+            "re-run. Do NOT assume their contents." % ", ".join(unresolved_children)
+        )
 
     result = {
         "identifiers": {
             "adapter_type": adapter_type,
             "adapter_instances": instance_ids,
             "adapter_route_prefixes": prefixes,
+            "adapter_display_names": adapter_names,
             "app": IAG4_APP,
         },
         "scope": scope,
+        "mode": "local" if args.local else "live",
         "counts": {
             "n_workflows": len(workflows),
             "n_iag4_tasks": n_tasks,
@@ -421,9 +665,12 @@ def main(argv):
             "n_iag4_devices": devices["n_iag4"],
         },
         "workflows": workflows,
+        "workflow_groups": group_workflows(workflows),
         "forms": forms,
         "devices": devices,
         "checklist": checklist,
+        "unresolved_children": unresolved_children,
+        "warnings": warnings,
     }
 
     out = args.out or os.path.join(tmp, "analysis.json")
@@ -432,8 +679,10 @@ def main(argv):
         fh.write("\n")
 
     sys.stderr.write(
-        "analyzed scope=%s -> %d workflows, %d IAG4 tasks, %d IAG4 form fields, %d IAG4-origin devices -> %s\n"
-        % (scope["mode"], len(workflows), n_tasks, len(forms), devices["n_iag4"], out)
+        "analyzed mode=%s scope=%s -> %d workflows, %d Gateway4 tasks, %d Gateway4 form fields, "
+        "%d Gateway4-origin devices, %d unresolved children -> %s\n"
+        % (result["mode"], scope["mode"], len(workflows), n_tasks, len(forms),
+           devices["n_iag4"], len(unresolved_children), out)
     )
     return 0
 

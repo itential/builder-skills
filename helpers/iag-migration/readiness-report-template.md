@@ -1,41 +1,66 @@
 <!--
-IAG4 → IAG5 Readiness Report — FIXED TEMPLATE.
+Gateway4 → Gateway5 Readiness Report — FIXED TEMPLATE.
 The iag4-to-iag5 skill fills this in. Keep section order and headings identical every run so
 the same inputs always produce a byte-identical report (aside from the header metadata line).
 Canonical section order (also the Table of Contents at the top): Summary, Workflows, JSON Forms,
 Scripts/Playbooks & Roles, Inventory, Recommended Repository Structure, Manual Action Checklist.
-The checklist is LAST (after Recommended Repository Structure). The TOC links to each section.
+The checklist is LAST. The TOC links to each section.
 Placeholders are wrapped in {{ }}. Every section is ALWAYS rendered — if a section has no
-findings, emit its "No IAG4 references found." line instead of dropping the section.
-Sort rules: workflows by name (asc), then project id, then workflow id; tasks within a workflow by task id (asc),
-forms by name (asc), IAG4 assets by filename (asc), devices by name (asc), checklist by section
-then name. No per-row timestamps. The script (analyze_iag4.py) already applies every sort — render
-straight from analysis.json.
-Keep it terse — this is a working checklist, not a narrative. No read-only banners, no "two
-rules" preamble, no per-workflow tables. Those belong in the skill, not the report.
-Short recommendation strings are FIXED (verbatim) for determinism — they are the module-level
-constants in analyze_iag4.py; keep both in sync:
-  - ansible-playbook task:  register playbook as an IAG5 ansible-playbook service; call via GatewayManager.runService
-  - python-script task:     re-implement as an IAG5 python-script service; call via GatewayManager.runService
+findings, emit its "No Gateway4 references found." line instead of dropping the section.
+
+DESIGN: the ANALYSIS sections (Workflows, JSON Forms, Inventory) are PURE FACTS — what is on the
+platform, nothing inferred, nothing recommended. No per-task "what to do", no remediation codes, no
+legend. The only forward-looking / suggested content lives in the two clearly-labelled sections at
+the END — Recommended Repository Structure and Manual Action Checklist. Never move recommendation
+text into the analysis tables.
+
+WORDING RULE (hard): the rendered report must NOT contain "iag", "IAG4", or "IAG5". Use
+"Itential Gateway4"/"Gateway4" and "Itential Gateway5"/"Gateway5". Keep literal API/app names
+(GatewayManager.runService, AG Manager) and the ACTUAL adapter names verbatim so the reader can
+identify them on the platform. (Scripts/variable names may still use IAG internally — never rendered.)
+
+FIXED recommendation strings — used ONLY in the end checklist / repo section, NEVER the analysis.
+They are the VERBATIM REC_* constants in analyze_iag4.py; keep both in sync (determinism contract):
   - self-management task:   move to the Inventory Manager application; drop this task
-  - json form field:        rebind to the IAG5/replacement endpoint — returns no data once IAG4 is removed.
-  - iag4-origin device:     device sourced from an IAG4 gateway adapter; re-home it in Inventory Manager before removing IAG4
+  - python-script task:     re-implement as a Gateway5 python-script service; call via GatewayManager.runService
+  - ansible-playbook task:  register playbook as a Gateway5 ansible-playbook service; call via GatewayManager.runService
+  - json form field:        rebind to the Gateway5/replacement endpoint — returns no data once Gateway4 is removed.
+  - gateway4-origin device:  device sourced from a Gateway4 adapter; re-home it in Inventory Manager before removing Gateway4
   - python asset (argv):    convert positional args to argparse flags; place in a git repo
   - python asset (argparse):already uses named args; place in a git repo
   - shell asset:            wrap in a Python script (python-script service) or register as an executable service; place in a git repo
   - role asset:             wrap in a playbook or Python script; place in a git repo
   - playbook asset:         place in a git repo; no code change
+
+Sort rules (analyze_iag4.py already applies them — render straight through): workflows by name (asc),
+then project id, then workflow id; tasks within a workflow by task id (asc); checklist by
+recommendation then name; forms by name; assets by filename; devices by name; unresolved_children as
+given (sorted). No per-row timestamps.
+
 Workflow location comes from the workflow's `namespace` field (authoritative project membership):
 "Global" when not project-owned, else "«{project_name}» ({project_id})". A stale @id: name prefix
-is NOT project membership — those are Global. Never emit "name unavailable".
+is NOT project membership — those are Global. Never emit "name unavailable". Location is rendered the
+SAME way everywhere (index Scope/Connector column AND detail heading) — the project id is kept.
 -->
 
-# IAG4 → IAG5 Migration Readiness
+# Itential Gateway4 → Itential Gateway5 Migration Readiness
 
-**Generated:** {{YYYY-MM-DD}} · **Working dir:** {{working_dir}}
-**IAP source:** {{iap_source}} · **IAG4 assets:** {{iag4_source}}
-**IAG4 matched:** adapter `{{adapter_type}}` (instances: {{adapter_instances}}), app `{{agmanager_app}}`
-**Scope:** {{scope_description}}
+| | |
+|---|---|
+| **Generated** | {{YYYY-MM-DD}} |
+| **Working directory** | `{{working_dir}}` |
+| **Mode** | {{mode}} |
+| **Platform source** | {{iap_source}} |
+| **Gateway4 assets** | {{gateway4_assets_source}} |
+| **Gateway4 matched** | Adapter `{{adapter_type}}` (instances: {{adapter_instances}}) · App `AG Manager` |
+| **Scope** | {{scope_description}} |
+
+<!-- DATA-GAP callout — render ONLY if analysis.json.unresolved_children is non-empty. One short line
+     pointing to the full list at the BOTTOM (do NOT dump the whole list here — that was the old,
+     unreadable behavior). If analysis.json.warnings has entries NOT about unresolved children (e.g.
+     local-mode "nothing found"), render those as extra "> **Warning:** …" lines. Omit entirely when
+     there is nothing to flag. -->
+> **⚠ Data gap — {{n_unresolved}} referenced child workflow(s) could not be analyzed.** Their contents were not followed and must not be assumed. The full list is in [Manual Action Checklist → General](#general). Pull them into scope (live) or add their JSON to `--local-dir`, then re-run this report.
 
 ## Contents
 
@@ -51,59 +76,104 @@ is NOT project membership — those are Global. Never emit "name unavailable".
 
 | Metric | Count |
 |---|---|
-| Workflows referencing IAG4 | {{n_workflows}} |
-| IAG4 tasks | {{n_iag4_tasks}} |
-| JSON form fields bound to IAG4 | {{n_forms}} |
-| Config Manager devices sourced from IAG4 | {{n_iag4_devices}} |
-| IAG4 scripts/playbooks/roles (local) | {{n_assets}} |
-| IAG4 inventory | {{inventory_status}} |
+| Workflows referencing Gateway4 | {{n_workflows}} |
+| Gateway4 tasks | {{n_gw4_tasks}} |
+| JSON form fields bound to Gateway4 | {{n_forms}} |
+| Config Manager devices sourced from Gateway4 | {{n_gw4_devices}} |
+| Gateway4 scripts/playbooks/roles (local) | {{n_assets}} |
+| Referenced workflows not analyzed (unresolved) | {{n_unresolved}} |
+| Gateway4 inventory | {{inventory_status}} |
 
 ## Workflows
 
-<!-- One TABLE, ONE ROW PER WORKFLOW (not per task). All of a workflow's IAG4 tasks go in the last
-     cell, one per line, joined by literal <br>. This keeps each workflow on a single row so a
-     reader can instantly see which workflows have >1 IAG4 task, even when several workflows share
-     the same NAME (the same use case cloned across places) — `workflow_id` is what distinguishes
-     them; they are distinct workflows, not a pull artifact. Location is the project NAME when the
-     workflow's `namespace` marks it as project-owned (project id in parens for disambiguation);
-     when `location_type` is "global" (no live project — includes workflows whose name carries a
-     stale @id: prefix for a deleted project) Location is exactly "Global". Never emit "name
-     unavailable". Rows sorted by workflow name, then project id, then workflow id; tasks within the
-     cell by task id (the script already applies this — render straight through). -->
-| Workflow | Workflow ID | Location | IAG4 Tasks & Recommendations |
+<!-- PURE-FACTS analysis section — NO recommendations, NO codes, NO "what to do". Just what is on the
+     platform. GROUPED BY LOCATION: iterate analysis.json.workflow_groups (already ordered — projects
+     first by name, then a final "Global" group; workflows within a group already name-sorted). Do
+     NOT recompute or re-sort.
+
+     For EACH group:
+       ### {{group.label}}
+         group.label = "«{project_name}» ({project_id})" for a project, or "Global" for the
+         not-in-a-project group. The project/Global identity lives HERE, so it is NOT repeated in the
+         per-workflow rows below (no "Scope / Connector" column, no location in the detail heading).
+
+       an INDEX TABLE for that group's workflows (project context is the headline, so it's dropped):
+         | Workflow | Tasks | Interface(s) | ID |
+         | `{{workflow_name}}` | {{n_tasks}} | {{interfaces joined ", "}} | `{{workflow_id}}` |
+         - Interface(s) = workflow.interfaces (distinct, task order) joined ", " — FACT from the data:
+           "AG Manager" (AGManager application) and/or the ACTUAL adapter name(s); what the reader
+           needs for Gateway5 cluster mapping. No recommendation implied.
+         - ALWAYS print `workflow_id` (disambiguates the same use case cloned across places — identical
+           names, distinct ids; real distinct workflows, not a pull artifact).
+
+       then ONE `####` DETAIL SECTION per workflow in the group:
+         #### `{{workflow_name}}` · `{{workflow_id}}`      (no location — the group headline carries it)
+         a 3-col table, ONE ROW PER TASK (facts only):
+           | Task | Name | Interface |
+           | `{{task_id}}` | {{task_name}} | {{interface}} |
+         `interface` (req a) = exactly "AG Manager" or the ACTUAL adapter name (verbatim).
+
+         References — collect the relationship lines for this workflow, in this order:
+            (1) if called_by (req c) non-empty: "Called by `{{name}}` (`{{id}}`), `{{name}}` (`{{id}}`)"
+                (IN-SCOPE parents only — the scan never looks outside the requested scope)
+            (2) for each task whose referenced_by (req b) is non-empty:
+                "`{{task_id}}` output used by `{{ref_id}}`, `{{ref_id}}`"
+           Zero lines → render nothing. Exactly ONE line → inline "**References:** <line>". MORE than
+           one → a "**References:**" header then a bullet per line. -->
+{{n_workflows}} workflows reference Gateway4 tasks ({{n_gw4_tasks}} tasks total), grouped by project below (Global workflows last). Each project lists its workflows, then per-workflow task detail and cross-references.
+
+{{#each group}}
+### {{group.label}}
+
+| Workflow | Tasks | Interface(s) | ID |
 |---|---|---|---|
-{{#each workflow}}| {{workflow_name}} | `{{workflow_id}}` | {{location}} | {{#join task with <br>}}`{{task_id}}` **{{task_name}}** — {{short_recommendation}}{{/join}} |
+{{#each group.workflow}}| `{{workflow_name}}` | {{n_tasks}} | {{interfaces}} | `{{workflow_id}}` |
 {{/each}}
-<!-- location cell: "Global", or "«{project_name}» ({project_id})" when location_type == "project".
-     tasks cell: for each task `{{task_id}}` **{{task_name}}** — {{short_recommendation}}, joined by <br>. -->
-<!-- if none: --> {{none_workflows}}  <!-- "No IAG4 references found." -->
+
+{{#each group.workflow}}
+#### `{{workflow_name}}` · `{{workflow_id}}`
+
+| Task | Name | Interface |
+|---|---|---|
+{{#each task}}| `{{task_id}}` | {{task_name}} | {{interface}} |
+{{/each}}
+{{references_block}}
+{{/each}}
+{{/each}}
+<!-- if none (workflow_groups empty): --> {{none_workflows}}  <!-- "No Gateway4 references found." -->
 
 ## JSON Forms
 
-<!-- Any form field whose endpoint/body/validation points at the automation_gateway adapter or the
-     agmanager app — REST-bound dropdowns AND non-dropdown fields alike. -->
-{{#each form}}- **{{form_name}}** — {{field_key}} (`{{bound_endpoint}}`): rebind to the IAG5/replacement endpoint — returns no data once IAG4 is removed.
+<!-- Any form field whose BINDING ENDPOINT points at the automation_gateway adapter or the
+     agmanager app — REST-bound dropdowns AND non-dropdown fields alike. Matched on endpoint URL
+     only, never the request body (a /configuration_manager/... field filtering by adapterType is
+     Configuration Manager, NOT Gateway4). Only forms belonging to IN-SCOPE projects are scanned. -->
+{{#each form}}- **{{form_name}}** — {{field_key}} (`{{bound_endpoint}}`): rebind to the Gateway5/replacement endpoint — returns no data once Gateway4 is removed.
 {{/each}}
-<!-- if none: --> {{none_forms}}  <!-- "No IAG4-bound form fields." -->
+<!-- if none: --> {{none_forms}}  <!-- "No Gateway4-bound form fields." -->
 
 ## Scripts, Playbooks & Roles
 
 {{#each asset}}- `{{filename}}` ({{asset_type}}) — {{short_recommendation}}
 {{/each}}
-<!-- if none: --> {{none_assets}}  <!-- "No IAG4 references found." -->
+<!-- if none: --> {{none_assets}}  <!-- "No Gateway4 references found." -->
 
 ## Inventory
 
+<!-- Two parts:
+     1. Config Manager devices — from analysis.json.devices:
+        - present:true, n_iag4>0 → a lead line "**{n_iag4} of {n_devices}** Config Manager devices are
+          sourced from a Gateway4 adapter (origin `{origins}`) and need to be re-homed in Inventory
+          Manager before Gateway4 is removed:" then ONE dot-separated line of `device_name` values
+          (NOT one bullet per device — that lives in the checklist). If origins vary, state per-device
+          origin inline instead.
+        - present:true, n_iag4==0 → "No Config Manager devices are sourced from a Gateway4 adapter."
+        - present:false → "Config Manager devices not pulled — cannot check device origins."
+          (scoped/local runs where the device check is out of scope → "Skipped — outside scan scope.")
+     2. Gateway4 built-in inventory (from the Gateway4 source the user gave; never Gateway5): if not
+        accessed/none provided → "No Gateway4 built-in inventory was found in the local directory
+        provided." (or the generic not-accessed line); if present → note to move it to Inventory Manager. -->
 {{inventory_finding}}
-<!-- Two parts, both one line each:
-     1. Config Manager devices: if analysis.json devices.present is true, state how many of
-        n_devices have an IAG4 gateway origin and list each flagged device as:
-          - `{{device_name}}` (origin {{origins}}) — device sourced from an IAG4 gateway adapter; re-home it in Inventory Manager before removing IAG4
-        If devices.present is false: "Config Manager devices not pulled — cannot check device origins."
-        If present but n_iag4 == 0: "No Config Manager devices are sourced from an IAG4 gateway."
-     2. Gateway built-in inventory: if IAG4 was not accessed: "IAG4 not accessed — if the gateway
-        holds a built-in inventory, move it to Inventory Manager in IAP." If present: same action.
-        If none: "No IAG4 built-in inventory found." -->
 
 ## Recommended Repository Structure
 
@@ -117,7 +187,7 @@ is NOT project membership — those are Global. Never emit "name unavailable".
      domain in B/C) — never assume real team names. Keep the three option headings and the Naming
      Conventions table headings verbatim so runs stay comparable. Do NOT add a "See /iag …" line
      here — that pointer lives in the SKILL, not the report. -->
-IAG5 runs services **only from a git repository**. Three layouts are shown below; **Option A
+Gateway5 runs services **only from a git repository**. Three layouts are shown below; **Option A
 (mono-repo) is recommended** for most environments — Options B and C are for larger teams or
 stricter ownership / separation-of-concerns requirements. Team names below are placeholders
 (`team1`, `team2`, …) — substitute your own.
@@ -145,17 +215,17 @@ stricter ownership / separation-of-concerns requirements. Team names below are p
 
 ## Manual Action Checklist
 
-<!-- Grouped by item type. Emit a `### <group>` subheading then its `- [ ]` items. Render ONLY the
-     groups that have actions; drop an empty group entirely (do not print an empty heading). Group
-     order is fixed: Workflows, JSON Forms, Scripts/Playbooks/Roles, Inventory, General.
-     - Workflows      ← checklist.workflows: `- [ ] `{{key}}` ({{app}}, {{count}} tasks) — {{recommendation}}`
-     - JSON Forms     ← checklist.forms: `- [ ] **{{form_name}}** — {{field_key}} (`{{bound_endpoint}}`): {{recommendation}}`
-     - Scripts/Playbooks/Roles ← Step 4 assets: `- [ ] `{{filename}}` — {{short_recommendation}}`
-     - Inventory      ← flagged devices (Step 5a) + gateway built-in inventory (Step 5b)
-     - General        ← cross-cutting items -->
+<!-- Grouped by item type. Emit a `### <group>` subheading then its items. Render ONLY groups that
+     have actions; drop an empty group entirely. Group order: Workflows, JSON Forms,
+     Scripts/Playbooks/Roles, Inventory, General. -->
 ### Workflows
 
-{{#each checklist.workflows}}- [ ] `{{key}}` ({{app}}, {{count}} tasks) — {{recommendation}}
+<!-- Self-contained items — each carries its full recommendation text, so no separate legend is
+     needed. checklist.workflows is already sorted by recommendation then name (so identical
+     recommendations sit together). Item: "- [ ] `{{key}}` ({{app_display}}, {{count}} task|tasks) —
+     {{recommendation}}". app_display is "AG Manager" or the adapter type (resolved in analysis.json).
+     Pluralize: "task" if count==1 else "tasks". No codes, no divergence note. -->
+{{#each checklist.workflows}}- [ ] `{{key}}` ({{app_display}}, {{count}} task(s)) — {{recommendation}}
 {{/each}}
 
 ### JSON Forms
@@ -175,10 +245,14 @@ stricter ownership / separation-of-concerns requirements. Team names below are p
 
 ### General
 
-{{#each general_action}}- [ ] {{action_text}}
-{{/each}}
-<!-- General MUST include a repo-setup item pointing at the Recommended Repository Structure
-     section ABOVE, e.g. "- [ ] Set up the IAG5 service git repository — see Recommended Repository
-     Structure above (Option A recommended)" plus a git-secret item. Do NOT emit the old
-     "TBD: git repo layout" line, and do NOT print any service counts. -->
+<!-- Cross-cutting items. MUST include a repo-setup item pointing at the Recommended Repository
+     Structure section and a git-secret item. THEN, if analysis.json.unresolved_children is non-empty,
+     render the moved data-gap list here as its own labelled block (this is where the top callout
+     points). Do NOT emit any service counts. -->
+- [ ] Set up the Gateway5 service git repository — see [Recommended Repository Structure](#recommended-repository-structure) (Option A recommended)
+- [ ] Store Gateway5 service credentials as git-backed secrets, not embedded in scripts
 
+**Unresolved child workflows — pull into scope (live) or add JSON to `--local-dir`, then re-run:**
+
+{{#each unresolved_children}}- [ ] `{{name}}`
+{{/each}}
