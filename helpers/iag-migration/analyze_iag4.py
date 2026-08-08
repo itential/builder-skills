@@ -31,9 +31,22 @@ sys.dont_write_bytecode = True
 # NOTE: these strings are rendered into the markdown report, which must NOT contain "iag"/"IAG4"/
 # "IAG5" — use "Gateway4"/"Gateway5" instead. Literal API/app names (GatewayManager.runService,
 # AG Manager) and actual adapter names stay verbatim so the reader can identify them on the platform.
-REC_ANSIBLE = "register playbook as a Gateway5 ansible-playbook service; call via GatewayManager.runService"
-REC_PYTHON = "re-implement as a Gateway5 python-script service; call via GatewayManager.runService"
-REC_SELFMGMT = "move to the Inventory Manager application; drop this task"
+# Each Gateway4 workflow task gets ONE short CODE + a recommendation. The codes are defined once in
+# the report's "Recommended Actions" legend; task tables show only the code. Codes/recs are a
+# best-effort classification from the task's name/summary/description — the legend says "review each".
+REC_WRAP = "wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service"
+REC_REVIEW = "likely no code change — review how inventory is handled (Gateway5 has no built-in inventory)"
+REC_ARGS = "change positional args to named args (--flag / argparse); run as a Gateway5 python-script service"
+REC_INV = "move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation"
+# code + recommendation by classification type (1:1); CODE_ORDER is the legend / grouping order.
+CODE_BY_TYPE = {
+    "collection-or-role": "WRAP",
+    "ansible-playbook": "REVIEW",
+    "python-script": "ARGS",
+    "self-management": "INV",
+}
+REC_BY_CODE = {"WRAP": REC_WRAP, "REVIEW": REC_REVIEW, "ARGS": REC_ARGS, "INV": REC_INV}
+CODE_ORDER = ["WRAP", "REVIEW", "ARGS", "INV"]
 REC_FORM = "rebind to the Gateway5/replacement endpoint — returns no data once Gateway4 is removed."
 REC_DEVICE = "device sourced from a Gateway4 adapter; re-home it in Inventory Manager before removing Gateway4"
 
@@ -51,7 +64,12 @@ _SELFMGMT_RE = re.compile(
     r"\b(device|group)[_\s-]*(add|create|remove|delete|update|management)\b",
     re.IGNORECASE,
 )
-_PLAYBOOK_RE = re.compile(r"\b(playbook|role)\b", re.IGNORECASE)
+_PLAYBOOK_RE = re.compile(r"\bplaybook\b", re.IGNORECASE)
+_ROLE_RE = re.compile(r"\b(role|collection)\b", re.IGNORECASE)
+# ansible collection module name in a task's `name` field, e.g. cisco.ios_ios_command,
+# arista.eos_eos_ospf_interfaces — a letter-led token, a dot, then a module token. (A leading digit,
+# e.g. "33.j2", is NOT matched, so jinja/template names don't get misread as collection modules.)
+_FQCN_RE = re.compile(r"^[a-z][a-z0-9]*\.[a-z][a-z0-9_]*")
 # form endpoint tokens that indicate an IAG4 binding
 _FORM_IAG4_TOKENS = ("automationgateway", "automation_gateway", "automation-gateway", "agmanager")
 
@@ -123,13 +141,25 @@ def is_iag4_task(task, instance_ids, prefixes):
 
 
 def classify(task):
-    """Return (iag4_type, short_recommendation) for an IAG4 task."""
+    """Return (iag4_type, code, short_recommendation) for an IAG4 task — a best-effort classification
+    from the task's name/summary/description (the report legend says "review each"). Order matters:
+      1. device/group op on the Gateway4 adapter        -> self-management / INV
+      2. ansible playbook                                -> ansible-playbook / REVIEW
+      3. ansible collection-module task or role          -> collection-or-role / WRAP
+      4. everything else (treated as a python script)    -> python-script / ARGS
+    """
     hay = " ".join(str(task.get(k) or "") for k in ("name", "summary", "description", "canvasName"))
+    name = task.get("name") or ""
     if _SELFMGMT_RE.search(hay):
-        return "self-management", REC_SELFMGMT
-    if _PLAYBOOK_RE.search(hay):
-        return "ansible-playbook", REC_ANSIBLE
-    return "python-script", REC_PYTHON
+        t = "self-management"
+    elif _PLAYBOOK_RE.search(hay):
+        t = "ansible-playbook"
+    elif _ROLE_RE.search(hay) or _FQCN_RE.search(name):
+        t = "collection-or-role"
+    else:
+        t = "python-script"
+    code = CODE_BY_TYPE[t]
+    return t, code, REC_BY_CODE[code]
 
 
 def task_interface(task):
@@ -307,7 +337,7 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
                 continue
             if not is_iag4_task(t, instance_ids, prefixes):
                 continue
-            iag4_type, rec = classify(t)
+            iag4_type, code, rec = classify(t)
             iface = task_interface(t)
             if iface != "AG Manager":
                 adapter_names.add(iface)
@@ -317,8 +347,9 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
                 "app": t.get("app"),
                 "summary": t.get("summary"),
                 "interface": iface,                       # req (a): "AG Manager" or actual adapter name
-                "iag4_type": iag4_type,               # internal: used ONLY by the end Repo-Structure section
-                "short_recommendation": rec,          # internal: used ONLY by the end checklist, never the analysis
+                "iag4_type": iag4_type,               # internal: also drives the Repo-Structure section
+                "code": code,                             # short remediation code (WRAP/REVIEW/ARGS/INV)
+                "short_recommendation": rec,              # full text — used by the legend + checklist
                 "referenced_by": find_referrers(tasks, tid),  # req (b)
             })
         if hits:
@@ -328,6 +359,8 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
             for h in hits:
                 if h["interface"] not in interfaces:
                     interfaces.append(h["interface"])
+            # distinct recommendation codes for this workflow, in CODE_ORDER (for the group index)
+            codes = [c for c in CODE_ORDER if any(h["code"] == c for h in hits)]
             called_by = [
                 {"workflow_name": pool[p]["display"], "workflow_id": pool[p]["workflow_id"]}
                 for p in callers.get(i, [])
@@ -340,6 +373,7 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
                 "project_id": w["project_id"],
                 "project_name": w["project_name"],
                 "interfaces": interfaces,                 # req (a): distinct interfaces (AG Manager / adapter names)
+                "codes": codes,                           # distinct recommendation codes (CODE_ORDER)
                 "called_by": called_by,                   # req (c)
                 "tasks": hits,
             })
@@ -485,7 +519,7 @@ def build_checklist(workflows, forms):
     agg = {}
     for w in workflows:
         for t in w["tasks"]:
-            key = (t["task_name"], t["app"], t["short_recommendation"])
+            key = (t["task_name"], t["app"], t["code"], t["short_recommendation"])
             agg[key] = agg.get(key, 0) + 1
     wf_items = [
         {
@@ -493,12 +527,14 @@ def build_checklist(workflows, forms):
             "app": k[1],
             # display app: AGManager -> "AG Manager" (matches the task Interface label); adapter type as-is
             "app_display": "AG Manager" if k[1] == IAG4_APP else k[1],
+            "code": k[2],
             "count": c,
-            "recommendation": k[2],
+            "recommendation": k[3],
         }
         for k, c in agg.items()
     ]
-    wf_items.sort(key=lambda x: (x["recommendation"], str(x["key"]), str(x["app"])))
+    # group by code (CODE_ORDER) then name, so the checklist reads in the same order as the legend
+    wf_items.sort(key=lambda x: (CODE_ORDER.index(x["code"]), str(x["key"]), str(x["app"])))
     form_items = [
         {"form_name": f["form_name"], "field_key": f["field_key"],
          "bound_endpoint": f["bound_endpoint"], "recommendation": REC_FORM}

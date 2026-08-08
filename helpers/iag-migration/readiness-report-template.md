@@ -8,22 +8,25 @@ The checklist is LAST. The TOC links to each section.
 Placeholders are wrapped in {{ }}. Every section is ALWAYS rendered — if a section has no
 findings, emit its "No Gateway4 references found." line instead of dropping the section.
 
-DESIGN: the ANALYSIS sections (Workflows, JSON Forms, Inventory) are PURE FACTS — what is on the
-platform, nothing inferred, nothing recommended. No per-task "what to do", no remediation codes, no
-legend. The only forward-looking / suggested content lives in the two clearly-labelled sections at
-the END — Recommended Repository Structure and Manual Action Checklist. Never move recommendation
-text into the analysis tables.
+DESIGN: the analysis stays factual, but each Gateway4 task carries ONE short remediation CODE
+(WRAP / REVIEW / ARGS / INV). The codes are explained ONCE in the static "Recommended Actions"
+legend section; task tables show only the code, never the full sentence. The full recommendation
+text lives in the legend and the end Manual Action Checklist. Codes are a best-effort classification
+from each task's name/summary/description — the legend says "review each". Never write the full
+recommendation sentence into the Workflows tables (just the code).
 
 WORDING RULE (hard): the rendered report must NOT contain "iag", "IAG4", or "IAG5". Use
 "Itential Gateway4"/"Gateway4" and "Itential Gateway5"/"Gateway5". Keep literal API/app names
 (GatewayManager.runService, AG Manager) and the ACTUAL adapter names verbatim so the reader can
 identify them on the platform. (Scripts/variable names may still use IAG internally — never rendered.)
 
-FIXED recommendation strings — used ONLY in the end checklist / repo section, NEVER the analysis.
-They are the VERBATIM REC_* constants in analyze_iag4.py; keep both in sync (determinism contract):
-  - self-management task:   move to the Inventory Manager application; drop this task
-  - python-script task:     re-implement as a Gateway5 python-script service; call via GatewayManager.runService
-  - ansible-playbook task:  register playbook as a Gateway5 ansible-playbook service; call via GatewayManager.runService
+FIXED remediation CODES — the "Recommended action" cell for each is the VERBATIM REC_* constant in
+analyze_iag4.py (CODE_BY_TYPE / REC_BY_CODE); keep both in sync (determinism contract):
+  - WRAP   (collection-or-role task): wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service
+  - REVIEW (ansible playbook):        likely no code change — review how inventory is handled (Gateway5 has no built-in inventory)
+  - ARGS   (python script):           change positional args to named args (--flag / argparse); run as a Gateway5 python-script service
+  - INV    (device/group op on the Gateway4 adapter): move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation
+Other fixed strings (keep in sync too):
   - json form field:        rebind to the Gateway5/replacement endpoint — returns no data once Gateway4 is removed.
   - gateway4-origin device:  device sourced from a Gateway4 adapter; re-home it in Inventory Manager before removing Gateway4
   - python asset (argv):    convert positional args to argparse flags; place in a git repo
@@ -33,8 +36,9 @@ They are the VERBATIM REC_* constants in analyze_iag4.py; keep both in sync (det
   - playbook asset:         place in a git repo; no code change
 
 Sort rules (analyze_iag4.py already applies them — render straight through): workflows by name (asc),
-then project id, then workflow id; tasks within a workflow by task id (asc); checklist by
-recommendation then name; forms by name; assets by filename; devices by name; unresolved_children as
+then project id, then workflow id; tasks within a workflow by task id (asc); checklist by code
+(WRAP, REVIEW, ARGS, INV) then name; forms by name; assets by filename; devices by name;
+unresolved_children as
 given (sorted). No per-row timestamps.
 
 Workflow location comes from the workflow's `namespace` field (authoritative project membership):
@@ -65,12 +69,13 @@ SAME way everywhere (index Scope/Connector column AND detail heading) — the pr
 ## Contents
 
 1. [Summary](#summary)
-2. [Workflows](#workflows)
-3. [JSON Forms](#json-forms)
-4. [Scripts, Playbooks & Roles](#scripts-playbooks--roles)
-5. [Inventory](#inventory)
-6. [Recommended Repository Structure](#recommended-repository-structure)
-7. [Manual Action Checklist](#manual-action-checklist)
+2. [Recommended Actions](#recommended-actions)
+3. [Workflows](#workflows)
+4. [JSON Forms](#json-forms)
+5. [Scripts, Playbooks & Roles](#scripts-playbooks--roles)
+6. [Inventory](#inventory)
+7. [Recommended Repository Structure](#recommended-repository-structure)
+8. [Manual Action Checklist](#manual-action-checklist)
 
 ## Summary
 
@@ -84,10 +89,25 @@ SAME way everywhere (index Scope/Connector column AND detail heading) — the pr
 | Referenced workflows not analyzed (unresolved) | {{n_unresolved}} |
 | Gateway4 inventory | {{inventory_status}} |
 
+## Recommended Actions
+
+<!-- STATIC legend, always rendered verbatim. The "Recommended action" cells are the VERBATIM
+     REC_WRAP / REC_REVIEW / REC_ARGS / REC_INV constants from analyze_iag4.py — do not reword
+     (determinism sync). Each Gateway4 task in Workflows is tagged with one of these codes. -->
+Each Gateway4 task in the Workflows section is tagged with one short code. Codes are a best-effort
+classification from the task's name and description — **review each** before acting.
+
+| Code | Applies to (Gateway4 task type) | Recommended action |
+|---|---|---|
+| **WRAP** | Ansible collection-module task or role | wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service |
+| **REVIEW** | Ansible playbook | likely no code change — review how inventory is handled (Gateway5 has no built-in inventory) |
+| **ARGS** | Python script | change positional args to named args (--flag / argparse); run as a Gateway5 python-script service |
+| **INV** | Device/group operation on the Gateway4 adapter | move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation |
+
 ## Workflows
 
-<!-- PURE-FACTS analysis section — NO recommendations, NO codes, NO "what to do". Just what is on the
-     platform. GROUPED BY LOCATION: iterate analysis.json.workflow_groups (already ordered — projects
+<!-- Facts + a short remediation CODE per task (Rec column; full text is in the Recommended Actions
+     legend). GROUPED BY LOCATION: iterate analysis.json.workflow_groups (already ordered — projects
      first by name, then a final "Global" group; workflows within a group already name-sorted). Do
      NOT recompute or re-sort.
 
@@ -98,20 +118,23 @@ SAME way everywhere (index Scope/Connector column AND detail heading) — the pr
          per-workflow rows below (no "Scope / Connector" column, no location in the detail heading).
 
        an INDEX TABLE for that group's workflows (project context is the headline, so it's dropped):
-         | Workflow | Tasks | Interface(s) | ID |
-         | `{{workflow_name}}` | {{n_tasks}} | {{interfaces joined ", "}} | `{{workflow_id}}` |
+         | Workflow | Tasks | Interface(s) | Rec | ID |
+         | `{{workflow_name}}` | {{n_tasks}} | {{interfaces joined ", "}} | {{codes joined ", "}} | `{{workflow_id}}` |
          - Interface(s) = workflow.interfaces (distinct, task order) joined ", " — FACT from the data:
            "AG Manager" (AGManager application) and/or the ACTUAL adapter name(s); what the reader
-           needs for Gateway5 cluster mapping. No recommendation implied.
+           needs for Gateway5 cluster mapping.
+         - Rec = workflow.codes (distinct codes, CODE_ORDER) joined ", " (e.g. "WRAP, ARGS"). Codes
+           are explained in the Recommended Actions legend above.
          - ALWAYS print `workflow_id` (disambiguates the same use case cloned across places — identical
            names, distinct ids; real distinct workflows, not a pull artifact).
 
        then ONE `####` DETAIL SECTION per workflow in the group:
          #### `{{workflow_name}}` · `{{workflow_id}}`      (no location — the group headline carries it)
-         a 3-col table, ONE ROW PER TASK (facts only):
-           | Task | Name | Interface |
-           | `{{task_id}}` | {{task_name}} | {{interface}} |
-         `interface` (req a) = exactly "AG Manager" or the ACTUAL adapter name (verbatim).
+         a 4-col table, ONE ROW PER TASK:
+           | Task | Name | Interface | Rec |
+           | `{{task_id}}` | {{task_name}} | {{interface}} | {{code}} |
+         `interface` (req a) = exactly "AG Manager" or the ACTUAL adapter name (verbatim). `code` =
+         the task's short remediation code (WRAP / REVIEW / ARGS / INV) — full text in the legend.
 
          References — collect the relationship lines for this workflow, in this order:
             (1) if called_by (req c) non-empty: "Called by `{{name}}` (`{{id}}`), `{{name}}` (`{{id}}`)"
@@ -120,22 +143,22 @@ SAME way everywhere (index Scope/Connector column AND detail heading) — the pr
                 "`{{task_id}}` output used by `{{ref_id}}`, `{{ref_id}}`"
            Zero lines → render nothing. Exactly ONE line → inline "**References:** <line>". MORE than
            one → a "**References:**" header then a bullet per line. -->
-{{n_workflows}} workflows reference Gateway4 tasks ({{n_gw4_tasks}} tasks total), grouped by project below (Global workflows last). Each project lists its workflows, then per-workflow task detail and cross-references.
+{{n_workflows}} workflows reference Gateway4 tasks ({{n_gw4_tasks}} tasks total), grouped by project below (Global workflows last). Each project lists its workflows, then per-workflow task detail and cross-references. The **Rec** column codes are explained in [Recommended Actions](#recommended-actions).
 
 {{#each group}}
 ### {{group.label}}
 
-| Workflow | Tasks | Interface(s) | ID |
-|---|---|---|---|
-{{#each group.workflow}}| `{{workflow_name}}` | {{n_tasks}} | {{interfaces}} | `{{workflow_id}}` |
+| Workflow | Tasks | Interface(s) | Rec | ID |
+|---|---|---|---|---|
+{{#each group.workflow}}| `{{workflow_name}}` | {{n_tasks}} | {{interfaces}} | {{codes}} | `{{workflow_id}}` |
 {{/each}}
 
 {{#each group.workflow}}
 #### `{{workflow_name}}` · `{{workflow_id}}`
 
-| Task | Name | Interface |
-|---|---|---|
-{{#each task}}| `{{task_id}}` | {{task_name}} | {{interface}} |
+| Task | Name | Interface | Rec |
+|---|---|---|---|
+{{#each task}}| `{{task_id}}` | {{task_name}} | {{interface}} | {{code}} |
 {{/each}}
 {{references_block}}
 {{/each}}

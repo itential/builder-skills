@@ -458,17 +458,20 @@ Fill `${CLAUDE_PLUGIN_ROOT}/../../../helpers/iag-migration/readiness-report-temp
 `<working-dir>/iag4-to-iag5-readiness.md` (the report is the **only** file in the working-dir
 root — all pulled JSON and scratch stay in `tmp/`).
 
-**Analysis vs. recommendations — the split (important).** The **analysis** sections — Workflows,
-JSON Forms, Inventory — are **pure facts**: what is on the platform, nothing inferred, nothing
-recommended. NO per-task "what to do", NO remediation codes, NO legend. The only forward-looking /
-suggested content lives in the **two clearly-labelled sections at the end**: Recommended Repository
-Structure and Manual Action Checklist. Never put recommendation text into the analysis tables.
+**Recommendations via short CODES + one static legend.** Each Gateway4 task carries a short
+remediation code — **WRAP / REVIEW / ARGS / INV** — computed by the analyzer (`code` per task,
+`codes` per workflow). Explain them ONCE in a static **Recommended Actions** legend section; the
+Workflows tables show only the code (never the full sentence). The full recommendation text lives in
+the legend and the end Manual Action Checklist. Codes are a best-effort classification from each
+task's name/description — the legend says "review each", so this is honest guidance, not asserted
+fact. Do NOT write the full recommendation sentence into the Workflows tables.
 
-**Section order (fixed) + Table of Contents.** Render sections in this order: **Summary, Workflows,
-JSON Forms, Scripts/Playbooks & Roles, Inventory, Recommended Repository Structure, Manual Action
-Checklist** — the checklist is **last**, after the repo section. Immediately under the header table,
-emit a `## Contents` table-of-contents with one linked entry per section (GitHub-style anchors, e.g.
-`[Scripts, Playbooks & Roles](#scripts-playbooks--roles)`) so the reader can jump around.
+**Section order (fixed) + Table of Contents.** Render sections in this order: **Summary, Recommended
+Actions, Workflows, JSON Forms, Scripts/Playbooks & Roles, Inventory, Recommended Repository
+Structure, Manual Action Checklist** — the checklist is **last**, after the repo section. Immediately
+under the header table, emit a `## Contents` table-of-contents with one linked entry per section
+(GitHub-style anchors, e.g. `[Scripts, Playbooks & Roles](#scripts-playbooks--roles)`) so the reader
+can jump around.
 
 **WORDING — the rendered report must NOT contain "iag"/"IAG4"/"IAG5" (req d).** Use "Itential
 Gateway4"/"Gateway4" and "Itential Gateway5"/"Gateway5". Keep literal API/app names
@@ -490,20 +493,24 @@ part of the file's content). If it matches, fix the wording before telling the u
   `> **Warning:** …` lines. Never invent what a warned-about workflow contains (rule 2).
 - **Summary** counts ← `counts` (`n_workflows`, `n_gw4_tasks` ← `counts.n_iag4_tasks`, `n_forms`,
   `n_gw4_devices` ← `counts.n_iag4_devices`), plus `n_unresolved` ← `unresolved_children` length.
-- **Workflows** section ← `workflow_groups[]` (already ordered) — **PURE FACTS, no
-  recommendations/codes**. **Grouped by location**: iterate `workflow_groups` (projects first by
-  name, then a final `Global` group; workflows within each already name-sorted). Do NOT re-sort.
+- **Recommended Actions** — the static legend table (WRAP / REVIEW / ARGS / INV). Render the
+  "Recommended action" cells VERBATIM from the template (they mirror the analyzer's `REC_BY_CODE`);
+  do not reword. Include the "codes are a best-effort classification — review each" line.
+- **Workflows** section ← `workflow_groups[]` (already ordered). **Grouped by location**: iterate
+  `workflow_groups` (projects first by name, then a final `Global` group; workflows within each
+  already name-sorted). Do NOT re-sort.
   - **Group headline** — `### {group.label}` where `label` is `«project_name» (project_id)` for a
     project or `Global`. The project/Global identity lives HERE, so it is **not** repeated below
     (no "Scope / Connector" column, no location in the detail heading — kills the repeated text).
-  - **Per-group index table** — one row per workflow in the group: `Workflow | Tasks | Interface(s) |
-    ID` = `` `workflow_name` | n_tasks | interfaces | `workflow_id` ``. `interfaces` ← the workflow's
-    `interfaces` array (distinct, task order) joined `, ` — factual `AG Manager` and/or actual adapter
-    name(s), for cluster mapping. **Always print `workflow_id`** — disambiguates same-named clones.
-  - **Detail section** (one per workflow in the group) — `#### \`workflow_name\` · \`workflow_id\``
-    (no location) then a **3-col** table, one row per task: `Task | Name | Interface` =
-    `` `task_id` | task_name | interface ``. `interface` (req a) is `AG Manager` or the actual adapter
-    name (verbatim). No recommendation column.
+  - **Per-group index table** — one row per workflow: `Workflow | Tasks | Interface(s) | Rec | ID` =
+    `` `workflow_name` | n_tasks | interfaces | codes | `workflow_id` ``. `interfaces` ← distinct
+    `interfaces` (task order) — factual `AG Manager` and/or adapter name(s), for cluster mapping.
+    `codes` ← the workflow's distinct `codes` (CODE_ORDER) joined `, ` (e.g. `WRAP, ARGS`) — the
+    short recommendation codes from the legend. **Always print `workflow_id`** — disambiguates clones.
+  - **Detail section** (one per workflow) — `#### \`workflow_name\` · \`workflow_id\`` (no location)
+    then a **4-col** table, one row per task: `Task | Name | Interface | Rec` = `` `task_id` |
+    task_name | interface | code ``. `interface` (req a) is `AG Manager` or the actual adapter name
+    (verbatim); `code` is the task's short remediation code (full text in the legend, NOT here).
   - **References** — collect the relationship lines in order: (1) if `called_by` (req c) non-empty,
     `` Called by `name` (`id`), … `` (in-scope parents only); (2) for each task whose `referenced_by`
     (req b) is non-empty, `` `task_id` output used by `id`, `id` ``. Zero lines → render nothing.
@@ -520,8 +527,11 @@ part of the file's content). If it matches, fix the wording before telling the u
   the recommendation** — do not make it conditional on service count, and do not print any service
   counts anywhere in this section (no "small team / < 20 services" qualifiers on the option
   headings either). In the Option A tree, emit one leaf per service foldered by domain, each
-  annotated `← was <original> (<iag4_type>)`; python-script leaves get `main.py` +
-  `requirements.txt`, ansible-playbook leaves get `playbook.yml`. Fill the Naming Conventions
+  annotated `← was <original> (<iag4_type>)`. File layout by code/type: **ARGS** (python-script) and
+  **WRAP** (collection-or-role) leaves become python services → `main.py` + `requirements.txt`;
+  **REVIEW** (ansible-playbook) leaves → `playbook.yml`. **INV** (self-management) tasks are NOT
+  services — they move to Inventory Manager, so **exclude them from the repo tree**. Fill the Naming
+  Conventions
   "Examples" column with the actual service names mapped to `{team}-{domain}-{action}`. **Use
   placeholder team names `team1`, `team2`, … (one team per domain in B/C) — never assume real team
   names.** Domains are still derived from the services. Keep the option headings verbatim: `Option
@@ -533,11 +543,10 @@ part of the file's content). If it matches, fix the wording before telling the u
 - **Manual Action Checklist** — the **last** section — **grouped by item type**, each group under its
   own `###` subheading, in fixed order: **Workflows, JSON Forms, Scripts/Playbooks & Roles, Inventory,
   General**. **Render only groups that have items — drop an empty group entirely.**
-  - **Workflows** ← `checklist.workflows` (already sorted by recommendation then name, so identical
-    recommendations cluster). Each item is **self-contained** — it carries its own recommendation
-    text, so no legend is needed: `` - [ ] `key` (app_display, N task/tasks) — recommendation ``. Use
+  - **Workflows** ← `checklist.workflows` (already sorted by code then name — WRAP, REVIEW, ARGS, INV
+    — so same-recommendation items cluster). Each item is **self-contained** — it carries its own
+    recommendation text: `` - [ ] `key` (app_display, N task/tasks) — recommendation ``. Use
     `app_display` (already `AG Manager` or the adapter type) and pluralize `task`/`tasks` on `count`.
-    No codes, no divergence note.
   - **JSON Forms** ← `checklist.forms`. **Scripts, Playbooks & Roles** ← the Step 4 assets.
   - **Inventory** ← flagged devices from `analysis.json → devices` (one `- [ ]` per device) plus the
     gateway built-in-inventory action (Step 5b); scoped/local run where devices weren't pulled →
