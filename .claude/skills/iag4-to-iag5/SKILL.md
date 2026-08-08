@@ -608,7 +608,7 @@ that `tmp/` is read-cache/scratch and safe to delete.
   Route actual builds to `/iag`.
 
 ## See also
-- `/iag` — building IAG5 services (Python/Ansible/OpenTofu), service YAML, `runService` wiring.
+- `/iag` — building IAG5 service(s) (Python/Ansible/OpenTofu), service YAML, `runService` wiring.
 - `/itential-inventory` — Inventory Manager, the IAG5 replacement for gateway inventory.
 - `/itential-json-forms` — REST-bound dropdown structure and `bindingSchema`.
 - `/explore` — auth + IAP pull mechanics reused in Step 1.
