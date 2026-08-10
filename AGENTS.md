@@ -17,6 +17,7 @@ Each skill owns a domain. **Invoke the skill using the Skill tool before working
 | `/builder-agent` | **Builder Agent** | Build all assets, test each component individually. Runs after Design. |
 | `/qa-agent` | **QA Agent** | Acceptance testing against the approved acceptance criteria + as-built record. Runs after Build — last technical stage before customer sign-off. |
 | `/iag` | — | Automation Gateway: IAG services (Python, Ansible, OpenTofu). |
+| `/iag4-to-iag5` | — | Assess IAG4→IAG5 migration readiness; identify IAG4 usage and produce a manual-action guideline. Analysis only, no migration. |
 | `/flowagent` | — | AI Agents: configure LLM providers, tools, and agent sessions. |
 | `/itential-mop` | — | Command templates with validation rules. |
 | `/itential-devices` | — | Devices, backups, diffs, device groups. |
