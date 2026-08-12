@@ -34,7 +34,7 @@ sys.dont_write_bytecode = True
 # Each Gateway4 workflow task gets ONE short CODE + a recommendation. The codes are defined once in
 # the report's "Recommended Actions" legend; task tables show only the code. Codes/recs are a
 # best-effort classification from the task's name/summary/description — the legend says "review each".
-REC_WRAP = "wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service"
+REC_WRAP = "wrap in a Python script or an Ansible playbook and run as a Gateway5 service, or replace with an Inventory Manager send_command/set_config task if that covers the same logic"
 REC_REVIEW = "likely no code change — review how inventory is handled (Gateway5 has no built-in inventory)"
 REC_ARGS = "change positional args to named args (--flag / argparse); run as a Gateway5 python-script service"
 REC_INV = "move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation"
@@ -147,6 +147,9 @@ def classify(task):
       2. ansible playbook                                -> ansible-playbook / REVIEW
       3. ansible collection-module task or role          -> collection-or-role / WRAP
       4. everything else (treated as a python script)    -> python-script / ARGS
+
+    e.g. itential_cli/itential_set_config are Ansible roles -> WRAP (wrap in a Python script or
+    Ansible playbook, or use an Inventory Manager send_command/set_config task instead).
     """
     hay = " ".join(str(task.get(k) or "") for k in ("name", "summary", "description", "canvasName"))
     name = task.get("name") or ""
@@ -385,13 +388,15 @@ def scan_workflows(wf_rows, instance_ids, prefixes, scope, project_names):
 def group_workflows(workflows):
     """Group the (already name-sorted) workflows by location so the report can headline each project
     then list its workflows. Deterministic: projects first (by project name, then id), then Global
-    LAST; workflows within a group keep the flat name/id order. Each group carries a `label`
-    («project_name» (project_id) or "Global") and the same workflow dicts (no data change)."""
+    LAST; workflows within a group keep the flat name/id order. Each group carries a plain `label`
+    ("project_name (project_id)" or "Global"), aggregate `n_workflows`/`n_tasks` counts (for the
+    Workflows Summary table — the report renders these, never recomputes them), and the same
+    workflow dicts (no data change)."""
     buckets = {}
     for w in workflows:
         if w["location_type"] == "project":
             key = ("0", w["project_name"] or "", w["project_id"] or "")
-            label = "«%s» (%s)" % (w["project_name"], w["project_id"])
+            label = "%s (%s)" % (w["project_name"], w["project_id"])
         else:
             key = ("1", "", "")
             label = "Global"
@@ -404,7 +409,11 @@ def group_workflows(workflows):
                 "workflows": [],
             }
         buckets[key]["workflows"].append(w)
-    return [buckets[k] for k in sorted(buckets.keys())]
+    groups = [buckets[k] for k in sorted(buckets.keys())]
+    for g in groups:
+        g["n_workflows"] = len(g["workflows"])
+        g["n_tasks"] = sum(len(w["tasks"]) for w in g["workflows"])
+    return groups
 
 
 def _endpoint_urls(field):
@@ -516,25 +525,22 @@ def scan_devices(devices_path, instance_ids):
 
 
 def build_checklist(workflows, forms):
-    agg = {}
+    # Per-workflow, per-code counts (not per-task-name) — the checklist needs to say WHICH workflow
+    # needs the work, not just how many tasks of a given kind exist across the whole environment.
+    wf_items = []
     for w in workflows:
+        counts = {}
         for t in w["tasks"]:
-            key = (t["task_name"], t["app"], t["code"], t["short_recommendation"])
-            agg[key] = agg.get(key, 0) + 1
-    wf_items = [
-        {
-            "key": k[0],
-            "app": k[1],
-            # display app: AGManager -> "AG Manager" (matches the task Interface label); adapter type as-is
-            "app_display": "AG Manager" if k[1] == IAG4_APP else k[1],
-            "code": k[2],
-            "count": c,
-            "recommendation": k[3],
-        }
-        for k, c in agg.items()
-    ]
-    # group by code (CODE_ORDER) then name, so the checklist reads in the same order as the legend
-    wf_items.sort(key=lambda x: (CODE_ORDER.index(x["code"]), str(x["key"]), str(x["app"])))
+            counts[t["code"]] = counts.get(t["code"], 0) + 1
+        for code, count in counts.items():
+            wf_items.append({
+                "code": code,
+                "workflow_name": w["workflow_name"],
+                "workflow_id": w["workflow_id"],
+                "count": count,
+            })
+    # group by code (CODE_ORDER, matches the Recommended Actions legend) then workflow name/id
+    wf_items.sort(key=lambda x: (CODE_ORDER.index(x["code"]), x["workflow_name"], x["workflow_id"] or ""))
     form_items = [
         {"form_name": f["form_name"], "field_key": f["field_key"],
          "bound_endpoint": f["bound_endpoint"], "recommendation": REC_FORM}

@@ -344,6 +344,9 @@ Then **read `tmp/analysis.json`** — it contains `identifiers` (now incl. `adap
   childJob. Only in-scope parents ever appear (rule 3).
 - **`unresolved_children`** / **`warnings`** — referenced workflows that could not be read. Surface,
   never fabricate their contents (rule 2).
+- **`workflow_groups[].n_workflows`** / **`n_tasks`** — per-group aggregate counts (workflow count
+  and total Gateway4 task count in that project/Global group). Drives the new Workflows Summary
+  table at the top of the Workflows section — render, do not recompute.
 
 **What the script does (documented here so the report strings stay reviewable — the script is the
 source of truth; do NOT hand-classify):**
@@ -353,11 +356,12 @@ adapter (type `AutomationGateway`, or a resolved instance id) or the `AGManager`
 flags `GatewayManager` (IAG5). Each IAG4 task is classified from its name/summary/description into
 exactly one row, with the verbatim recommendation the report prints:
 
-| Detected IAG4 task | `iag4_type` label | Short recommendation (verbatim) |
-|---|---|---|
-| **Device/group self-management** (add/remove/create/delete device(s) or group) — checked first | `self-management` | move to the Inventory Manager application; drop this task |
-| Playbook/role op — name/summary/description contains "playbook" or "role" (e.g. `install_remove_inactive`, `transfer_image`) | `ansible-playbook` | register playbook as a Gateway5 ansible-playbook service; call via GatewayManager.runService |
-| **Everything else** — any other IAG4 op (`itential_cli`, `isAlive`, `runCommand`, `getDeviceConfig`, …) | `python-script` | re-implement as a Gateway5 python-script service; call via GatewayManager.runService |
+| Detected IAG4 task | `iag4_type` label | Code | Short recommendation (verbatim) |
+|---|---|---|---|
+| **Device/group self-management** (add/remove/create/delete device(s) or group) — checked first | `self-management` | `INV` | move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation |
+| Playbook op — name/summary/description contains "playbook" | `ansible-playbook` | `REVIEW` | likely no code change — review how inventory is handled (Gateway5 has no built-in inventory) |
+| Ansible collection-module task or role — name/summary/description contains "role"/"collection", or the task name is an FQCN (e.g. `cisco.ios_ios_command`); this is where `itential_cli`/`itential_set_config` land (their description is "Ansible Role") | `collection-or-role` | `WRAP` | wrap in a Python script or an Ansible playbook and run as a Gateway5 service, or replace with an Inventory Manager send_command/set_config task if that covers the same logic |
+| **Everything else** — any other IAG4 op (`isAlive`, `runCommand`, `getDeviceConfig`, …) | `python-script` | `ARGS` | change positional args to named args (--flag / argparse); run as a Gateway5 python-script service |
 
 *Interface, references, closure (the script also computes these — render, don't recompute):*
 - **Interface (req a):** each Gateway4 task is tagged `interface` = `"AG Manager"` when it uses the
@@ -381,7 +385,8 @@ by parsing the `@<id>:` name prefix. A workflow is **in a project** (and the rep
 project name) iff `namespace` marks it project-owned; otherwise it is **Global** — including
 workflows whose name still carries a stale `@<id>:` prefix pointing at a deleted project (a bulk-
 import leftover, not live membership). Each entry carries `location_type` (`global`/`project`),
-`project_id`, `project_name`. Render location as `«name» (id)` for a project, else `Global`.
+`project_id`, `project_name`. Render location as plain `name (id)` for a project, else `Global`
+(no special quoting/brackets around the name).
 **Never emit "name unavailable"** — the old projects.json-prefix lookup produced that; `namespace`
 does not. (`projects.json` is now only a defensive fallback for the rare workflow missing a
 namespace whose prefix still resolves to a live project.) Also note `workflow_id` — it
@@ -471,7 +476,17 @@ Actions, Workflows, JSON Forms, Scripts/Playbooks & Roles, Inventory, Recommende
 Structure, Manual Action Checklist** — the checklist is **last**, after the repo section. Immediately
 under the header table, emit a `## Contents` table-of-contents with one linked entry per section
 (GitHub-style anchors, e.g. `[Scripts, Playbooks & Roles](#scripts-playbooks--roles)`) so the reader
-can jump around.
+can jump around. **Nest the Workflows entry** with one sub-link per `workflow_groups[]` entry
+(project/Global groups, same order as rendered), e.g.:
+```
+3. [Workflows](#workflows)
+   - [Arista EOS (66d0da1721161b4df27174d0)](#arista-eos-66d0da1721161b4df27174d0)
+   - [Global](#global)
+```
+Anchor = a plain GitHub slug of `group.label`: lowercase, drop any character that isn't a
+letter/digit/space/hyphen (drops the parentheses), then spaces → hyphens. Do **not** nest down to
+individual workflows — that would make the TOC unreadably long; the group's own index table already
+lists each workflow with its ID.
 
 **WORDING — the rendered report must NOT contain "iag"/"IAG4"/"IAG5" (req d).** Use "Itential
 Gateway4"/"Gateway4" and "Itential Gateway5"/"Gateway5". Keep literal API/app names
@@ -499,9 +514,15 @@ part of the file's content). If it matches, fix the wording before telling the u
 - **Workflows** section ← `workflow_groups[]` (already ordered). **Grouped by location**: iterate
   `workflow_groups` (projects first by name, then a final `Global` group; workflows within each
   already name-sorted). Do NOT re-sort.
-  - **Group headline** — `### {group.label}` where `label` is `«project_name» (project_id)` for a
-    project or `Global`. The project/Global identity lives HERE, so it is **not** repeated below
-    (no "Scope / Connector" column, no location in the detail heading — kills the repeated text).
+  - **Workflows Summary table** — render FIRST, right after the intro line and before the per-group
+    breakdown: one row per group, `Project / Location | Workflows | Tasks to fix` =
+    `` {group.label} | {group.n_workflows} | {group.n_tasks} ``, plus a final `**Total**` row from
+    `counts.n_workflows` / `counts.n_iag4_tasks`. Straight from the analyzer's per-group aggregates —
+    do not recompute.
+  - **Group headline** — `### {group.label}` where `label` is plain `project_name (project_id)` for a
+    project or `Global` (no special quoting/brackets around the name). The project/Global identity
+    lives HERE, so it is **not** repeated below (no "Scope / Connector" column, no location in the
+    detail heading — kills the repeated text).
   - **Per-group index table** — one row per workflow: `Workflow | Tasks | Interface(s) | Rec | ID` =
     `` `workflow_name` | n_tasks | interfaces | codes | `workflow_id` ``. `interfaces` ← distinct
     `interfaces` (task order) — factual `AG Manager` and/or adapter name(s), for cluster mapping.
@@ -543,13 +564,17 @@ part of the file's content). If it matches, fix the wording before telling the u
 - **Manual Action Checklist** — the **last** section — **grouped by item type**, each group under its
   own `###` subheading, in fixed order: **Workflows, JSON Forms, Scripts/Playbooks & Roles, Inventory,
   General**. **Render only groups that have items — drop an empty group entirely.**
-  - **Workflows** ← `checklist.workflows` (already sorted by code then name — WRAP, REVIEW, ARGS, INV
-    — so same-recommendation items cluster). Each item is **self-contained** — it carries its own
-    recommendation text: `` - [ ] `key` (app_display, N task/tasks) — recommendation ``. Use
-    `app_display` (already `AG Manager` or the adapter type) and pluralize `task`/`tasks` on `count`.
+  - **Workflows** ← `checklist.workflows` (already `{code, workflow_name, workflow_id, count}` sorted
+    by code (WRAP, REVIEW, ARGS, INV) then workflow name/id). Grouped **by code**: render one `####`
+    heading per code that has items — `#### {code} — {REC_BY_CODE[code]}` (the recommendation text
+    appears ONCE per code heading, not per item) — then one line per workflow underneath: `` - [ ]
+    `workflow_name` (`workflow_id`) — N task(s) ``. Skip a code heading entirely if it has no items.
+    This tells the reader WHICH workflow needs the work, not just an environment-wide task-name total.
   - **JSON Forms** ← `checklist.forms`. **Scripts, Playbooks & Roles** ← the Step 4 assets.
-  - **Inventory** ← flagged devices from `analysis.json → devices` (one `- [ ]` per device) plus the
-    gateway built-in-inventory action (Step 5b); scoped/local run where devices weren't pulled →
+  - **Inventory** ← flagged devices from `analysis.json → devices` — one `- [ ] \`device_name\` —
+    origin \`origins\`` per device (name + origin only; the re-homing recommendation is stated once,
+    already, in the Inventory report section above — do not repeat it here) plus the gateway
+    built-in-inventory action (Step 5b); scoped/local run where devices weren't pulled →
     "Skipped — outside scan scope."
   - **General** ← cross-cutting items: a repo-setup item linking to the Recommended Repository
     Structure section (`Set up the Gateway5 service git repository — see [Recommended Repository
@@ -565,6 +590,12 @@ sections with no findings get `No Gateway4 references found.`
 
 Finally, tell the user the report path and give a one-paragraph headline of the counts. Note
 that `tmp/` is read-cache/scratch and safe to delete.
+
+**The skill's job ends here.** Once the report is written and its path/headline is given to the
+user, STOP. Do not follow up with next-step suggestions, offers to convert/migrate/build anything,
+or any other proactive recommendation — not even "would you like me to start building the
+repository structure" or "I can convert script X now." If the user wants to act on the report,
+they will say so and start a new, separate request (e.g. `/iag`); this skill never volunteers it.
 
 ---
 
@@ -606,6 +637,9 @@ that `tmp/` is read-cache/scratch and safe to delete.
   `--all` can overflow a small model's context on large platforms.
 - **Identification only.** Do not create Gateway5 services, edit workflows, or rewrite scripts here.
   Route actual builds to `/iag`.
+- **Done means done.** The skill's only deliverable is the report. Once it's written, stop — no
+  follow-up suggestions, no offering to convert scripts, build the repo, or do anything else
+  automatically, even if it seems helpful. Let the user initiate any next step explicitly.
 
 ## See also
 - `/iag` — building IAG5 service(s) (Python/Ansible/OpenTofu), service YAML, `runService` wiring.
