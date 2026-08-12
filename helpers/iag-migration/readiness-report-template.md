@@ -22,7 +22,7 @@ identify them on the platform. (Scripts/variable names may still use IAG interna
 
 FIXED remediation CODES — the "Recommended action" cell for each is the VERBATIM REC_* constant in
 analyze_iag4.py (CODE_BY_TYPE / REC_BY_CODE); keep both in sync (determinism contract):
-  - WRAP   (collection-or-role task): wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service
+  - WRAP   (collection-or-role task, e.g. itential_cli / itential_set_config): wrap in a Python script or an Ansible playbook and run as a Gateway5 service, or replace with an Inventory Manager send_command/set_config task if that covers the same logic
   - REVIEW (ansible playbook):        likely no code change — review how inventory is handled (Gateway5 has no built-in inventory)
   - ARGS   (python script):           change positional args to named args (--flag / argparse); run as a Gateway5 python-script service
   - INV    (device/group op on the Gateway4 adapter): move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation
@@ -42,9 +42,16 @@ unresolved_children as
 given (sorted). No per-row timestamps.
 
 Workflow location comes from the workflow's `namespace` field (authoritative project membership):
-"Global" when not project-owned, else "«{project_name}» ({project_id})". A stale @id: name prefix
-is NOT project membership — those are Global. Never emit "name unavailable". Location is rendered the
-SAME way everywhere (index Scope/Connector column AND detail heading) — the project id is kept.
+"Global" when not project-owned, else "{project_name} ({project_id})" (plain text — no special
+brackets/quoting around the name). A stale @id: name prefix is NOT project membership — those are
+Global. Never emit "name unavailable". Location is rendered the SAME way everywhere (index
+Scope/Connector column AND detail heading) — the project id is kept.
+
+TOC anchors for the nested Workflows sub-links (see Contents below) are plain GitHub slugs of
+`group.label`: lowercase, drop any character that isn't a letter/digit/space/hyphen (this drops the
+parentheses around the id), then replace spaces with hyphens. E.g. "Arista EOS (66d0da17...)" ->
+"arista-eos-66d0da17...". "Global" -> "global". Since labels are plain text (no «» quoting), this
+is a direct, deterministic slug — compute it the same way every run.
 -->
 
 # Itential Gateway4 → Itential Gateway5 Migration Readiness
@@ -68,9 +75,15 @@ SAME way everywhere (index Scope/Connector column AND detail heading) — the pr
 
 ## Contents
 
+<!-- The Workflows entry (3) nests one sub-link per analysis.json workflow_groups[] entry (project/
+     Global groups, in the same order rendered in the Workflows section) so the reader can jump
+     straight to a project. Anchor = the slug rule above. Do NOT nest down to individual workflows
+     (keeps the TOC compact) — each group's index table below already lists its workflows with IDs. -->
 1. [Summary](#summary)
 2. [Recommended Actions](#recommended-actions)
 3. [Workflows](#workflows)
+   {{#each group}}- [{{group.label}}](#{{slug(group.label)}})
+   {{/each}}
 4. [JSON Forms](#json-forms)
 5. [Scripts, Playbooks & Roles](#scripts-playbooks--roles)
 6. [Inventory](#inventory)
@@ -99,7 +112,7 @@ classification from the task's name and description — **review each** before a
 
 | Code | Applies to (Gateway4 task type) | Recommended action |
 |---|---|---|
-| **WRAP** | Ansible collection-module task or role | wrap in a Python script (preferred) or an Ansible playbook; run as a Gateway5 service |
+| **WRAP** | Ansible collection-module task or role (e.g. `itential_cli`, `itential_set_config`) | wrap in a Python script or an Ansible playbook and run as a Gateway5 service, or replace with an Inventory Manager send_command/set_config task if that covers the same logic |
 | **REVIEW** | Ansible playbook | likely no code change — review how inventory is handled (Gateway5 has no built-in inventory) |
 | **ARGS** | Python script | change positional args to named args (--flag / argparse); run as a Gateway5 python-script service |
 | **INV** | Device/group operation on the Gateway4 adapter | move to the Inventory Manager application; use a device send-command / set-config task instead of the Gateway4 device operation |
@@ -113,7 +126,7 @@ classification from the task's name and description — **review each** before a
 
      For EACH group:
        ### {{group.label}}
-         group.label = "«{project_name}» ({project_id})" for a project, or "Global" for the
+         group.label = "{project_name} ({project_id})" (plain text) for a project, or "Global" for the
          not-in-a-project group. The project/Global identity lives HERE, so it is NOT repeated in the
          per-workflow rows below (no "Scope / Connector" column, no location in the detail heading).
 
@@ -144,6 +157,14 @@ classification from the task's name and description — **review each** before a
            Zero lines → render nothing. Exactly ONE line → inline "**References:** <line>". MORE than
            one → a "**References:**" header then a bullet per line. -->
 {{n_workflows}} workflows reference Gateway4 tasks ({{n_gw4_tasks}} tasks total), grouped by project below (Global workflows last). Each project lists its workflows, then per-workflow task detail and cross-references. The **Rec** column codes are explained in [Recommended Actions](#recommended-actions).
+
+<!-- Workflows Summary — one row per workflow_groups[] entry, straight from group.n_workflows /
+     group.n_tasks (already aggregated by the analyzer — do not recompute). A quick per-project view
+     of how much work is outstanding before diving into the per-group detail below. -->
+| Project / Location | Workflows | Tasks to fix |
+|---|---|---|
+{{#each group}}| {{group.label}} | {{group.n_workflows}} | {{group.n_tasks}} |
+{{/each}}| **Total** | {{n_workflows}} | {{n_gw4_tasks}} |
 
 {{#each group}}
 ### {{group.label}}
@@ -243,12 +264,17 @@ stricter ownership / separation-of-concerns requirements. Team names below are p
      Scripts/Playbooks/Roles, Inventory, General. -->
 ### Workflows
 
-<!-- Self-contained items — each carries its full recommendation text, so no separate legend is
-     needed. checklist.workflows is already sorted by recommendation then name (so identical
-     recommendations sit together). Item: "- [ ] `{{key}}` ({{app_display}}, {{count}} task|tasks) —
-     {{recommendation}}". app_display is "AG Manager" or the adapter type (resolved in analysis.json).
-     Pluralize: "task" if count==1 else "tasks". No codes, no divergence note. -->
-{{#each checklist.workflows}}- [ ] `{{key}}` ({{app_display}}, {{count}} task(s)) — {{recommendation}}
+<!-- Grouped by CODE (WRAP/REVIEW/ARGS/INV, CODE_ORDER — matches the Recommended Actions legend).
+     checklist.workflows is already {code, workflow_name, workflow_id, count} sorted by code then
+     workflow name/id. Render ONE #### heading per code that has items (carries the recommendation
+     text ONCE via REC_BY_CODE — do not repeat it per item), then one line per workflow: "- [ ]
+     `{{workflow_name}}` (`{{workflow_id}}`) — {{count}} task(s)". Skip a code heading entirely if
+     it has no items. -->
+{{#each code in CODE_ORDER}}
+#### {{code}} — {{REC_BY_CODE[code]}}
+
+{{#each checklist.workflows where code==code}}- [ ] `{{workflow_name}}` (`{{workflow_id}}`) — {{count}} task(s)
+{{/each}}
 {{/each}}
 
 ### JSON Forms
@@ -263,7 +289,9 @@ stricter ownership / separation-of-concerns requirements. Team names below are p
 
 ### Inventory
 
-{{#each device}}- [ ] `{{device_name}}` (origin {{origins}}) — {{recommendation}}
+<!-- Simple identification list — device name + origin only, no repeated recommendation text (the
+     single re-homing action is already stated once in the Inventory report section above). -->
+{{#each device}}- [ ] `{{device_name}}` — origin `{{origins}}`
 {{/each}}{{inventory_action}}
 
 ### General
