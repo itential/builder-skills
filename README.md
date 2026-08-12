@@ -9,17 +9,17 @@ Spec-driven infrastructure automation and orchestration — delivered by AI agen
 ## Table of Contents
 
 - [Itential — Agentic Builder Skills](#itential--agentic-builder-skills)
-  - [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Getting Started](#getting-started)
-  - [How to Use It](#how-to-use-it)
-  - [Skills](#skills)
-  - [Spec Library](#spec-library)
-  - [Demo Specs](#demo-specs)
-  - [Docs](#docs)
-  - [Contributing](#contributing)
-  - [Support](#support)
-  - [License](#license)
+- [Table of Contents](#table-of-contents)
+- [Prerequisites](#prerequisites)
+- [Getting Started](#getting-started)
+- [How to Use It](#how-to-use-it)
+- [Skills](#skills)
+- [Spec Library](#spec-library)
+- [Demo Specs](#demo-specs)
+- [Docs](#docs)
+- [Contributing](#contributing)
+- [Support](#support)
+- [License](#license)
 
 ---
 
