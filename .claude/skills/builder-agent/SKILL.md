@@ -1502,6 +1502,18 @@ Returns `true`/`false`. Invalid operators silently return `false`. Use this to v
 }
 ```
 
+**Operand can drill into a nested field via an inline `"query"` key — no separate `query` task needed.** Add a `query` sibling alongside `task`/`variable` in the operand object, using the same dot-path syntax as a standalone `query` task. This lets `evaluation` read a nested field of another task's output directly:
+
+```json
+{
+  "operand_1": {"task": "f6f6", "variable": "mop_template_results", "query": "result"},
+  "operator": "==",
+  "operand_2": {"task": "static", "variable": true}
+}
+```
+
+This replaces the older pattern of a `query` task extracting the field into a job variable before `evaluation` reads it (`query` task → `$var.job.postCheckPassed` → `{"task": "job", "variable": "postCheckPassed"}`) — one task instead of two, and it also avoids adding that intermediate job variable to `inputSchema.required` (see the `{task:"job"}` warning above). Confirmed live: `mop_template_results` is a MOP command-template result object; `query: "result"` pulls its top-level `result` boolean without a separate extraction step.
+
 ### childJob
 
 Run another workflow as a sub-job. **Read a live childJob example first:**
