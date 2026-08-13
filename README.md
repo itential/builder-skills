@@ -121,7 +121,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 "I want to explore what's available on my platform"
 → /itential-builder:explore
 
-"Am I ready to move from IAG4 to IAG5?"
+"Am I ready to move from Gateway 4 (IAG4) to Gateway 5 (IAG5)?"
 → /itential-builder:gateway4-to-gateway5
 
 "Help me build a golden config for my devices and run compliance"
