@@ -1,0 +1,12 @@
+<!-- Generated from canonical sources. Do not edit directly. Run scripts/generate-vendor-wrappers.sh. -->
+
+---
+description: Route Itential skill requests to canonical skill guides
+alwaysApply: true
+---
+
+Read `AGENTS.md` first. It is the canonical cross-vendor agent guide for this repository.
+
+Skill references use the form `/skill-name`. If a user invokes or mentions a skill such as `/builder-agent`, read `skills/builder-agent/SKILL.md` before acting in that domain.
+
+Do not duplicate or reinterpret skill instructions in Cursor rules. The canonical skill content is always under `skills/{skill-name}/SKILL.md`.
