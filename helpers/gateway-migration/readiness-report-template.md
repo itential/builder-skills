@@ -1,6 +1,6 @@
 <!--
 Gateway4 → Gateway5 Readiness Report — FIXED TEMPLATE.
-The iag4-to-iag5 skill fills this in. Keep section order and headings identical every run so
+The gateway4-to-gateway5 skill fills this in. Keep section order and headings identical every run so
 the same inputs always produce a byte-identical report (aside from the header metadata line).
 Canonical section order (also the Table of Contents at the top): Summary, Workflows, JSON Forms,
 Scripts/Playbooks & Roles, Inventory, Recommended Repository Structure, Manual Action Checklist.
@@ -21,7 +21,7 @@ WORDING RULE (hard): the rendered report must NOT contain "iag", "IAG4", or "IAG
 identify them on the platform. (Scripts/variable names may still use IAG internally — never rendered.)
 
 FIXED remediation CODES — the "Recommended action" cell for each is the VERBATIM REC_* constant in
-analyze_iag4.py (CODE_BY_TYPE / REC_BY_CODE); keep both in sync (determinism contract):
+analyze_gateway4.py (CODE_BY_TYPE / REC_BY_CODE); keep both in sync (determinism contract):
   - WRAP   (collection-or-role task, e.g. itential_cli / itential_set_config): wrap in a Python script or an Ansible playbook and run as a Gateway5 service, or replace with an Inventory Manager send_command/set_config task if that covers the same logic
   - REVIEW (ansible playbook):        likely no code change — review how inventory is handled (Gateway5 has no built-in inventory)
   - ARGS   (python script):           change positional args to named args (--flag / argparse); run as a Gateway5 python-script service
@@ -35,7 +35,7 @@ Other fixed strings (keep in sync too):
   - role asset:             wrap in a playbook or Python script; place in a git repo
   - playbook asset:         place in a git repo; no code change
 
-Sort rules (analyze_iag4.py already applies them — render straight through): workflows by name (asc),
+Sort rules (analyze_gateway4.py already applies them — render straight through): workflows by name (asc),
 then project id, then workflow id; tasks within a workflow by task id (asc); checklist by code
 (WRAP, REVIEW, ARGS, INV) then name; forms by name; assets by filename; devices by name;
 unresolved_children as
@@ -105,7 +105,7 @@ is a direct, deterministic slug — compute it the same way every run.
 ## Recommended Actions
 
 <!-- STATIC legend, always rendered verbatim. The "Recommended action" cells are the VERBATIM
-     REC_WRAP / REC_REVIEW / REC_ARGS / REC_INV constants from analyze_iag4.py — do not reword
+     REC_WRAP / REC_REVIEW / REC_ARGS / REC_INV constants from analyze_gateway4.py — do not reword
      (determinism sync). Each Gateway4 task in Workflows is tagged with one of these codes. -->
 Each Gateway4 task in the Workflows section is tagged with one short code. Codes are a best-effort
 classification from the task's name and description — **review each** before acting.
