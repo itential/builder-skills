@@ -1777,6 +1777,12 @@ Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereference
 
 `runCode` ships arbitrary Python to a Gateway5 cluster for execution — no pre-configured IAG service needed, unlike `runService`. It is the single biggest lever for collapsing a `forEach` + `query`×N + `evaluation` + `merge`×N + `push`/`objectToString`/`join` chain (the kind of per-item transform loop that's the source of most WorkFlowEngine utility-task gotchas in this file) into 1-2 tasks.
 
+**Prerequisites (per official docs):**
+- Install Gateway Manager 1.0.10 or later with Platform 6.4.0 or later.
+- Register an active Gateway 5.4.0 or later cluster with Itential Platform using Gateway Manager.
+- Verify that the Python version on the Gateway 5 host is compatible with your scripts and packages. The task uses the default Python interpreter on the host, which is the version invoked by `python` or `python3` on the `iagctl` command line. Gateway does not enforce a minimum version — run `python --version` on the Gateway 5 host to check.
+- Confirm that the `gateway:code` role from GatewayManager is assigned to your group.
+
 **When to reach for it:** any per-item data transform/lookup/branching loop over a list — the exact shape that otherwise needs `forEach` (with its `job_id`-omission and empty-last-transition rules), `query` per field, `evaluation` for branching, `merge` for reassembly, and (for arrays of objects) the `objectToString`/`push`/`join` dance. One `runCode` task does the whole loop in real Python in a single execution, then one `query` pulls the result back into a job variable.
 
 **Real-world example:** a NetBox-devices-to-inventory-nodes mapping (per-device manufacturer lookup, per-vendor secret-path branching, record reshaping) that originally took `forEach` + 5 `query` + 1 `evaluation` + 4 `newVariable` + 2 `merge` + `push`/`objectToString`/`join`/`makeData` (17 tasks) collapsed to 2 tasks (`runCode` + `query`), then to 1 task once the trailing `query` was replaced by an Enable Query decorator too (see below) — with identical, verified output at every stage. Full before/after: `helpers/assets/netbox-inventory-sync-runcode-enablequery.json`.
@@ -1792,6 +1798,10 @@ Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereference
 | `safety.timeout` | yes | Seconds, 1-1000 |
 | `packages` | no | Array of pip requirement strings (e.g. `"requests==2.31.0"`), installed before execution — omit if stdlib-only |
 
+**Size limit (per official docs):** `code` is limited to 2 MB. You cannot save code that exceeds this limit. The limit applies to code text only — installed packages do not count toward it.
+
+**Package caching (per official docs):** the first time you run a task with a new set of packages, the runner installs them into a virtual environment. Subsequent runs reuse the cached environment, so there's no install overhead. Any change to the `packages` list triggers a fresh install.
+
 **Script contract (the "IAG runCode standard" — see real examples in `helpers/assets/vendor-cisco-ios.json` and `vendor-juniper-junos.json`):**
 ```python
 import sys, json
@@ -1803,9 +1813,18 @@ Anything printed to `stderr` is captured separately and does NOT pollute the par
 
 **Outgoing `result` object:** `stdout` (raw string — use when the consumer needs a JSON string, e.g. an IAG service's string-typed param), `stdout_json` (already-parsed JSON — use when the consumer wants a real array/object, e.g. a task field typed `array`/`object`; absent/`null` if stdout wasn't valid JSON), `stderr`, `return_code` (0 = success), `status` (`"completed"`/`"error"`), `started_at`/`finished_at`/`elapsed_ms`. Pick `stdout` vs `stdout_json` based on what the NEXT task's field type actually wants — don't always reach for `stdout_json` by default.
 
-**Gotcha:** secret-vault placeholder strings (`$SECRET_.../$KEY_...`) written as literal Python string constants inside `code` are NOT resolved by `runCode` or by the workflow engine — they pass through as plain text, identical to writing the same literal into a `newVariable` task. That's expected; the vault resolves them later, at actual device-connection time, not during this task's execution.
+**Errors and timeout (per official docs):** the task catches unhandled Python exceptions and captures the traceback in `result.stderr` — the task still completes and the workflow does NOT follow the error transition for an in-script exception. `safety.timeout` stops execution if exceeded; when exceeded, `result.status` becomes `"error"` and `result.error` contains the platform-specific failure reason. The timeout applies to your code only, not to package installation. If the task cannot run on the gateway at all (not enabled, lost connectivity), the task itself fails and no `result` output is produced — that error is visible in the task's Error tab in Operations Manager instead, as a distinct `{state, domain, code, message}` shape (e.g. `"message": "Gateway with id test-code-task is not enabled"`).
 
-### "Enable Query" — inline query decorator on any incoming field (aka "in-task-query")
+**Execution status vs. exit code (per official docs) — three genuinely different failure modes, don't conflate them:**
+- `status: "completed"` + `return_code: 0` — the script ran and exited cleanly.
+- `status: "completed"` + a non-zero `return_code` — the script ran but exited with a failure code; your code executed, the script itself signaled failure.
+- `status: "error"` — a platform-level failure (e.g. a timeout). The script may not have run, or it stopped mid-execution; check `result.error`. This is distinct from a Gateway connectivity failure (see above), where the task itself errors and no `result` fields are populated at all.
+
+**`stdout_json` absent after a successful run (per official docs):** if `result.stdout_json` doesn't appear after `return_code: 0`, the most common causes are (a) `stdout` contained non-JSON content, a mix of JSON and other output, or no output, or (b) a value in the output object wasn't JSON-serializable, so `json.dumps()` raised a `TypeError` and wrote a traceback to `stderr` instead of JSON to `stdout`. Inspect `result.stdout` and `result.stderr` directly to tell which applies.
+
+**Gotcha:** secret-vault placeholder strings (`$SECRET_.../$KEY_...`) written as literal Python string constants inside `code` are NOT resolved by `runCode` or by the workflow engine — they pass through as plain text, identical to writing the same literal into a `newVariable` task. That's expected; the vault resolves them later, at actual device-connection time, not during this task's execution. **This is not the only option, though** — per official docs, `runCode` has its own external-secret mechanism: reference `$GATEWAYSECRET_(alias-name)` as a literal string in your script, and Gateway resolves the alias at execution time. The secret value is never sent back to Itential Platform. This requires a secret provider/alias already set up on the Gateway side — not yet confirmed live in this repo, but documented here since it directly answers "is there any safe way to use secrets in a `runCode` script."
+
+### "Enable Query" — inline query decorator on any incoming field (aka "in-task-query", called "task query" in official docs)
 
 A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/`openapi.json`/`multipleTaskDetails` searches. Appears under any incoming field with `Variable Source: Job` or `Task` selected (a checkbox labeled "Enable Query"). Lets you query a nested path out of that field's resolved value inline, eliminating a separate `query` task that would otherwise sit between the producing task and the field that needs one piece of its output.
 
