@@ -2,7 +2,7 @@
 import sys
 sys.dont_write_bytecode = True
 
-"""Deterministic IAG4 usage analysis for the /iag4-to-iag5 skill.
+"""Deterministic Gateway4-IAG4 usage analysis for the /gateway4-to-gateway5 skill.
 
 Pure analysis over already-pulled data in a working directory's tmp/ folder. Reads
 wf_all.ndjson, apps.json, adapters.json and json-forms.json; resolves the IAG4
@@ -14,7 +14,7 @@ It never touches IAP/IAG and never re-pulls data. Scripts + inventory analysis s
 the skill's AI. The report is rendered by the skill from this JSON.
 
 The recommendation strings below are the single source of truth and MUST stay identical to
-helpers/iag-migration/readiness-report-template.md.
+helpers/gateway-migration/readiness-report-template.md.
 """
 
 import argparse

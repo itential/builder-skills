@@ -121,8 +121,8 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 "I want to explore what's available on my platform"
 → /itential-builder:explore
 
-"Am I ready to move from IAG4 to IAG5?"
-→ /itential-builder:iag4-to-iag5
+"Am I ready to move from Gateway 4 (IAG4) to Gateway 5 (IAG5)?"
+→ /itential-builder:gateway4-to-gateway5
 
 "Help me build a golden config for my devices and run compliance"
 → /itential-builder:itential-golden-config
@@ -151,7 +151,7 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 |-------|-------------|
 | `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers, registers tools (adapters, workflows, IAG services), and runs agent sessions. Use when building or operating Flow AI agents. |
 | `/itential-builder:iag` | Builds and runs IAG 5 services — Python scripts, Ansible playbooks, OpenTofu plans. Manages YAML service definitions, imports via `iagctl`, and calls services from Itential workflows via GatewayManager. |
-| `/itential-builder:iag4-to-iag5` | Assesses readiness to migrate from IAG4 to IAG5. Scans workflows, JSON forms, scripts, playbooks, and inventory for IAG4 usage (`AGManager` / `automation_gateway`). Produces a deterministic markdown readiness report with a manual-action checklist. Read-only — never modifies the platform. For building IAG5 services after the assessment, use `/iag`. |
+| `/itential-builder:gateway4-to-gateway5` | Assesses readiness to migrate from Gateway4-IAG4 to Gateway5-IAG5. Scans workflows, JSON forms, scripts, playbooks, and inventory for Gateway4-IAG4 usage (`AGManager` / `automation_gateway`). Produces a deterministic markdown readiness report with a manual-action checklist. Read-only — never modifies the platform. For building Gateway5-IAG5 services after the assessment, use `/iag`. |
 | `/itential-builder:itential-mop` | Builds Method of Procedure command templates with variable substitution and validation rules. Runs CLI pre-checks and post-checks against devices, and uses analytic templates for before/after config comparison. |
 | `/itential-builder:itential-devices` | Manages network devices in Itential Configuration Manager — onboard devices, take config backups, diff configurations, organize device groups, and apply device templates. |
 | `/itential-builder:itential-golden-config` | Builds golden config trees and node-level config specs that define the expected configuration standard for your devices. Runs compliance plans, grades results, and generates remediation configs for violations. |
