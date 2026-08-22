@@ -386,7 +386,7 @@ Example: "Use Google-style docstrings with Args, Returns, and Raises sections"
 - **Documentation**: Check the README.md and AGENTS.md files
 - **Issues**: Search existing issues for similar problems
 - **Discussions**: Use GitHub Discussions for questions
-- **Maintainer**: [@wcollins](https://github.com/wcollins)
+- **Maintainer**: [@keepithuman](https://github.com/keepithuman)
 
 ### Reporting Issues
 
