@@ -350,6 +350,7 @@ Both extracted from real, working `jsonForm`-type components inside `vendor-cisc
 | `itential-platform-data-manipulation.json` | 21 transformations — Parse Number, Chunk Array, Get Value From JSON Pointer, Group Records, Filter Array, Split String, Remove Duplicates, Allocate Numbers, Convert CSV to JSON, and more |
 | `itential-platform-email.json` | 1 workflow (Send Email SMTP), 2 transformations — *requires Email Adapter* |
 | `itential-platform-regex-operations.json` | 4 transformations — Test Match, Find Match, Replace, Extract |
+| `netbox-inventory-sync-runcode-enablequery.json` | 2 real, verified workflows demonstrating `runCode` (Python-on-gateway) + "Enable Query" (inline field decorator) replacing a per-item transform loop that would otherwise need `forEach`+`query`×N+`evaluation`+`merge`+`push`. One reuses an external script, one uses only native app tasks — both collapsed their device-mapping loop to 1-2 tasks. See `builder-agent` skill's `### "Enable Query"` and `Step 0a` for the decision rule on when to reach for this pattern. |
 
 **Vendor integrations — design and wiring examples**
 
