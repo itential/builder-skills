@@ -208,7 +208,6 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 - **Bug Reports**: [Open an issue](https://github.com/itential/builder-skills/issues/new)
 - **Questions**: [Start a discussion](https://github.com/itential/builder-skills/discussions)
 - **Lead Maintainer**: [@keepithuman](https://github.com/keepithuman)
-- **Maintainer**: [@wcollins](https://github.com/wcollins)
 
 ---
 
