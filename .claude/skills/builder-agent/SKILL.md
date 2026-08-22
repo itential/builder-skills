@@ -842,6 +842,14 @@ POST /automation-studio/projects/{projectId}/components/add
 
 **Component types:** `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
 
+> **`components/add` called more than once on the same project can corrupt `iid` tracking.** Confirmed on a project created via empty `POST /automation-studio/projects` (not `import`): a first `components/add` call (e.g. 5 components) gets assigned sequential `iid`s, but the project's own `componentIidIndex` can come back reporting a value *lower* than the actual max `iid` just used. A second `components/add` call trusts that stale index as its starting point and assigns new `iid`s that collide with ones from the first call — two different components end up sharing the same `iid`, silently corrupting anything that references components by `iid` (notably `folders[].children[].iid` groupings).
+>
+> **Diagnostic sign:** after adding components in more than one call, `GET` the project and check `components[].iid` for duplicates across different `type`s.
+>
+> **`PATCH` does not fix this.** Sending a corrected `components`/`folders` array with de-duplicated, hand-assigned `iid`s via `PATCH /automation-studio/projects/{projectId}` returns `200`, but the platform recalculates/discards your custom `iid` values server-side — a `GET` right after still shows the same collision. Don't try to patch your way out of it.
+>
+> **Fix — pick one:** (a) batch every component you're adding into a **single** `components/add` call (confirmed reliable — produces clean sequential `iid`s), or (b) rebuild the project from scratch via `projects/import`, embedding each component's full document directly rather than moving in pre-existing standalone assets.
+
 ### Update membership (full replacement)
 
 **Before patching, always ask the engineer:** *"Who else should have access to this project? (usernames or group names)"*
