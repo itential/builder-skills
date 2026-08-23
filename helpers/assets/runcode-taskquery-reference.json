@@ -403,7 +403,7 @@
               "incoming": {
                 "clusterId": "cluster-itential",
                 "language": "python",
-                "code": "import sys, json\ndata = json.load(sys.stdin)\ndef extract_results(value):\n    \"\"\"Accept either the raw NetBox paginated wrapper ({count, results: [...]})\n    or an already-queried plain array (if inline query extracts .results upstream).\"\"\"\n    if isinstance(value, dict) and 'results' in value:\n        return value['results']\n    if isinstance(value, list):\n        return value\n    return []\n\ndevices = extract_results(data.get('devicelist'))\ninterfaces = extract_results(data.get('interfacelist'))\n\n# Group interfaces under their parent device. Real NetBox interfaces reference the device\n# via interface['device']['id']; fall back to matching interface['id'] directly if that\n# shape isn't present (matches the sample data given, which mirrors the device shape).\ninterfaces_by_device = {}\nfor iface in interfaces:\n    device_ref = iface.get('device') or {}\n    device_id = device_ref.get('id', iface.get('id'))\n    interfaces_by_device.setdefault(device_id, []).append(iface)\n\ncombined = []\nfor device in devices:\n    device_type = device.get('device_type') or {}\n    manufacturer = device_type.get('manufacturer') or {}\n    device_id = device.get('id')\n    device_interfaces = interfaces_by_device.get(device_id, [])\n\n    combined.append({\n        'id': device_id,\n        'name': device.get('name'),\n        'display': device.get('display'),\n        'manufacturer': manufacturer.get('name'),\n        'model': device_type.get('model'),\n        'interface_count': len(device_interfaces),\n        'interfaces': [i.get('name') for i in device_interfaces if i.get('name')],\n    })\n\nprint(json.dumps({\n    'device_count': len(devices),\n    'devices': combined,\n}))                                                                                                                                                             ",
+                "code": "import sys, json, time\ndata = json.load(sys.stdin)\ndef extract_results(value):\n    \"\"\"Accept either the raw NetBox paginated wrapper ({count, results: [...]})\n    or an already-queried plain array (if inline query extracts .results upstream).\"\"\"\n    if isinstance(value, dict) and 'results' in value:\n        return value['results']\n    if isinstance(value, list):\n        return value\n    return []\n\ndevices = extract_results(data.get('devicelist'))\ninterfaces = extract_results(data.get('interfacelist'))\n\n# Group interfaces under their parent device. Real NetBox interfaces reference the device\n# via interface['device']['id']; fall back to matching interface['id'] directly if that\n# shape isn't present (matches the sample data given, which mirrors the device shape).\ninterfaces_by_device = {}\nfor iface in interfaces:\n    device_ref = iface.get('device') or {}\n    device_id = device_ref.get('id', iface.get('id'))\n    interfaces_by_device.setdefault(device_id, []).append(iface)\n\ncombined = []\nfor device in devices:\n    device_type = device.get('device_type') or {}\n    manufacturer = device_type.get('manufacturer') or {}\n    device_id = device.get('id')\n    device_interfaces = interfaces_by_device.get(device_id, [])\n\n    combined.append({\n        'id': device_id,\n        'name': device.get('name'),\n        'display': device.get('display'),\n        'manufacturer': manufacturer.get('name'),\n        'model': device_type.get('model'),\n        'interface_count': len(device_interfaces),\n        'interfaces': [i.get('name') for i in device_interfaces if i.get('name')],\n    })\n\nsuffix = str(int(time.time()))\ntags_payload = {\n    'name': f'runcode-summary-tag-{suffix}',\n    'slug': f'runcode-summary-tag-{suffix}',\n    'description': devices[0]['name'] if devices else 'no-devices-found',\n}\n\nprint(json.dumps({\n    'device_count': len(devices),\n    'devices': combined,\n    'tags_payload': tags_payload,\n}))\n",
                 "data": {
                   "devicelist": "$var.8850.response#/body",
                   "interfacelist": "$var.4e04.response#/body"
@@ -816,6 +816,40 @@
               "x": 0,
               "y": -316
             }
+          },
+          "tagCreate": {
+            "name": "extras_tags_create",
+            "canvasName": "extras_tags_create",
+            "summary": "extras_tags_create",
+            "description": "Create a tag summarizing the runCode combiner output.",
+            "location": "Adapter",
+            "locationType": "NetBox:latest",
+            "app": "NetBox:latest",
+            "type": "automatic",
+            "displayName": "NetBox PS Lab",
+            "variables": {
+              "incoming": {
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.3c0b.result#/stdout_json/tags_payload",
+                "adapter_id": "NetBox PS Lab"
+              },
+              "outgoing": {
+                "response": ""
+              },
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/requestBodyPayload",
+                  "displayPath": ".stdout_json.tags_payload"
+                }
+              ]
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 50
+            }
           }
         },
         "transitions": {
@@ -833,13 +867,19 @@
           },
           "workflow_end": {},
           "3c0b": {
-            "workflow_end": {
+            "tagCreate": {
               "state": "success",
               "type": "standard"
             }
           },
           "4e04": {
             "3c0b": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "tagCreate": {
+            "workflow_end": {
               "state": "success",
               "type": "standard"
             }
@@ -868,7 +908,7 @@
         "errorHandler": null,
         "preAutomationTime": 0,
         "sla": 0,
-        "last_updated": "2026-08-23T00:50:58.037Z",
+        "last_updated": "2026-08-23T01:37:22.381Z",
         "last_updated_by": {
           "provenance": "Service Account",
           "username": "externalai",
