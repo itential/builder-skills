@@ -351,6 +351,7 @@ Both extracted from real, working `jsonForm`-type components inside `vendor-cisc
 | `itential-platform-email.json` | 1 workflow (Send Email SMTP), 2 transformations — *requires Email Adapter* |
 | `itential-platform-regex-operations.json` | 4 transformations — Test Match, Find Match, Replace, Extract |
 | `netbox-inventory-sync-runcode-enablequery.json` | 2 real, verified workflows demonstrating `runCode` (Python-on-gateway) + "Enable Query" (inline field decorator) replacing a per-item transform loop that would otherwise need `forEach`+`query`×N+`evaluation`+`merge`+`push`. One reuses an external script, one uses only native app tasks — both collapsed their device-mapping loop to 1-2 tasks. See `builder-agent` skill's `### "Enable Query"` and `Step 0a` for the decision rule on when to reach for this pattern. |
+| `runcode-taskquery-reference.json` | Minimal, focused reference for the mechanics of wiring `runCode` + task query together (not the "why" — see the netbox asset above for the collapse story): bringing multiple upstream tasks' data into `data`, unwrapping a nested field via `#/path` + a matching decorator before the script runs, and reading the result back out. Combines two NetBox list calls into one summary. See `builder-agent` skill's `### Worked example: wiring runCode + task query together`. |
 
 **Vendor integrations — design and wiring examples**
 

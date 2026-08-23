@@ -1852,6 +1852,53 @@ A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/
 
 **Confirmed NOT to try without testing first:** `evaluation` operands use a structured reference (`{"task":"job","variable":"x"}`), not a plain `$var` string — this is a different field shape than every confirmed Enable Query example, and hasn't been tested. Don't assume this decorator applies there. **For this exact scenario, `evaluation`'s own operand object has a native `query` sibling key instead** — see "Operand can drill into a nested field via an inline `query` key" earlier in this section; that's the confirmed way to skip a separate `query` task feeding an `evaluation` operand.
 
+### Worked example: wiring `runCode` + task query together
+
+A complete walkthrough of bringing multiple upstream tasks' data into a `runCode` script, using task query to unwrap each one, and reading the result back out — confirmed live end-to-end. Real example (two NetBox list calls combined into one summary): `helpers/assets/runcode-taskquery-reference.json`.
+
+**1. Bring variables into `runCode` via its `data` field.** Each key in `incoming.data` becomes one entry your script receives on stdin. The value is a reference expression, same syntax as any other task field:
+
+```json
+"data": {
+  "devicelist": "$var.8850.response",
+  "interfacelist": "$var.4e04.response"
+}
+```
+
+This hands the *entire* `response` output of tasks `8850` and `4e04` to the script, under the keys `devicelist`/`interfacelist`. No query needed yet — this alone is enough if the script itself can navigate whatever shape arrives (see step 4).
+
+**2. Design a task query only if you want to unwrap a nested field before the script sees it.** Append `#/<json-pointer-path>` to the reference string, and add a matching entry to the task's `decorators` array — both parts are required and must agree:
+
+```json
+"data": {
+  "devicelist": "$var.8850.response#/body"
+},
+"decorators": [
+  { "type": "query", "pointer": "/incoming/data/devicelist", "displayPath": ".body" }
+]
+```
+
+- The `#/<path>` suffix goes on the value string itself, `/`-delimited (JSON-Pointer style).
+- The decorator's `pointer` is `/incoming/data/<key>` (locates *which* incoming field has a query), and `displayPath` is the Studio-UI-facing dot-path (`.`-delimited, 1:1 with the `#/...` segments).
+- **This query is evaluated once, before the script ever runs.** If the path doesn't exist on the real resolved object, the whole task — and job — fails immediately with `"Query failed for task incoming variables: <key>"`. The script never gets a chance to handle a missing/wrong path defensively; get the path right up front.
+
+**Don't guess the path — verify the real shape first.** The platform's own job-detail API does not help here: `GET /operations-manager/jobs/{id}` always returns the static workflow definition (empty-string outgoing placeholders) regardless of `include`/`dereference` params or job completion status — confirmed directly, including via the browser UI's own network call using session-cookie auth, not just a scripted API token. The two ways that do work: (a) open the job in Operations Manager / Studio and read the task's real Output/Response value directly in the UI, or (b) temporarily pass the reference through *without* a query, and have the script itself print the shape it received (`type()`, keys, a sample item) so you can see the real structure before committing to a query path.
+
+**Confirmed real-world case:** a REST/HTTP-style adapter task whose outgoing field is named `response` returns the full HTTP response object, not the API payload directly — the payload is at `response.body` (`response` itself is `{body, headers, statusCode, ...}`-shaped). This is a different wrapping than the existing documented `result.response` convention elsewhere in this file (different outgoing field name, different nesting depth) — don't conflate the two. Confirmed on NetBox's `dcim_devices_list`/`dcim_interfaces_list`: querying `#/results` directly failed (that path doesn't exist at the top level); the real path is `#/body`, landing on `{count, next, previous, results: [...]}}`.
+
+**3. Access the variables inside the script.** Everything in `data` arrives as one JSON object on stdin, keyed exactly as configured:
+
+```python
+import sys, json
+data = json.load(sys.stdin)
+devicelist = data['devicelist']    # already whatever step 2's query resolved it to, if a query was used
+interfacelist = data['interfacelist']
+```
+
+If a task query already unwrapped a field (e.g., to `.body`), the script receives that unwrapped value directly — it doesn't need to re-navigate past a level the query already resolved. If no query was used, the script receives the full raw reference and is responsible for navigating it itself (defensive code that handles more than one possible shape is reasonable here, since a script CAN branch/fall back at runtime, unlike a query decorator which fails hard on a wrong path).
+
+**4. Return the result.** The last line printed to stdout must be `json.dumps(...)` of whatever the next task (or the workflow's output) should consume — this becomes `result.stdout_json`. Anything else printed for debugging goes to stderr instead, so it doesn't corrupt the parsed result (see the `runCode` fields table above).
+
 ### Task Endpoint Patterns (Standalone Testing)
 
 Some tasks have standalone REST endpoints — **faster than creating test workflows:**
