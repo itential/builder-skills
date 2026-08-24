@@ -540,7 +540,7 @@ Use `"[**].taskStatus"` in a query to extract one field from all iterations.
 #### childJob checklist
 
 `add_child_job()` gets you the actor default (`"job"`), all incoming fields present, and correct `{"task","value"}` wiring automatically. Still worth confirming:
-- [ ] `actor` is `"job"`, `"Pronghorn"`, or a real task id in this workflow — anything else throws "Cannot read properties of undefined (reading 'owner')" at job start. `incoming`'s `task` field value doesn't matter either way; the platform unconditionally overwrites it.
+- [ ] `actor` is `"job"`, `"Pronghorn"`, or a real task id in this workflow (see the `### childJob` reference below for why).
 - [ ] `variables` is `{}` when using `data_array` (loop mode) — static `variables` are not counted toward the child's required inputs during a loop.
 - [ ] Child workflow's `inputSchema.required` matches what you're passing.
 - [ ] `loopType`: `""` (single), `"parallel"` (simultaneous), `"sequential"` (one at a time).
@@ -1207,7 +1207,7 @@ Extract nested values from objects using dot-path syntax.
 }
 ```
 
-**IMPORTANT: Don't guess the query path for adapter responses.** Adapters transform upstream API responses — the field path in the adapter's output is NOT the same as the native API's response structure. The adapter's `result` outgoing is always a `{response, headers, metrics}` object, never a primitive. When the upstream API returns a simple string (like Infoblox's `_ref`), it's at `result.response`, not `result` directly. Always verify the actual response shape from a test job (`GET /operations-manager/jobs/{jobId}` → `data.tasks`) before wiring a path.
+Don't guess the query path for an adapter response — see "Adapter Task Discovery" above (adapters transform upstream responses; verify the real shape from a test job before wiring a path).
 
 ### merge
 
@@ -1254,6 +1254,8 @@ Build an object from multiple resolved values. Primary workaround for `$var` not
 ```
 
 Requires at least 2 items — with fewer, the task silently returns null instead of erroring (`add_merge()` raises immediately if you pass fewer than 2). Outgoing must declare `"merged_object": null` — an empty `{}` makes it unreachable. Duplicate keys across entries produce an array, not an overwrite — merging `{"ip": "1.2.3.4"}` and `{"ip": "1.2.3.4"}` yields `{"ip": ["1.2.3.4", "1.2.3.4"]}`. To avoid this, pass a pre-built object as a single workflow input variable instead of merging multiple objects with the same keys.
+
+**LCM Create actions specifically:** the instance-write merge's `data_to_merge` must cover every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning, orphaning the resource from LCM. Read the model's required fields before building the merge task: `jq '.schema.required' helpers/assets/lcm/<model>.json`.
 
 ### parse
 
@@ -2069,7 +2071,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 
 ### Adapter Response Shapes
 
-**Adapters transform upstream API responses.** Don't assume the native API's response structure. For example, ServiceNow's Table API returns `result.sys_id`, but the Itential adapter flattens it to `response.id`. Always verify by calling the adapter directly or checking `openapi.json`.
+Another concrete example of "Adapter Task Discovery"'s response-transformation rule: ServiceNow's own Table API returns `result.sys_id`, but the Itential adapter flattens it to `response.id`. Verify by calling the adapter directly or checking `openapi.json`, not by assuming the native API's shape.
 
 ### Adapter URI Prefix
 
