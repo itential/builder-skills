@@ -220,6 +220,22 @@ class WorkflowBuilder:
             # with the wrong id. Exclude it entirely: passing it raises immediately
             # below (as an "unknown field") instead of producing a broken task.
             known_fields = known_fields - {'job_id'}
+        if location == 'Adapter':
+            # adapter_id (the adapter INSTANCE name from adapters.json .results[].id,
+            # e.g. "netbox-selab" -- NOT the type name passed as `app`) is never
+            # declared in any task schema, but is always required at runtime --
+            # confirmed live: omitting it fails with "No config found for Adapter: ...".
+            # Add it to known_fields explicitly and require it, rather than leaving
+            # it structurally impossible to set (the field would otherwise be
+            # rejected as unknown).
+            known_fields = known_fields | {'adapter_id'}
+            if 'adapter_id' not in incoming:
+                raise WorkflowBuilderError(
+                    f"Adapter task {method!r} requires 'adapter_id' -- the adapter "
+                    f"INSTANCE name from adapters.json .results[].id (e.g. 'netbox-selab'), "
+                    f"not the type name passed as `app`. Not declared in any task schema, "
+                    f"but always required."
+                )
         unknown = set(incoming) - known_fields
         if unknown:
             raise WorkflowBuilderError(
@@ -284,6 +300,21 @@ class WorkflowBuilder:
         tid = self._id(task)
         self._set_field(tid, field, f"$var.job.{job_variable_name}", query_path)
 
+    def expose(self, task, field, job_variable_name):
+        """Bind an outgoing field to a job variable, so downstream tasks (including
+        a parent workflow reading this task's output across a childJob boundary)
+        can read it via $var.job.<name> instead of $var.<taskId>.<field>, which
+        only resolves within the same task graph. The skill's own guidance is
+        explicit that outgoing must write to a job var for cross-task readability
+        -- this is the construction-time way to do that instead of hand-mutating
+        the outgoing dict."""
+        tid = self._id(task)
+        if field not in self.tasks[tid]['variables']['outgoing']:
+            raise WorkflowBuilderError(
+                f"{self.tasks[tid]['name']} has no outgoing field {field!r}."
+            )
+        self.tasks[tid]['variables']['outgoing'][field] = f"$var.job.{job_variable_name}"
+
     def _set_field(self, tid, field, ref_string, query_path):
         if field not in self.tasks[tid]['variables']['incoming']:
             raise WorkflowBuilderError(
@@ -332,11 +363,16 @@ class WorkflowBuilder:
     def add_evaluation(self, groups, all_true_flag=True, task_id=None):
         """groups: list of lists of {operator, operand_1, operand_2} dicts (build
         operand_1/operand_2 with static_operand()/job_operand()/task_operand()).
+        `all_true_flag` must be set on the TOP-LEVEL incoming AND repeated on every
+        individual group entry -- confirmed live: leaving it off the group entry
+        makes the evaluation resolve its true operands correctly but still finish
+        in "failure" state, with no error anywhere. Both are set here from the same
+        argument so this can't be gotten wrong.
         Remember: connect() this task's outgoing "success" AND "failure" states --
         finish() will refuse to complete the workflow if either is missing, because
         a missing one hangs the job forever with no error anywhere on the real
         platform (confirmed against finishTask.js -- see platform-validation-model.md)."""
-        evaluation_groups = [{'evaluations': group} for group in groups]
+        evaluation_groups = [{'evaluations': group, 'all_true_flag': all_true_flag} for group in groups]
         return self.add_task('Application', 'WorkFlowEngine', 'evaluation', task_id=task_id,
                               evaluation_groups=evaluation_groups, all_true_flag=all_true_flag,
                               options={})
@@ -347,19 +383,24 @@ class WorkflowBuilder:
     # stripping), and `variables` entries use {"task", "value"} (note: "value",
     # not "variable" -- the one place this differs from merge/evaluation).
 
-    def add_child_job(self, workflow_name, data_array=None, loop_type=None, task_id=None):
+    def add_child_job(self, workflow_name, data_array='', loop_type='', task_id=None):
+        """Defaults to single-child mode (data_array='', loop_type='') explicitly --
+        never left unset. If these are left to catalog-driven defaulting instead
+        (e.g. after loading add_task_details() for childJob), data_array defaults
+        to [] (its declared type is array) and loopType defaults to its first
+        enum value ("parallel") -- silently turning an intended single-child call
+        into an empty parallel loop, with no validation error anywhere. Confirmed
+        live. Pass data_array=<a $var reference via ref()'d field or a list> and
+        loop_type='parallel'/'sequential' explicitly for loop mode."""
         if workflow_name.strip().startswith('@'):
             raise WorkflowBuilderError(
                 f"childJob.workflow = {workflow_name!r} looks project-scoped -- this always "
                 f"fails at job start with \"Cannot find workflow ...\", even from a caller in "
                 f"the same project. Inline the target task(s) instead."
             )
-        kwargs = {'workflow': workflow_name, 'variables': {}}
-        if data_array is not None:
-            kwargs['data_array'] = data_array
-        if loop_type is not None:
-            kwargs['loopType'] = loop_type
-        return self.add_task('Application', 'WorkFlowEngine', 'childJob', task_id=task_id, **kwargs)
+        return self.add_task('Application', 'WorkFlowEngine', 'childJob', task_id=task_id,
+                              workflow=workflow_name, variables={},
+                              data_array=data_array, loopType=loop_type)
 
     def child_job_var(self, child_job_task, var_name, value):
         """Wire a static value into the target workflow's input variable."""
@@ -547,17 +588,54 @@ class WorkflowBuilder:
         transitions = dict(self.transitions)
         for tid in tasks:
             transitions.setdefault(tid, {})
+
+        self._assign_node_locations(tasks, transitions)
         return {
             'name': self.name,
             'description': self.description,
             'type': self.type,
             'canvasVersion': 3,
             'groups': [],
-            'inputSchema': {'type': 'object', 'properties': {}, 'required': []},
-            'outputSchema': {'type': 'object', 'properties': {}, 'required': []},
+            # workflow_builder/workflows/save recomputes both of these from scratch
+            # based on $var.job.* references actually found in the task graph --
+            # whatever is submitted here is discarded (confirmed live: cog.js's
+            # saveWorkflow always overwrites inputSchema/outputSchema with
+            # getWorkflowSchema()'s result). Placeholders only; use job_ref()/
+            # expose() to wire real job variables, which is what the platform
+            # actually derives the schema from.
+            'inputSchema': {'type': 'object', 'properties': {}},
+            'outputSchema': {'type': 'object', 'properties': {}},
             'tasks': tasks,
             'transitions': transitions,
         }
+
+    def _assign_node_locations(self, tasks, transitions):
+        """Simple BFS-order vertical layout on a single spine (x constant, y
+        +108px per row -- the convention documented in SKILL.md's "nodeLocation
+        Spacing Convention"). Does not offset fork branches into separate
+        columns -- a real fork still lands multiple tasks at the same y. This
+        is a floor, not the full canvas-layout algorithm: it guarantees a
+        builder-produced workflow doesn't render as a single overlapping stack
+        in Studio (every task at 0,0), which it did before this existed.
+        Skips any task that already has a nodeLocation set explicitly."""
+        spine_x = 600
+        order = [WORKFLOW_START]
+        visited = {WORKFLOW_START}
+        queue = [WORKFLOW_START]
+        while queue:
+            cur = queue.pop(0)
+            for nxt, tr in transitions.get(cur, {}).items():
+                if tr.get('type') == 'standard' and nxt not in visited:
+                    visited.add(nxt)
+                    order.append(nxt)
+                    queue.append(nxt)
+        for tid in tasks:
+            if tid not in visited:
+                order.append(tid)
+
+        for row, tid in enumerate(order):
+            if 'nodeLocation' not in tasks[tid]:
+                tasks[tid]['nodeLocation'] = {'x': spine_x, 'y': 200 + row * 108}
 
     # -- helpers ------------------------------------------------------------
 

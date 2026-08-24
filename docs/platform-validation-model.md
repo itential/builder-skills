@@ -242,3 +242,73 @@ risking the same crash again.
 `validate_workflow.py` remains as the backstop: for legacy/hand-authored
 JSON this API doesn't cover yet, and as a second, independent check on
 anything `workflow_builder.py` produces.
+
+## 6. Findings from live sub-agent testing (childJob/merge/evaluation, NetBox + Gateway5)
+
+Once `add_merge`/`add_evaluation`/`add_child_job` existed, two independent
+agents with no prior context on this work were given only the redesigned
+skill and told to build real workflows against a live platform
+(`itential-se-poc-dev01`) — cold, the way any future user of this skill
+actually would. This surfaced real defects the offline test suite hadn't
+caught, plus one more confirmed-wrong documentation claim:
+
+- **`add_evaluation()` didn't set `all_true_flag` on each group entry, only
+  the top-level field.** A real evaluation needs `all_true_flag` as a
+  sibling of `evaluations` inside every `evaluation_groups[]` entry, not
+  just once at the top. Without it, an evaluation task ran, correctly
+  resolved `operand_1`/`operand_2`, and still finished in `failure` state
+  with empty `outgoing: {}` — silent, no error, and `validate_workflow.py`
+  didn't catch it either since nothing here is a JSON-shape violation.
+  Fixed by having `add_evaluation()` set the flag in both places from one
+  argument.
+- **`add_child_job()`'s optional `data_array`/`loopType` fell through to
+  catalog-driven type defaulting when a caller had loaded
+  `add_task_details()` for childJob** (exactly as this doc's own "Extending
+  the catalog with per-field types" guidance recommends) — `data_array`
+  defaulted to `[]` (its declared type) and `loopType` to `"parallel"`
+  (its first enum value), silently turning an intended single-child call
+  into an empty parallel loop. Fixed by having `add_child_job()` always
+  pass explicit `data_array=''`/`loop_type=''` unless the caller overrides,
+  so these two fields never reach the generic per-type defaulting path.
+- **SKILL.md's documented shape for an evaluation operand's inline `query`
+  key was wrong**, and had been since before this session's changes:
+  it showed `query` nested *inside* `operand_1`. The real shape — confirmed
+  against dozens of real evaluation entries across every vendor asset in
+  this repo, and independently against a live task run — has `query`
+  (applying to `operand_1`) and `rightQuery` (applying to `operand_2`) as
+  **siblings** of `operand_1`/`operand_2`/`operator` in the evaluation
+  entry itself. The nested-in-operand shape silently compiles the entire
+  raw operand object instead of drilling into it. Fixed in SKILL.md.
+- **No structural path existed to set `adapter_id`.** It's real, always
+  required at runtime, and never declared in any task's schema (tasks.json
+  or the dereferenced `getTaskDetails` schema) — so `add_task()` rejected
+  it as an unknown field for every adapter task, making it impossible to
+  build a correct adapter task in one call. Fixed by special-casing
+  `location == 'Adapter'` in `add_task()`: `adapter_id` is added to the
+  allowed field set and required.
+- **`inputSchema`/`outputSchema` submitted on save are discarded, not
+  stored.** `saveWorkflow` always recomputes both from the `$var.job.*`
+  references actually found in the task graph (`getWorkflowSchema` →
+  `calculateWorkflowSchema`, confirmed in `cog.js`) — a declared-but-
+  unreferenced input silently disappears. This wasn't previously
+  documented anywhere in this skill. `to_document()` now labels its
+  placeholder schemas as such, and a new `expose()` builder method wires a
+  task's outgoing field to a job variable (the earlier API only covered
+  `incoming` via `ref()`/`job_ref()`, leaving no construction-time way to
+  make a value show up as workflow output).
+- **No `nodeLocation` was ever assigned**, so every builder-produced
+  workflow rendered as a single overlapping stack at `(0, 0)` in Studio.
+  `to_document()` now runs a simple BFS-order vertical layout (single
+  spine, `+108px` per row, matching this skill's documented layout
+  convention) — not the full fork-offsetting algorithm, but enough that a
+  linear chain of tasks renders sensibly without manual patching.
+
+Both agents independently confirmed the core design thesis in the same
+run: `validate_workflow.py` reported zero violations on every workflow
+they built, and every one of the defects above was still real and
+job-breaking despite that — because the underlying platform gives no
+error either, at save or at job start, for any of them. Static JSON
+validation and construction-time correctness are complementary, not
+substitutes for each other; this round of testing only found bugs because
+real agents ran real jobs against a real platform, not because a script
+flagged something.

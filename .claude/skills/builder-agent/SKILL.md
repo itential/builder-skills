@@ -194,6 +194,8 @@ python3 ${CLAUDE_PLUGIN_ROOT}/helpers/validate_workflow.py <path-to-json>
 ```
 Even code built through `workflow_builder.py` should be checked — it's a second, independent pass, and it's the backstop for anything the builder doesn't model yet (manual tasks, MOP tasks, or hand-edited JSON from an existing asset).
 
+**Saving:** `POST /automation-studio/automations` (body `{"automation": doc}`, documented under "Workflows" below) and `POST /workflow_builder/workflows/save` (body `{"workflow": doc}`) are the same operation — `createAutomation` is a thin wrapper that calls the identical `saveWorkflow` internally, confirmed against source. Either works with `to_document()`'s output unmodified; use whichever this doc's other examples are already using in context. `inputSchema`/`outputSchema` in the submitted document are ignored either way — the platform recomputes both from the `$var.job.*` references it actually finds in the task graph, discarding whatever was submitted. Wire real job variables with `job_ref()`/`expose()` if you need them reflected there.
+
 **What's covered vs. not yet:** any `WorkFlowEngine` or `Adapter` automatic/operation task goes through `add_task`/`ref`/`connect` cleanly — this covers the large majority of real workflows. Manual tasks (`ViewData`/`ViewHTML`), MOP tasks, and templates have creation endpoints and field shapes of their own (see their sections below) that aren't yet modeled as builder convenience methods — build those as JSON directly from a real asset example (see "Guides" below) and always run them through `validate_workflow.py`. If you add builder support for a new task type, add it to `workflow_builder.py` in the same change that documents it here — don't just add prose.
 
 **Extending the catalog with per-field types:** `TaskCatalog.from_tasks_json()` alone gives you real field *names* (enough to catch typos immediately). For type-appropriate defaults and enum values, layer in a task's full schema:
@@ -402,7 +404,7 @@ Then wire the adapter task's `body` to `"$var.e1a1.merged_object"`.
 ```
 If both success and error need to reach `workflow_end`, route error to an intermediate `newVariable` task first (JSON can't have duplicate keys).
 
-**Step 8: Add inputSchema/outputSchema.** List all job variables the workflow expects as input and produces as output.
+**Step 8: inputSchema/outputSchema are not yours to author.** Whatever is submitted in these fields is discarded — the platform recomputes both from scratch from the `$var.job.*` references it finds in the actual task graph (confirmed live: a declared-but-unreferenced input silently disappears on save). If a value needs to show up as a workflow input or output, make sure some task's incoming/outgoing genuinely references `$var.job.<name>` (via `job_ref()`/`expose()` if building through `workflow_builder.py`) — that's what actually drives the computed schema, not the JSON you put in these two fields.
 
 **Step 9: Pre-submit check.**
 
@@ -1563,17 +1565,21 @@ Returns `true`/`false`. Invalid operators silently return `false`. Use this to v
 }
 ```
 
-**Operand can drill into a nested field via an inline `"query"` key — no separate `query` task needed.** Add a `query` sibling alongside `task`/`variable` in the operand object, using the same dot-path syntax as a standalone `query` task. This lets `evaluation` read a nested field of another task's output directly:
+**An evaluation entry can drill into a nested field via `query`/`rightQuery` — no separate `query` task needed.** `query` (applies to `operand_1`) and `rightQuery` (applies to `operand_2`) are **siblings of `operand_1`/`operand_2`/`operator` in the evaluation entry itself — NOT nested inside the operand object.** (An earlier version of this doc showed `query` nested inside `operand_1`; that shape is wrong and was confirmed live to silently compile the entire raw object into `operand_1` instead of drilling into it — always use the sibling-key shape below, confirmed against dozens of real evaluation entries across every vendor asset in this repo.)
 
 ```json
 {
-  "operand_1": {"task": "f6f6", "variable": "mop_template_results", "query": "result"},
+  "operand_1": {"task": "f6f6", "variable": "mop_template_results"},
   "operator": "==",
-  "operand_2": {"task": "static", "variable": true}
+  "operand_2": {"task": "static", "variable": true},
+  "query": "result",
+  "rightQuery": ""
 }
 ```
 
-This replaces the older pattern of a `query` task extracting the field into a job variable before `evaluation` reads it (`query` task → `$var.job.postCheckPassed` → `{"task": "job", "variable": "postCheckPassed"}`) — one task instead of two, and it also avoids adding that intermediate job variable to `inputSchema.required` (see the `{task:"job"}` warning above). Confirmed live: `mop_template_results` is a MOP command-template result object; `query: "result"` pulls its top-level `result` boolean without a separate extraction step.
+This replaces the older pattern of a `query` task extracting the field into a job variable before `evaluation` reads it (`query` task → `$var.job.postCheckPassed` → `{"task": "job", "variable": "postCheckPassed"}`) — one task instead of two, and it also avoids adding that intermediate job variable to `inputSchema.required` (see the `{task:"job"}` warning above). Confirmed live: `mop_template_results` is a MOP command-template result object; `query: "result"` pulls its top-level `result` boolean without a separate extraction step. `rightQuery` works the same way against `operand_2`; pass `""` when unused (every real asset examined always includes both keys, even when empty).
+
+If building via `add_evaluation()`, just add `query`/`rightQuery` as extra keys on the dict you pass for that evaluation entry — the builder doesn't need a dedicated helper for this since it's a plain sibling key, not a reference shape.
 
 ### childJob
 
