@@ -53,9 +53,9 @@ The non-obvious choices made during design or build — and **why**. Skip anythi
 
 ---
 
-## Gotchas Hit
+## Issues Encountered
 
-Things that caused unexpected failures or required workarounds. Future iterations skip re-discovering these.
+Things that caused unexpected failures or required workarounds on this engagement. Future iterations skip re-discovering these.
 
 - **Issue:** ...  
   **Root cause:** ...  
