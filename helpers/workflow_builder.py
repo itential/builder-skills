@@ -129,6 +129,17 @@ def _default_primitive_from_schema(schema, declared_type):
 
 _ACTOR_DEFAULT_JOB = {'childJob', 'runAgent', 'forEach', 'eventListenerJob'}
 
+# WorkFlowEngine "operation" tasks whose compiler (jobs/helpers/utils.js,
+# compileIncomingValues) injects the real job id into incoming.job_id and then
+# spreads any AUTHORED incoming over it -- meaning an authored job_id silently
+# wins with a wrong/placeholder value. These fields are excluded from
+# known_fields entirely in add_task(), so passing job_id raises immediately
+# instead of silently producing a broken task.
+_JOB_ID_AUTO_INJECTED_TASKS = {
+    'runAction', 'forEach', 'push', 'pop', 'shift', 'newVariable',
+    'updateJobDescription', 'childJob', 'query', 'eventListenerJob',
+}
+
 
 def _default_actor(name):
     return 'job' if name in _ACTOR_DEFAULT_JOB else 'Pronghorn'
@@ -138,6 +149,18 @@ def _task_specific_defaults(name):
     if name == 'runCode':
         return {'language': 'python', 'safety': {'timeout': 1}}
     return {}
+
+
+def static_operand(value):
+    """One operand of a merge/evaluation entry, from a literal value.
+    merge.data_to_merge[].value and evaluation's operand_1/operand_2 both use
+    this {task, variable} shape -- confirmed identical in jobs/helpers/utils.js."""
+    return {'task': 'static', 'variable': value}
+
+
+def job_operand(job_variable_name):
+    """One operand referencing a job variable by name (not a $var string)."""
+    return {'task': 'job', 'variable': job_variable_name}
 
 
 class TaskHandle:
@@ -178,26 +201,37 @@ class WorkflowBuilder:
             if tid not in self.tasks and tid not in (WORKFLOW_START, WORKFLOW_END):
                 return tid
 
-    def add_task(self, location, app, name, *, actor=None, task_id=None, **incoming):
-        """Add a task. `incoming` kwargs are STATIC values only -- to wire a
-        $var reference to another task's output, use ref()/job_ref() after
-        adding both tasks. This is the structural guarantee that makes
-        "$var doesn't resolve when nested inside a static literal" and
-        "$var inside an array literal" impossible to hit: nothing in this
-        API ever lets you hand-embed a $var string inside a bigger value."""
-        known_fields = self.catalog.fields(location, app, name)
+    def add_task(self, location, app, method, *, actor=None, task_id=None, **incoming):
+        """Add a task. `method` is the task's real name per the platform task
+        catalog (e.g. "runCode", "push") -- called `method` here, not `name`,
+        because some real tasks (push/pop/shift) have their OWN incoming field
+        literally called "name", which would collide with this parameter.
+
+        `incoming` kwargs are STATIC values only -- to wire a $var reference to
+        another task's output, use ref()/job_ref() after adding both tasks.
+        This is the structural guarantee that makes "$var doesn't resolve when
+        nested inside a static literal" and "$var inside an array literal"
+        impossible to hit: nothing in this API ever lets you hand-embed a $var
+        string inside a bigger value."""
+        known_fields = self.catalog.fields(location, app, method)
+        if method in _JOB_ID_AUTO_INJECTED_TASKS:
+            # The platform injects the real job id into incoming.job_id and then
+            # spreads authored incoming OVER it -- an authored value silently wins
+            # with the wrong id. Exclude it entirely: passing it raises immediately
+            # below (as an "unknown field") instead of producing a broken task.
+            known_fields = known_fields - {'job_id'}
         unknown = set(incoming) - known_fields
         if unknown:
             raise WorkflowBuilderError(
-                f"{name} has no incoming field(s) {sorted(unknown)}. Real fields per the "
-                f"platform's own task catalog: {sorted(known_fields)}."
+                f"{method} has no incoming field(s) {sorted(unknown)}. Real fields per "
+                f"the platform's own task catalog: {sorted(known_fields)}."
             )
 
         tid = task_id or self._new_task_id()
         if tid in self.tasks or tid in (WORKFLOW_START, WORKFLOW_END):
             raise WorkflowBuilderError(f"Task id {tid!r} already exists in this workflow.")
 
-        special_defaults = _task_specific_defaults(name)
+        special_defaults = _task_specific_defaults(method)
         resolved_incoming = {}
         for field in known_fields:
             if field in incoming:
@@ -205,12 +239,12 @@ class WorkflowBuilder:
             elif field in special_defaults:
                 resolved_incoming[field] = special_defaults[field]
             else:
-                resolved_incoming[field] = self.catalog.default_for(location, app, name, field)
+                resolved_incoming[field] = self.catalog.default_for(location, app, method, field)
 
-        meta = self.catalog.lookup(location, app, name)
+        meta = self.catalog.lookup(location, app, method)
         self.tasks[tid] = {
-            'name': name,
-            'canvasName': self.catalog.canvas_name(location, app, name),
+            'name': method,
+            'canvasName': self.catalog.canvas_name(location, app, method),
             'summary': meta.get('summary', ''),
             'description': meta.get('description', ''),
             'app': app,
@@ -218,15 +252,15 @@ class WorkflowBuilder:
             'locationType': meta.get('locationType'),
             'type': meta.get('type', 'automatic'),
             'displayName': meta.get('displayName', app),
-            'actor': actor or _default_actor(name),
+            'actor': actor or _default_actor(method),
             'groups': [],
             'variables': {
                 'incoming': resolved_incoming,
                 'outgoing': {k: '' for k in (meta.get('variables', {}).get('outgoing', {}) or {})},
             },
         }
-        self._task_names[tid] = name
-        return TaskHandle(tid, name)
+        self._task_names[tid] = method
+        return TaskHandle(tid, method)
 
     # -- referencing ---------------------------------------------------
     # The ONLY way to wire a $var reference. Mirrors TaskVariableSelect's
@@ -265,6 +299,85 @@ class WorkflowBuilder:
             decorators = self.tasks[tid]['variables'].setdefault('decorators', [])
             decorators[:] = [d for d in decorators if d.get('pointer') != pointer]
             decorators.append({'type': 'query', 'pointer': pointer, 'displayPath': display_path})
+
+    def task_operand(self, source, output_field):
+        """One operand of a merge/evaluation entry, referencing another task's
+        output. Same existence guarantee as ref(): the source must already be a
+        task added to this workflow."""
+        sid = self._id(source)
+        if sid not in self.tasks:
+            raise WorkflowBuilderError(
+                f"Cannot reference {sid!r}: it is not a task already added to this workflow."
+            )
+        return {'task': sid, 'variable': output_field}
+
+    # -- merge / evaluation ---------------------------------------------
+    # Both compile through fully custom, non-generic logic keyed on a
+    # {"task": ..., "variable": ...} addressing shape -- never a "$var." string.
+    # Build operands with static_operand()/job_operand()/task_operand().
+
+    def add_merge(self, entries, task_id=None):
+        """entries: list of (key, operand) pairs. Real platform behavior
+        (confirmed): fewer than 2 entries silently returns null -- raises here
+        instead of producing a task that will silently misbehave."""
+        if len(entries) < 2:
+            raise WorkflowBuilderError(
+                f"merge needs at least 2 entries (got {len(entries)}) -- with fewer, "
+                f"the real merge task silently returns null instead of erroring."
+            )
+        data_to_merge = [{'key': k, 'value': v} for k, v in entries]
+        return self.add_task('Application', 'WorkFlowEngine', 'merge', task_id=task_id,
+                              data_to_merge=data_to_merge)
+
+    def add_evaluation(self, groups, all_true_flag=True, task_id=None):
+        """groups: list of lists of {operator, operand_1, operand_2} dicts (build
+        operand_1/operand_2 with static_operand()/job_operand()/task_operand()).
+        Remember: connect() this task's outgoing "success" AND "failure" states --
+        finish() will refuse to complete the workflow if either is missing, because
+        a missing one hangs the job forever with no error anywhere on the real
+        platform (confirmed against finishTask.js -- see platform-validation-model.md)."""
+        evaluation_groups = [{'evaluations': group} for group in groups]
+        return self.add_task('Application', 'WorkFlowEngine', 'evaluation', task_id=task_id,
+                              evaluation_groups=evaluation_groups, all_true_flag=all_true_flag,
+                              options={})
+
+    # -- childJob ---------------------------------------------------------
+    # Fully custom compile logic: `workflow` is a plain name (never
+    # project-scoped -- jobStart.js resolves by exact {name}, no "@projectId:"
+    # stripping), and `variables` entries use {"task", "value"} (note: "value",
+    # not "variable" -- the one place this differs from merge/evaluation).
+
+    def add_child_job(self, workflow_name, data_array=None, loop_type=None, task_id=None):
+        if workflow_name.strip().startswith('@'):
+            raise WorkflowBuilderError(
+                f"childJob.workflow = {workflow_name!r} looks project-scoped -- this always "
+                f"fails at job start with \"Cannot find workflow ...\", even from a caller in "
+                f"the same project. Inline the target task(s) instead."
+            )
+        kwargs = {'workflow': workflow_name, 'variables': {}}
+        if data_array is not None:
+            kwargs['data_array'] = data_array
+        if loop_type is not None:
+            kwargs['loopType'] = loop_type
+        return self.add_task('Application', 'WorkFlowEngine', 'childJob', task_id=task_id, **kwargs)
+
+    def child_job_var(self, child_job_task, var_name, value):
+        """Wire a static value into the target workflow's input variable."""
+        tid = self._id(child_job_task)
+        self.tasks[tid]['variables']['incoming']['variables'][var_name] = {'task': 'static', 'value': value}
+
+    def child_job_job_var(self, child_job_task, var_name, job_variable_name):
+        tid = self._id(child_job_task)
+        self.tasks[tid]['variables']['incoming']['variables'][var_name] = {'task': 'job', 'value': job_variable_name}
+
+    def child_job_ref(self, child_job_task, var_name, source, output_field):
+        tid = self._id(child_job_task)
+        sid = self._id(source)
+        if sid not in self.tasks:
+            raise WorkflowBuilderError(
+                f"Cannot reference {sid!r}: it is not a task already added to this workflow."
+            )
+        self.tasks[tid]['variables']['incoming']['variables'][var_name] = {'task': sid, 'value': output_field}
 
     # -- transitions ---------------------------------------------------
     # Ports GoJS's linkingTool.insertLink (Diagram.jsx) + checkForPath /
