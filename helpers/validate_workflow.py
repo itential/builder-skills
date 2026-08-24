@@ -49,6 +49,25 @@ def find_violations(workflow: dict) -> list[str]:
     # (runcode-taskquery-reference.json) with a non-hex task id ("tagCreate").
     # Flagging it would be a confirmed false positive against known-working data.
 
+    # Every task -- including workflow_end, and any other task with zero outgoing
+    # transitions -- MUST have a key in `transitions`, even an empty {}. Confirmed
+    # live against the real platform by bisection: utils.js's validate() does
+    # `Object.keys(workflow.transitions[current])` during its BFS with no guard for
+    # a missing key. Omitting this crashes workflow_builder/workflows/save with a
+    # generic, unattributed "Cannot convert undefined or null to object" -- not
+    # documented anywhere else. A real canvas-saved document always carries an
+    # explicit "workflow_end": {} for exactly this reason.
+    all_task_ids = set(tasks) | {'workflow_start', 'workflow_end'} if tasks else set()
+    for tid in sorted(all_task_ids):
+        if tid not in transitions:
+            violations.append(
+                f"[{tid}] has no entry in \"transitions\" at all (not even {{}}) -- if "
+                f"anything transitions to this task, saving the workflow crashes with "
+                f"\"Cannot convert undefined or null to object\". Add "
+                f"\"transitions\": {{..., {tid!r}: {{}}}} even if this task has no "
+                f"real outgoing transitions."
+            )
+
     for tid, task in tasks.items():
         name = task.get('name')
         incoming = task.get('variables', {}).get('incoming', {})

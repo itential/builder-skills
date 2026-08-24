@@ -117,6 +117,9 @@ Status legend:
 | 12 | `childJob` outgoing `job_details` must be `null` | `compileOutgoingValues` (`utils.js:702-721`) never inspects outgoing values, only key names | **not a platform-enforced rule** — empirical only |
 | 13 | Adapter output shape `{response, headers, metrics}` lands one level deeper than expected | Not produced by `app-workflow_engine` (adapter/broker framework territory) but the *consequence* is confirmed: `finishTask.js:536-542` `getReturnValue` writes the **entire** return object verbatim into a single declared outgoing variable with no unwrapping | **structural, not a bug** — document as "how output binding works," not a gotcha |
 | — | Referenced task must exist (`$var.<taskId>.<field>` → real task id) | `lib.js:1272-1279` pushes this to `errors` | **blocks job start** (not save) — wasn't previously in the gotcha list; added to the validator since it's free to check statically |
+| 14 | Every task must have a key in `transitions`, even `{}` — including `workflow_end`, and any task with zero outgoing transitions | `utils.js`'s `validate()` BFS does `Object.keys(workflow.transitions[current])` with **no guard** for a missing key. Confirmed live by building a minimal workflow and bisecting: a task present in `tasks` but absent as a key in `transitions` crashes **save itself** (not job start) with a generic, completely unattributed `"Cannot convert undefined or null to object"` — no task name, no hint. A real canvas-saved document always carries an explicit `"workflow_end": {}` for exactly this reason; this had never been written down anywhere before this investigation | **hard crash on save** — this is NOT one of `validateTask`/`validateTransition`'s checks; it's an unguarded exception inside the same `validate()` call `saveWorkflow` invokes, which is why it manages to block save despite the "validate never blocks save" rule above (see the note on `Workflows.validate()` vs. a raw thrown exception in section on job start) |
+
+**Note on the distinction above**: `Workflows.validate()` swallows anything pushed onto its `errors`/`warnings` *arrays* — that part never blocks save. But it does **not** catch a raw JS exception thrown by the validation code itself (e.g. `Object.keys(undefined)`); that propagates up as the `error` argument to `saveWorkflow`'s callback and does get treated as a hard failure. In other words: things the validator *checks for and reports* are advisory; things that make the validator *itself crash* are blocking. This is exactly why gotcha #14's "workflow_end needs an explicit `{}` entry" fact could survive completely undocumented until now — it's invisible to `/workflows/validate` (which also crashes the same way rather than reporting it as a normal finding).
 
 ## 3. What this means for the validator
 
@@ -193,3 +196,49 @@ reachability of every task from `workflow_start`. Useful signal if you
 want it early — call `/workflows/validate` explicitly — but don't assume
 `/workflows/save` succeeding means any of this passed, and don't assume a
 job starting means the `warnings`-level ones passed either.
+
+## 5. From lint-after to construct-correctly: `helpers/workflow_builder.py`
+
+Everything above is still framed as "check a hand-authored JSON document
+after the fact." That's reactive by construction — every new task type
+can introduce a new footgun nobody's discovered yet, and an agent has to
+recall every rule correctly, every time, when hand-assembling the final
+document in one shot.
+
+The canvas UI doesn't have this problem. Not because it validates
+better — per section 1, its construction-time guardrails have zero
+server-side backing — but because it makes wrong states **unconstructible
+in the first place**: task ids are generated, not typed; `$var`
+references are assembled from cascading pickers over tasks that already
+exist, never typed as a raw string that could land in the wrong place;
+GoJS's `linkingTool` physically refuses to let you draw a self-loop, a
+duplicate transition, or a loop-boundary violation.
+
+`helpers/workflow_builder.py` ports that same construction-time state
+machine (not the UI, just the logic behind it) into a small Python API:
+`add_task()` (schema-driven field validation + task-specific defaults,
+mirroring `getTasksData`), `connect()` (ports `insertLink`/`checkForPath`/
+`validateLoopTransitions` from `Diagram.jsx`/`utils/diagram.js` verbatim),
+`ref()`/`job_ref()` (the only way to wire a `$var` reference — structurally
+cannot land inside a nested static value, mirroring `TaskVariableSelect`/
+`InputQuery`), and `finish()` (checks completeness using the graph it
+already built incrementally — reachability, evaluation success+failure,
+forEach closure).
+
+**Live-tested end to end against a real platform + Gateway5 cluster**,
+not just offline: built a `runCode` task through this API, ran it through
+`validate_workflow.py` (0 violations), saved it via
+`workflow_builder/workflows/save` (200, no errors), started a job via
+`operations-manager/jobs/start`, and confirmed both the job and the task
+reached `status: "complete"`. This exercise is what found gotcha #14
+above — the builder's first attempt at `to_document()` omitted the
+`workflow_end: {}` transitions entry (nobody writes that by hand, because
+nobody knew it was required), and the live save crashed with the exact
+generic error now explained in this document. Fixed once, in one place,
+inside `to_document()` — every workflow built through this API gets it
+correct from now on, instead of every future hand-authored document
+risking the same crash again.
+
+`validate_workflow.py` remains as the backstop: for legacy/hand-authored
+JSON this API doesn't cover yet, and as a second, independent check on
+anything `workflow_builder.py` produces.
