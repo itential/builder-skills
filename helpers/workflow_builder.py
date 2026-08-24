@@ -189,9 +189,19 @@ def _default_actor(name):
     return 'job' if name in _ACTOR_DEFAULT_JOB else 'Pronghorn'
 
 
+# Not in any task schema, confirmed live to be required and identical for every
+# manual task type seen so far (ViewData, ViewHTML).
+_MANUAL_TASK_HOST_APP = '@itential/app-operations_manager'
+
+
 def _task_specific_defaults(name):
     if name == 'runCode':
         return {'language': 'python', 'safety': {'timeout': 1}}
+    if name in ('ViewData', 'ViewHTML'):
+        # incoming.variables is declared optional in the catalog, but the
+        # generic per-field default_for() fallback ('') is wrong for it --
+        # it's an object (the <!var!>/body substitution map), not a string.
+        return {'variables': {}}
     return {}
 
 
@@ -317,7 +327,8 @@ class WorkflowBuilder:
                 resolved_incoming[field] = self.catalog.default_for(location, app, method, field)
 
         meta = self.catalog.lookup(location, app, method)
-        self.tasks[tid] = {
+        is_manual = meta.get('type') == 'manual'
+        task_dict = {
             'name': method,
             'canvasName': self.catalog.canvas_name(location, app, method),
             'summary': meta.get('summary', ''),
@@ -331,13 +342,27 @@ class WorkflowBuilder:
             'locationType': resolved_app if adapter_resolved else meta.get('locationType'),
             'type': meta.get('type', 'automatic'),
             'displayName': meta.get('displayName', app),
-            'actor': actor or _default_actor(method),
             'groups': [],
             'variables': {
                 'incoming': resolved_incoming,
                 'outgoing': {k: '' for k in (meta.get('variables', {}).get('outgoing', {}) or {})},
             },
         }
+        if is_manual:
+            # Manual tasks (ViewData/ViewHTML) have NO actor key at all -- not
+            # null, not "Pronghorn", omitted entirely. `view` is a real
+            # tasks.json field (confirmed live); `taskVersion`/`hostApp` are
+            # not in any task schema but are required constants for every
+            # manual task confirmed so far (both ViewData and ViewHTML use the
+            # same hostApp) -- if a manual task type outside this app/host
+            # turns up needing a different hostApp, this will need revisiting.
+            task_dict['view'] = meta.get('view', '')
+            task_dict['taskVersion'] = 2
+            task_dict['hostApp'] = _MANUAL_TASK_HOST_APP
+        else:
+            task_dict['actor'] = actor or _default_actor(method)
+
+        self.tasks[tid] = task_dict
         self._task_names[tid] = method
         return TaskHandle(tid, method)
 

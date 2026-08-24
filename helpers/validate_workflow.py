@@ -201,6 +201,39 @@ def find_violations(workflow: dict) -> list[str]:
                 f"\\\"params\\\" from model\". Always pass \"params\": {{}} explicitly."
             )
 
+        # Manual tasks (ViewData/ViewHTML/viewTemplateResults/etc): draft-validation-
+        # error traps, mechanically checkable from the JSON alone. Confirmed live.
+        # `workflow_builder.py`'s add_task() gets these right automatically; this is
+        # the backstop for hand-authored JSON.
+        if task.get('type') == 'manual':
+            # "view" required and "actor" forbidden are structural requirements of
+            # type:manual itself -- confirmed to apply generically, not tied to one
+            # specific manual task's field schema.
+            if not task.get('view'):
+                violations.append(
+                    f"[{tid}] manual task {name!r} has no top-level \"view\" field (or "
+                    f"it's empty) -- fails with \"Manual Tasks require 'view' key with "
+                    f"path to task view\". Must be a sibling of \"name\"/\"type\"/\"app\", "
+                    f"not inside \"variables\"."
+                )
+            if 'actor' in task:
+                violations.append(
+                    f"[{tid}] manual task {name!r} has an \"actor\" key ({task['actor']!r}) "
+                    f"-- manual tasks have no actor at all, not \"Pronghorn\", not null. "
+                    f"Omit the key entirely."
+                )
+            # incoming.variables being required-if-present is specific to ViewData/
+            # ViewHTML's own field schema -- OTHER manual tasks (e.g. MOP's
+            # viewTemplateResults, whose only real field is mop_template_results)
+            # don't declare a "variables" field at all, so checking for it there
+            # would be a false positive. Confirmed by reading both schemas directly.
+            if name in ('ViewData', 'ViewHTML') and 'variables' not in incoming:
+                violations.append(
+                    f"[{tid}] manual task {name!r} is missing incoming.\"variables\" -- "
+                    f"fails with \"Input: 'variables' is not defined in task model\" even "
+                    f"though it's optional in the schema. Always include it, even as {{}}."
+                )
+
         # evaluation needs both a "success" and a "failure" outgoing transition.
         # A failed evaluation explicitly returns undefined -> mapped to 'failure'
         # state. If that state has no transition, finishTask.js's addSubsuquentTaskUpdates

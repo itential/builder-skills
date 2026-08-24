@@ -201,7 +201,7 @@ Even code built through `workflow_builder.py` should be checked — it's a secon
 
 **Saving:** `POST /automation-studio/automations` (body `{"automation": doc}`, documented under "Workflows" below) and `POST /workflow_builder/workflows/save` (body `{"workflow": doc}`) are the same operation — `createAutomation` is a thin wrapper that calls the identical `saveWorkflow` internally, confirmed against source. Either works with `to_document()`'s output unmodified; use whichever this doc's other examples are already using in context. `inputSchema`/`outputSchema` in the submitted document are ignored either way — the platform recomputes both from the `$var.job.*` references it actually finds in the task graph, discarding whatever was submitted. Wire real job variables with `job_ref()`/`expose()` if you need them reflected there.
 
-**What's covered vs. not yet:** any `WorkFlowEngine` or `Adapter` automatic/operation task goes through `add_task`/`ref`/`connect` cleanly — this covers the large majority of real workflows. Manual tasks (`ViewData`/`ViewHTML`), MOP tasks, and templates have creation endpoints and field shapes of their own (see their sections below) that aren't yet modeled as builder convenience methods — build those as JSON directly from a real asset example (see "Guides" below) and always run them through `validate_workflow.py`. If you add builder support for a new task type, add it to `workflow_builder.py` in the same change that documents it here — don't just add prose.
+**What's covered vs. not yet:** any `WorkFlowEngine`/`Adapter` automatic/operation task, and manual tasks (`ViewData`/`ViewHTML`), go through `add_task`/`ref`/`connect` cleanly — this covers the large majority of real workflows. MOP command templates (see "Command Templates (MOP)" below for `MopTemplateBuilder`) and Jinja2/TextFSM templates are separate document types with creation endpoints of their own — build those as JSON directly from a real asset example (see "Guides" below) and always run them through `validate_workflow.py`. If you add builder support for a new task type, add it to `workflow_builder.py` in the same change that documents it here — don't just add prose.
 
 **Extending the catalog with per-field types:** `TaskCatalog.from_tasks_json()` alone gives you real field *names* (enough to catch typos immediately). For type-appropriate defaults and enum values, layer in a task's full schema:
 ```python
@@ -1837,7 +1837,13 @@ POST /mop/createAnalyticTemplate
 
 ## Manual Tasks (Human-in-the-Loop)
 
-Not yet modeled in `workflow_builder.py` — build these as JSON from a real asset example.
+**Now covered by `workflow_builder.py`** — `add_task()` detects `type: "manual"` from the catalog and handles the three requirements below automatically (real `view` copied from the catalog, `taskVersion`/`hostApp` added, `actor` omitted entirely):
+```python
+vd = wf.add_task('Application', 'WorkFlowEngine', 'ViewData',
+                  header='Approval Required', message='Review and approve.',
+                  body='...', btn_success='Approve', btn_failure='Reject')
+```
+`validate_workflow.py` backstops the same three rules for hand-authored JSON.
 
 **ViewData** — presents structured data for operator approval/rejection.
 ```json
