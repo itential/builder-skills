@@ -162,13 +162,18 @@ from workflow_builder import WorkflowBuilder, TaskCatalog, static_operand, job_o
 
 # TaskCatalog reads the real task catalog -- {use-case}/tasks.json -- so add_task()
 # rejects an unknown/misremembered field name immediately instead of building a
-# task that fails silently or hangs at runtime.
+# task that fails silently or hangs at runtime. Loading apps.json/adapters.json
+# too means adapter tasks resolve app/locationType/adapter_id automatically
+# (see "Adapter Task Discovery" below) -- skip these two lines if you don't need
+# any adapter tasks in this workflow.
 catalog = TaskCatalog.from_tasks_json('{use-case}/tasks.json')
+catalog.load_apps_json('{use-case}/apps.json')
+catalog.load_adapters_json('{use-case}/adapters.json')
 
 wf = WorkflowBuilder('My Workflow', catalog, description='...')
 
 q = wf.add_task('Application', 'WorkFlowEngine', 'query', obj={}, query='hostname', pass_on_null=False)
-adapter_task = wf.add_task('Adapter', 'Servicenow', 'createChangeRequest', adapter_id='servicenow-prod')
+adapter_task = wf.add_task('Adapter', 'servicenow-prod', 'createChangeRequest')  # instance id -- app/locationType/adapter_id all resolved
 wf.ref(adapter_task, 'body', q, 'return_data')          # $var wiring -- the ONLY way to set a field
                                                           # to another task's output; never hand-type a
                                                           # $var string, so it can never end up nested
@@ -206,17 +211,27 @@ catalog.add_task_details(location, pckg, method, details_response_json)
 
 ### Adapter Task Discovery
 
-Every adapter task needs three values, from three different files — they never match, and every place in this skill that mentions building an adapter task assumes you've already done this lookup:
+**If building via `workflow_builder.py`, this is automatic — load the two extra files and pass the adapter instance name, nothing else:**
+```python
+catalog = TaskCatalog.from_tasks_json('{use-case}/tasks.json')
+catalog.load_apps_json('{use-case}/apps.json')
+catalog.load_adapters_json('{use-case}/adapters.json')
 
-1. **`app` / `locationType`** — from `apps.json` `.name` (the adapter **type** name). Never from `tasks.json`; the two can differ completely (`ServiceNow` in tasks.json vs. `Servicenow` in apps.json; `EmailOpensource` vs. `email`). Using the wrong one fails at job start with `"No config found for Adapter: X"`.
+wf.add_task('Adapter', 'netbox-selab', 'getDcimDevices', limit=50)
+# -> app="Netbox", locationType="Netbox", incoming.adapter_id="netbox-selab" -- all resolved for you
+```
+This works because `tasks.json`'s own `app` field for an Adapter-location task **is already the adapter instance id** (confirmed live — a real task has `{"app": "netbox", ...}` while the actual type is `"Netbox"`) — the same value that belongs in `adapter_id`. `add_task()` resolves the real type name via `adapters.json[instance].package_id` → `apps.json[package_id].name`, and auto-fills `adapter_id` from the same instance id you already passed as `app`. If `load_apps_json`/`load_adapters_json` aren't called (or the instance is missing — e.g. currently unhealthy in a `health/adapters`-sourced `adapters.json`), `add_task()` falls back to requiring `adapter_id` explicitly and using `app` literally, same as before.
+
+**Hand-authoring instead, or the instance isn't resolvable?** Do the same two-hop join manually:
+1. Find the instance in `adapters.json` `.results[].id` (e.g. `netbox-selab`) and its `.package_id` (e.g. `@itentialopensource/adapter-netbox`).
    ```bash
-   jq '.[] | select(.name | test("keyword"; "i")) | {name, type}' {use-case}/apps.json
+   jq '.results[] | select(.package_id | test("keyword"; "i")) | {id, package_id, state}' {use-case}/adapters.json
    ```
-2. **`adapter_id`** — from `adapters.json` `.results[].id` (the adapter **instance** name, e.g. `servicenow-prod`). Never the type name, and never the spec's identity table — `adapters.json` is the source of truth for the actual target environment, the spec is a design document. Goes in `incoming`, not the task-level `app` field. Not declared in any task schema, but always required; `add_task()` enforces this for `location: 'Adapter'` tasks.
+2. Look up that `package_id` in `apps.json` `.id` to get the real `.name` — this is the correct `app`/`locationType` value. **Never take `app`/`locationType` from `tasks.json`** — its `app` field for adapter tasks is the instance id, not the type, and using it directly fails at job start with `"No config found for Adapter: X"`.
    ```bash
-   jq '.results[] | select(.package_id | test("keyword"; "i")) | {id, state}' {use-case}/adapters.json
+   jq '.[] | select(.id == "PACKAGE_ID") | {id, name}' {use-case}/apps.json
    ```
-3. **`displayName`** — from `tasks.json`; may differ from `app`.
+3. `adapter_id` in `incoming` is the instance id from step 1 — never the spec's identity table (`adapters.json` is the source of truth for the actual target environment, the spec is a design document).
 
 Then get the real field schema — check whether an asset project already has this task wired first (see "Look up task wiring in asset projects first" under Task Discovery); if not:
 ```
@@ -1307,7 +1322,7 @@ Conditional branching. **MUST have BOTH success AND failure transitions.**
 ```
 contains, !contains, <, <=, >, >=, ==, !=
 ```
-`regex`, `match`, `matches`, `contains_key`, `in`, `startsWith` — **do not exist**. An invalid operator silently returns `false` with empty outgoing and `finish_state: failure`. No error message. Always validate against this list before wiring. Source of truth: `openapi.json` at `components/schemas/workflow_engine_wfEngineCommon_evaluationItem/properties/operator/enum`.
+`regex`, `match`, `matches`, `contains_key`, `in`, `startsWith` — **do not exist**. An invalid operator silently returns `false` with empty outgoing and `finish_state: failure`. No error message. Source of truth: `openapi.json` at `components/schemas/workflow_engine_wfEngineCommon_evaluationItem/properties/operator/enum`. Enforced by `helpers/validate_workflow.py`.
 
 **`contains` is regex-based, not substring.** `operand_2` is interpreted as a regex pattern. A literal like `9.2(4)` is parsed as regex — `.` matches any char, `(4)` becomes a capture group — and may match unintended strings or fail to match the intended one. Escape regex metacharacters in literal patterns: `9\.2\(4\)` not `9.2(4)`.
 
@@ -1432,7 +1447,7 @@ forEach --state:success--> nextTaskAfterLoop
 
 1. **`incoming` must only contain `data_array`** — do NOT include `job_id` or any other field. Adding `job_id` causes errors at runtime.
 
-2. **`$var.<taskId>.<output>` does NOT resolve inside the loop body** — string references like `$var.n01.current_item` silently resolve to `null` inside a forEach body. Use `$var.job.<varName>` instead (bind the forEach's outgoing to a job variable and reference that). This applies to ALL reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body.
+2. **`$var.<taskId>.<output>` does NOT resolve inside the loop body when `taskId` is the forEach task itself or any task outside the loop** — string references like `$var.n01.current_item` (`n01` being the forEach task) silently resolve to `null`. Use `$var.job.<varName>` instead (bind the forEach's outgoing to a job variable and reference that). This applies to ALL reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable. This does NOT apply to references between two tasks that are both inside the same loop body — normal sibling-to-sibling wiring there works fine. Enforced by `helpers/validate_workflow.py`, which found 5 real, previously-undetected instances of this exact bug in this repo's own reference assets.
 
 3. **Loop body tasks cannot transition to tasks outside the loop** — no error transitions from loop body tasks to external error handlers. The `forEach` task itself handles exit via `state: "error"` on the forEach transition. Handle errors within the loop body, then let the forEach's error transition route out.
 
@@ -1626,7 +1641,7 @@ POST /template_builder/templates/{name}/renderJinja
 
 MOP manages command templates for running CLI commands with validation rules. **MOP is read-only validation only — never use it to push config.**
 
-**Configuration Manager remediation tasks are never wired into a workflow, even if a spec asks for fully automatic remediation:** `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, `ManualRemediationResults`. Golden Config's role is to detect and report drift — it never applies fixes to a device. To correct a device, build a normal config-push delivery instead (see the pattern below). `updateNodeConfig` is fine — it authors the GC node template, not a device.
+**Configuration Manager remediation tasks are never wired into a workflow, even if a spec asks for fully automatic remediation:** `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, `ManualRemediationResults`. Golden Config's role is to detect and report drift — it never applies fixes to a device. To correct a device, build a normal config-push delivery instead (see the pattern below). `updateNodeConfig` is fine — it authors the GC node template, not a device. Enforced by `helpers/validate_workflow.py`.
 
 **To push config to a device, use `itential_cli` via AGManager** — not MOP. The standard pattern for any config push delivery is:
 

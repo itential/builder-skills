@@ -54,8 +54,10 @@ class TaskCatalog:
     that fails at job start (or never fails at all)."""
 
     def __init__(self):
-        self._by_key = {}       # (location, app, name) -> task meta from tasks.json
-        self._details = {}      # (location, app, name) -> dereferenced getTaskDetails() result
+        self._by_key = {}             # (location, app, name) -> task meta from tasks.json
+        self._details = {}            # (location, app, name) -> dereferenced getTaskDetails() result
+        self._apps_by_package = {}    # apps.json[].id (package, e.g. "@itentialopensource/adapter-netbox") -> entry
+        self._adapters_by_instance = {}  # adapters.json .results[].id (instance, e.g. "netbox-selab") -> entry
 
     @classmethod
     def from_tasks_json(cls, path):
@@ -66,6 +68,48 @@ class TaskCatalog:
             key = (t.get('location'), t.get('app'), t.get('name'))
             catalog._by_key[key] = t
         return catalog
+
+    def load_apps_json(self, path):
+        """apps.json: a flat list of {id, type, name} -- id is the package
+        (e.g. "@itentialopensource/adapter-netbox"), name is the real app/
+        locationType value a workflow task needs (e.g. "Netbox"). Confirmed
+        live against a real platform pull."""
+        with open(path) as f:
+            apps = json.load(f)
+        for a in apps:
+            if a.get('id'):
+                self._apps_by_package[a['id']] = a
+
+    def load_adapters_json(self, path):
+        """adapters.json: {"results": [{id, package_id, ...}]} -- id is the
+        adapter INSTANCE name (e.g. "netbox-selab"), package_id is the join
+        key into apps.json. Confirmed live against a real platform pull."""
+        with open(path) as f:
+            data = json.load(f)
+        items = data.get('results', data if isinstance(data, list) else [])
+        for a in items:
+            if a.get('id'):
+                self._adapters_by_instance[a['id']] = a
+
+    def resolve_adapter_app(self, instance_id):
+        """Given an adapter INSTANCE id, resolve the real app/locationType
+        value via adapters.json -> apps.json. Returns None (never raises) if
+        apps.json/adapters.json weren't loaded or the instance isn't found --
+        callers fall back to requiring the value be passed explicitly.
+
+        Confirmed live: tasks.json's own `app` field for Adapter-location
+        tasks is the adapter INSTANCE id, not the real type name -- e.g. a
+        real task has {"app": "netbox", ...} while the real type is "Netbox".
+        This is exactly why the platform's own task catalog can't be trusted
+        for this one field, and why a separate two-hop join through
+        adapters.json and apps.json is the only correct source."""
+        adapter = self._adapters_by_instance.get(instance_id)
+        if adapter is None:
+            return None
+        app_entry = self._apps_by_package.get(adapter.get('package_id'))
+        if app_entry is None:
+            return None
+        return app_entry.get('name')
 
     def add_task_details(self, location, app, name, details):
         """Layer in a getTaskDetails()/multipleTaskDetails() result (real
@@ -220,21 +264,36 @@ class WorkflowBuilder:
             # with the wrong id. Exclude it entirely: passing it raises immediately
             # below (as an "unknown field") instead of producing a broken task.
             known_fields = known_fields - {'job_id'}
+
+        resolved_app = app
+        adapter_resolved = False
         if location == 'Adapter':
-            # adapter_id (the adapter INSTANCE name from adapters.json .results[].id,
-            # e.g. "netbox-selab" -- NOT the type name passed as `app`) is never
-            # declared in any task schema, but is always required at runtime --
-            # confirmed live: omitting it fails with "No config found for Adapter: ...".
-            # Add it to known_fields explicitly and require it, rather than leaving
-            # it structurally impossible to set (the field would otherwise be
-            # rejected as unknown).
+            # tasks.json's own `app` field for Adapter-location tasks IS the
+            # adapter INSTANCE id (confirmed live, e.g. a real task has
+            # {"app": "netbox", ...} while the real workflow-task `app`/
+            # `locationType` value is "Netbox") -- which is also the catalog's
+            # own lookup key, so `app` here already IS the instance id.
+            # If apps.json/adapters.json are loaded, resolve the real type
+            # name automatically and auto-fill adapter_id -- the caller
+            # never has to do the manual two-hop join or specify adapter_id
+            # separately. Falls back to requiring adapter_id explicitly
+            # (old behavior) when the catalog can't resolve it (files not
+            # loaded, or this instance is currently unhealthy and missing
+            # from a health/adapters-sourced adapters.json).
+            auto_resolved = self.catalog.resolve_adapter_app(app)
+            if auto_resolved is not None:
+                resolved_app = auto_resolved
+                adapter_resolved = True
+                incoming.setdefault('adapter_id', app)
+
             known_fields = known_fields | {'adapter_id'}
             if 'adapter_id' not in incoming:
                 raise WorkflowBuilderError(
                     f"Adapter task {method!r} requires 'adapter_id' -- the adapter "
-                    f"INSTANCE name from adapters.json .results[].id (e.g. 'netbox-selab'), "
-                    f"not the type name passed as `app`. Not declared in any task schema, "
-                    f"but always required."
+                    f"INSTANCE name from adapters.json .results[].id (e.g. 'netbox-selab'). "
+                    f"Not declared in any task schema, but always required. Load "
+                    f"apps.json/adapters.json via catalog.load_apps_json()/"
+                    f"load_adapters_json() to have this resolved automatically."
                 )
         unknown = set(incoming) - known_fields
         if unknown:
@@ -263,9 +322,13 @@ class WorkflowBuilder:
             'canvasName': self.catalog.canvas_name(location, app, method),
             'summary': meta.get('summary', ''),
             'description': meta.get('description', ''),
-            'app': app,
+            'app': resolved_app,
             'location': location,
-            'locationType': meta.get('locationType'),
+            # tasks.json's own locationType for adapter tasks is subject to the
+            # exact same instance-vs-type confusion as `app` -- override it with
+            # the resolved type name whenever we successfully resolved one,
+            # rather than trusting the catalog's raw value for Adapter tasks.
+            'locationType': resolved_app if adapter_resolved else meta.get('locationType'),
             'type': meta.get('type', 'automatic'),
             'displayName': meta.get('displayName', app),
             'actor': actor or _default_actor(method),

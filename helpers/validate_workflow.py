@@ -24,6 +24,21 @@ import sys
 
 TASK_VAR_RE = re.compile(r'^\$var\.([^.]+)\.')
 
+# The real, closed enum for evaluation operators. Confirmed against
+# openapi.json's workflow_engine_wfEngineCommon_evaluationItem.properties.operator.enum --
+# anything else (e.g. "regex", "contains_key", "in", "startsWith") does not exist
+# and silently returns false with no error.
+EVALUATION_OPERATORS = {'contains', '!contains', '<', '<=', '>', '>=', '==', '!='}
+
+# Product policy, not a platform bug: Golden Config detects and reports drift, it
+# never applies fixes to a device. `updateNodeConfig` is deliberately excluded --
+# it authors the GC node template, not a device.
+_PROHIBITED_REMEDIATION_TASKS = {
+    'runAutoRemediation', 'advancedAutoRemediation', 'convertChangesToConfig',
+    'patchDeviceConfiguration', 'advancedPatchDeviceConfiguration',
+    'patchCMDeviceConfiguration', 'ManualRemediation', 'ManualRemediationResults',
+}
+
 
 def collect_strings(value, path=""):
     """Recursively yield (path, string) for every string nested inside value."""
@@ -72,6 +87,22 @@ def find_violations(workflow: dict) -> list[str]:
         name = task.get('name')
         incoming = task.get('variables', {}).get('incoming', {})
         outgoing = task.get('variables', {}).get('outgoing', {})
+
+        # Golden Config remediation tasks are a product-policy prohibition, not a
+        # platform bug: Golden Config detects and reports drift, it never applies
+        # fixes to a device. A workflow that wires one of these -- even if a spec
+        # asks for fully automatic remediation -- is doing something the platform
+        # will happily run but this org has decided never to build. Mechanically
+        # checkable (it's just a task name), so it's a rule here, not just prose.
+        if name in _PROHIBITED_REMEDIATION_TASKS:
+            violations.append(
+                f"[{tid}] {name!r} is a Configuration Manager remediation task -- "
+                f"prohibited in every workflow, even when a spec asks for fully "
+                f"automatic remediation. Golden Config detects and reports drift; it "
+                f"never applies fixes to a device. Build a normal config-push delivery "
+                f"instead. (`updateNodeConfig` is fine -- it authors the GC node "
+                f"template, not a device.)"
+            )
 
         # childJob can't resolve project-scoped workflow names ("@<projectId>: <name>").
         # jobStart.js resolves purely by `{name}` against the workflows collection with
@@ -187,6 +218,21 @@ def find_violations(workflow: dict) -> list[str]:
                     f"doesn't fire for this case)."
                 )
 
+            # evaluation operators are a closed enum -- anything else silently
+            # compiles to a no-match, returning false with an empty outgoing and
+            # no error message at all. Source of truth: openapi.json's
+            # workflow_engine_wfEngineCommon_evaluationItem.properties.operator.enum.
+            for group in incoming.get('evaluation_groups', []) or []:
+                for entry in group.get('evaluations', []) or []:
+                    op = entry.get('operator')
+                    if op is not None and op not in EVALUATION_OPERATORS:
+                        violations.append(
+                            f"[{tid}] evaluation operator {op!r} is not in the real closed "
+                            f"enum {sorted(EVALUATION_OPERATORS)} -- an invalid operator "
+                            f"silently returns false with no error message, it does not fail "
+                            f"loudly."
+                        )
+
         # forEach: the last loop-body task must end in an empty {} transition, not a
         # loop-back to the forEach task's own id. getEndTasks/markIterationTasks walk
         # forward over standard transitions with no boundary check for re-entering the
@@ -195,7 +241,7 @@ def find_violations(workflow: dict) -> list[str]:
         if name == 'forEach':
             loop_starts = [
                 target for target, t in transitions.get(tid, {}).items()
-                if t.get('type') == 'loop'
+                if t.get('state') == 'loop'
             ]
             visited = set()
             stack = list(loop_starts)
@@ -217,6 +263,35 @@ def find_violations(workflow: dict) -> list[str]:
                         )
                     else:
                         stack.append(target)
+
+            # $var.<taskId>.<field> does not resolve inside a forEach loop body when
+            # <taskId> is the forEach task itself or any task OUTSIDE the loop body --
+            # confirmed live (documented example: $var.n01.current_item, n01 being the
+            # forEach task). This does NOT apply to sibling-to-sibling references
+            # between two tasks that are BOTH inside the same loop body -- confirmed
+            # against real production assets that wire loop-body tasks to each other
+            # this way extensively. `visited` here is exactly the set of loop-body
+            # task ids already computed above.
+            for body_tid in visited:
+                if body_tid not in tasks:
+                    continue
+                body_incoming = tasks[body_tid].get('variables', {}).get('incoming', {})
+                for field, value in body_incoming.items():
+                    if not isinstance(value, str):
+                        continue
+                    m = TASK_VAR_RE.match(value)
+                    if not m or m.group(1) == 'job':
+                        continue
+                    ref_tid = m.group(1)
+                    if ref_tid == tid or ref_tid not in visited:
+                        violations.append(
+                            f"[{body_tid}] incoming.{field} = {value!r} is inside forEach "
+                            f"{tid!r}'s loop body and references a task outside the loop "
+                            f"body (the forEach task itself or an external task) -- this "
+                            f"does not resolve inside a loop body, for any reference style. "
+                            f"Bind the source task's outgoing to a job variable and use "
+                            f"$var.job.<name> instead."
+                        )
 
         # $var does not resolve inside array or nested-object literal VALUES -- only
         # a field whose entire top-level value is a string gets classified/resolved
