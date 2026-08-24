@@ -201,6 +201,33 @@ Before writing any JSON, identify the parent/child split from the solution desig
 
 Build order is always: **children first, orchestrator last.** The orchestrator is just childJob calls to tested children — it should not contain raw adapter tasks unless there is no logical way to split.
 
+**Step 0a: Before building a per-item transform loop, default to `runCode` + Enable Query instead of chaining WorkFlowEngine utility tasks.**
+
+If a phase does ANY of the following, don't reach for `forEach` + `query`×N + `evaluation` + `newVariable` + `merge` + `push`/`objectToString`/`join`/`makeData` — build it as a single `runCode` (Python, `GatewayManager`) task instead:
+- Loops over a list, extracting 2+ fields per item
+- Branches per item on a field value (manufacturer, status, type) to pick between two or more output shapes
+- Reshapes each item into a different structure before handing it to the next task
+
+One real example collapsed **15–17 WorkFlowEngine tasks into 2** (`runCode` + one `query` to pull the result back out) — see the helper asset below. Then check whether that trailing `query` task is even necessary: if its only job is handing ONE field of an object to ONE downstream task's field, use **Enable Query** instead (a decorator on the consuming field, no task at all — see `### "Enable Query"` below). Confirmed to work on both top-level fields and fields nested inside another field's object (e.g. `runCode`'s `data.devices`, `runService`'s `params.devices`) — not confirmed on `evaluation` operands (`{"task":"job","variable":"x"}` is a different reference shape than a plain `$var` string; don't assume it works there without testing).
+
+**When NOT to use `runCode`:** the per-item work needs to call another platform task (adapter, app method, childJob) for each item — `runCode` only runs Python against the `data` payload it's given; it cannot invoke other Itential tasks. Use `forEach`+`childJob`/adapter-task for that instead.
+
+**Read the real, verified example before building any transform loop:**
+```bash
+# See the whole pattern: NetBox devices -> per-vendor secret mapping -> reshaped records,
+# via one runCode task + Enable Query, both the "reuse a script" and "native tasks" versions
+jq '[.components[] | select(.type=="workflow")] | .[].document.name' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+
+# Extract the runCode task itself (clusterId, language, code, data, safety, packages)
+jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "runCode")] | .[0].value' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+
+# See an Enable Query decorator in place on a real task (top-level AND nested-field examples)
+jq '[.components[].document.tasks // {} | to_entries[] | select(.value.variables.decorators // [] | length > 0)] | .[] | {task: .value.name, incoming: .value.variables.incoming, decorators: .value.variables.decorators}' \
+  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+```
+
 **Read a full workflow from asset projects before building any multi-workflow solution:**
 ```bash
 # Parent → childJob → evaluation pattern
@@ -373,6 +400,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] **childJob loop:** if child workflow has `inputSchema.required` fields beyond what each `data_array` element contains, use the forEach enrichment pattern (forEach → merge → arrayPush) to add shared fields into each element before the childJob loop; set `variables: {}` on the childJob
 - [ ] **forEach body:** `incoming` contains ONLY `data_array` (no `job_id`); loop body tasks have no external error transitions; last body task has an empty `{}` transition; `$var.job.<varName>` inside loop body instead of `$var.<taskId>.<output>`
 - [ ] **makeData with childJob-sourced merge:** if a merge task references a childJob variable, do NOT wire that merge's `merged_object` into `makeData.incoming.variables` — use `query` to extract individual values first
+- [ ] **`objectToString`:** omit `replacer`/`space` from `incoming` if unused — do NOT pass `replacer: []` (silently whitelists zero properties, output is always `{}`) or `null` (validate-time type warning)
 
 **Complete working example:** Read the ServiceNow "Create Change Request" workflow before building — it demonstrates merge → adapter create → query → adapter update with error transitions:
 ```bash
@@ -1536,6 +1564,10 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "
 - **`outgoing.job_details` MUST be `null`** — do NOT override with `$var.job.X`
 - **All incoming fields required** — even unused ones: `"data_array": ""`, `"transformation": ""`, `"loopType": ""`
 
+**`childJob` cannot resolve project-scoped workflow names.** `{"workflow": "@<projectId>: <name>"}` fails at runtime with `"Error starting child job: Cannot find workflow ..."` — and so does the bare unprefixed name (`{"workflow": "<name>"}`), even when the *calling* workflow is moved into the same project as the target. Confirmed with an isolated minimal test: a standalone parent calling a standalone (unprojected) child by bare name succeeds (fails later for an unrelated reason, but the child IS found); the identical parent calling a project-scoped child by either name form fails to find it. Ruled out `incomingRefs` staleness as the cause — persisted after a full delete-and-recreate of the parent. **If you need to call a workflow that lives in a project, inline its task(s) directly into the calling workflow instead of `childJob`-ing it** — there is no known workaround for calling it as a child.
+
+**A `merge` referencing a `childJob`'s output must use `"value"`, not `"variable"`** — e.g. `{"task": "<childJobId>", "value": "job_details"}`. This contradicts merge's general rule (merge uses `"variable"`, childJob uses `"value"` — see the Variable Syntax Reference table) but matches childJob's own internal convention for its own output. Using `"variable"` here doesn't fail at runtime — it fails workflow **create/update** outright, with the unhelpful generic error `"Cannot read properties of undefined (reading 'task')"` (no task ID named in the error; bisect the task graph to find it if you hit this).
+
 **Variables use `{"task", "value"}` syntax — NOT `$var`:**
 ```json
 {
@@ -1740,6 +1772,138 @@ jq '.[] | select(.app == "WorkFlowEngine") | {name, summary}' {use-case}/tasks.j
 - **`renderJinja2ContextWithCast`** (ConfigurationManager) — renders a Jinja2 template with the full job context automatically injected, plus optional type casting on the output. Use instead of `merge` → `renderJinja2` → `query` chains when the template needs access to existing job variables. Outputs `renderedTemplate` accessible via `$var.<taskId>.renderedTemplate`.
 
 Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true`.
+
+### runCode (GatewayManager) — real Python instead of chaining WorkFlowEngine utility tasks
+
+`runCode` ships arbitrary Python to a Gateway5 cluster for execution — no pre-configured IAG service needed, unlike `runService`. It is the single biggest lever for collapsing a `forEach` + `query`×N + `evaluation` + `merge`×N + `push`/`objectToString`/`join` chain (the kind of per-item transform loop that's the source of most WorkFlowEngine utility-task gotchas in this file) into 1-2 tasks.
+
+**Prerequisites (per official docs):**
+- Install Gateway Manager 1.0.10 or later with Platform 6.4.0 or later.
+- Register an active Gateway 5.4.0 or later cluster with Itential Platform using Gateway Manager.
+- Verify that the Python version on the Gateway 5 host is compatible with your scripts and packages. The task uses the default Python interpreter on the host, which is the version invoked by `python` or `python3` on the `iagctl` command line. Gateway does not enforce a minimum version — run `python --version` on the Gateway 5 host to check.
+- Confirm that the `gateway:code` role from GatewayManager is assigned to your group.
+
+**When to reach for it:** any per-item data transform/lookup/branching loop over a list — the exact shape that otherwise needs `forEach` (with its `job_id`-omission and empty-last-transition rules), `query` per field, `evaluation` for branching, `merge` for reassembly, and (for arrays of objects) the `objectToString`/`push`/`join` dance. One `runCode` task does the whole loop in real Python in a single execution, then one `query` pulls the result back into a job variable.
+
+**Real-world example:** a NetBox-devices-to-inventory-nodes mapping (per-device manufacturer lookup, per-vendor secret-path branching, record reshaping) that originally took `forEach` + 5 `query` + 1 `evaluation` + 4 `newVariable` + 2 `merge` + `push`/`objectToString`/`join`/`makeData` (17 tasks) collapsed to 2 tasks (`runCode` + `query`), then to 1 task once the trailing `query` was replaced by an Enable Query decorator too (see below) — with identical, verified output at every stage. Full before/after: `helpers/assets/netbox-inventory-sync-runcode-enablequery.json`.
+
+**Fields (confirmed via live `multipleTaskDetails?dereferenceSchemas=true` — `{"location":"Application","pckg":"GatewayManager","method":"runCode"}`):**
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `clusterId` | yes | Gateway5 cluster ID to execute on |
+| `language` | yes | Enum — currently only `"python"` |
+| `code` | yes | The Python source as a plain string |
+| `data` | yes | Object passed to the script as JSON on stdin |
+| `safety.timeout` | yes | Seconds, 1-1000 |
+| `packages` | no | Array of pip requirement strings (e.g. `"requests==2.31.0"`), installed before execution — omit if stdlib-only |
+
+**Size limit (per official docs):** `code` is limited to 2 MB. You cannot save code that exceeds this limit. The limit applies to code text only — installed packages do not count toward it.
+
+**Package caching (per official docs):** the first time you run a task with a new set of packages, the runner installs them into a virtual environment. Subsequent runs reuse the cached environment, so there's no install overhead. Any change to the `packages` list triggers a fresh install.
+
+**Script contract (the "IAG runCode standard" — see real examples in `helpers/assets/vendor-cisco-ios.json` and `vendor-juniper-junos.json`):**
+```python
+import sys, json
+data = json.load(sys.stdin)          # read the `data` object
+# ... do the work ...
+print(json.dumps(result))            # last line to stdout is the result
+```
+Anything printed to `stderr` is captured separately and does NOT pollute the parsed result — use it for debug logging inside the script if needed.
+
+**Outgoing `result` object:** `stdout` (raw string — use when the consumer needs a JSON string, e.g. an IAG service's string-typed param), `stdout_json` (already-parsed JSON — use when the consumer wants a real array/object, e.g. a task field typed `array`/`object`; absent/`null` if stdout wasn't valid JSON), `stderr`, `return_code` (0 = success), `status` (`"completed"`/`"error"`), `started_at`/`finished_at`/`elapsed_ms`. Pick `stdout` vs `stdout_json` based on what the NEXT task's field type actually wants — don't always reach for `stdout_json` by default.
+
+**Errors and timeout (per official docs):** the task catches unhandled Python exceptions and captures the traceback in `result.stderr` — the task still completes and the workflow does NOT follow the error transition for an in-script exception. `safety.timeout` stops execution if exceeded; when exceeded, `result.status` becomes `"error"` and `result.error` contains the platform-specific failure reason. The timeout applies to your code only, not to package installation. If the task cannot run on the gateway at all (not enabled, lost connectivity), the task itself fails and no `result` output is produced — that error is visible in the task's Error tab in Operations Manager instead, as a distinct `{state, domain, code, message}` shape (e.g. `"message": "Gateway with id test-code-task is not enabled"`).
+
+**Execution status vs. exit code (per official docs) — three genuinely different failure modes, don't conflate them:**
+- `status: "completed"` + `return_code: 0` — the script ran and exited cleanly.
+- `status: "completed"` + a non-zero `return_code` — the script ran but exited with a failure code; your code executed, the script itself signaled failure.
+- `status: "error"` — a platform-level failure (e.g. a timeout). The script may not have run, or it stopped mid-execution; check `result.error`. This is distinct from a Gateway connectivity failure (see above), where the task itself errors and no `result` fields are populated at all.
+
+**`stdout_json` absent after a successful run (per official docs):** if `result.stdout_json` doesn't appear after `return_code: 0`, the most common causes are (a) `stdout` contained non-JSON content, a mix of JSON and other output, or no output, or (b) a value in the output object wasn't JSON-serializable, so `json.dumps()` raised a `TypeError` and wrote a traceback to `stderr` instead of JSON to `stdout`. Inspect `result.stdout` and `result.stderr` directly to tell which applies.
+
+**Gotcha:** secret-vault placeholder strings (`$SECRET_.../$KEY_...`) written as literal Python string constants inside `code` are NOT resolved by `runCode` or by the workflow engine — they pass through as plain text, identical to writing the same literal into a `newVariable` task. That's expected; the vault resolves them later, at actual device-connection time, not during this task's execution. **This is not the only option, though** — per official docs, `runCode` has its own external-secret mechanism: reference `$GATEWAYSECRET_(alias-name)` as a literal string in your script, and Gateway resolves the alias at execution time. The secret value is never sent back to Itential Platform. This requires a secret provider/alias already set up on the Gateway side — not yet confirmed live in this repo, but documented here since it directly answers "is there any safe way to use secrets in a `runCode` script."
+
+### "Enable Query" — inline query decorator on any incoming field (aka "in-task-query", called "task query" in official docs)
+
+A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/`openapi.json`/`multipleTaskDetails` searches. Appears under any incoming field with `Variable Source: Job` or `Task` selected (a checkbox labeled "Enable Query"). Lets you query a nested path out of that field's resolved value inline, eliminating a separate `query` task that would otherwise sit between the producing task and the field that needs one piece of its output.
+
+**Confirmed shape (via a live before/after diff of a Studio edit — not guessed):**
+```diff
+  "incoming": {
+-   "someField": "$var.job.someVar",
++   "someField": "$var.job.someVar#/nested/path",
+    ...
+  },
+- "decorators": []
++ "decorators": [
++   { "type": "query", "pointer": "/incoming/someField", "displayPath": ".nested.path" }
++ ]
+```
+- The field's existing `$var.job.<name>` or `$var.<taskId>.<name>` reference gets a `#/<path>` suffix appended directly onto the string (URL-fragment style, `/`-delimited).
+- The task's `decorators` array (always present, usually `[]`) gets one entry: `pointer` is JSON-Pointer-style pointing at the field (`/incoming/<fieldName>`); `displayPath` is the dot-notation the Studio UI shows — its `.`-separated segments map 1:1 to the `#/...` suffix's `/`-separated segments (`.result.stdout` → `#/result/stdout`).
+- Doesn't create a task, doesn't touch `outgoing` — purely a decorator on an existing field's existing value.
+
+**Verified working at runtime, not just in Studio:** deleted a `query` task whose only job was extracting one field from another task's object output, and instead pointed the downstream consumer's own field at the source directly with the `#/...` suffix + decorator. The job variable the deleted task used to populate was confirmed absent from the job's final variable dump (proving the task really was gone), yet the consuming task still received the correct nested value and the job completed successfully with real data flowing through.
+
+**Confirmed scope:** works on both a top-level plain-string incoming field AND a field nested inside an object (e.g. `runCode`'s `data.devices`) — confirmed by deleting the upstream `query` task entirely and verifying the job variable it used to write was absent from the job's final state while the downstream task still received the correct value. For a nested field, the `#/<path>` suffix goes on the nested value itself (`"data": {"devices": "$var.job.someVar#/nested/path"}`) and `pointer` uses the full nested path (`/incoming/data/devices`).
+
+**When to reach for it:** any spot where a `query` task's only purpose is pulling one field out of an object and handing it to exactly one downstream task's field. Skip it if the queried value feeds more than one consumer, or needs further transformation (evaluation, string ops) before use — a real `query` task is still the right call there.
+
+**Confirmed NOT to try without testing first:** `evaluation` operands use a structured reference (`{"task":"job","variable":"x"}`), not a plain `$var` string — this is a different field shape than every confirmed Enable Query example, and hasn't been tested. Don't assume this decorator applies there. **For this exact scenario, `evaluation`'s own operand object has a native `query` sibling key instead** — see "Operand can drill into a nested field via an inline `query` key" earlier in this section; that's the confirmed way to skip a separate `query` task feeding an `evaluation` operand.
+
+### Worked example: wiring `runCode` + task query together
+
+A complete walkthrough of bringing multiple upstream tasks' data into a `runCode` script, using task query to unwrap each one, and reading the result back out — confirmed live end-to-end. Real example (two NetBox list calls combined into one summary): `helpers/assets/runcode-taskquery-reference.json`.
+
+**1. Bring variables into `runCode` via its `data` field.** Each key in `incoming.data` becomes one entry your script receives on stdin. The value is a reference expression, same syntax as any other task field:
+
+```json
+"data": {
+  "devicelist": "$var.8850.response",
+  "interfacelist": "$var.4e04.response"
+}
+```
+
+This hands the *entire* `response` output of tasks `8850` and `4e04` to the script, under the keys `devicelist`/`interfacelist`. No query needed yet — this alone is enough if the script itself can navigate whatever shape arrives (see step 4).
+
+**2. Design a task query only if you want to unwrap a nested field before the script sees it.** Append `#/<json-pointer-path>` to the reference string, and add a matching entry to the task's `decorators` array — both parts are required and must agree:
+
+```json
+"data": {
+  "devicelist": "$var.8850.response#/body"
+},
+"decorators": [
+  { "type": "query", "pointer": "/incoming/data/devicelist", "displayPath": ".body" }
+]
+```
+
+- The `#/<path>` suffix goes on the value string itself, `/`-delimited (JSON-Pointer style).
+- The decorator's `pointer` is `/incoming/data/<key>` (locates *which* incoming field has a query), and `displayPath` is the Studio-UI-facing dot-path (`.`-delimited, 1:1 with the `#/...` segments).
+- **This query is evaluated once, before the script ever runs.** If the path doesn't exist on the real resolved object, the whole task — and job — fails immediately with `"Query failed for task incoming variables: <key>"`. The script never gets a chance to handle a missing/wrong path defensively; get the path right up front.
+
+**Don't guess the path — verify the real shape first.** The platform's own job-detail API does not help here: `GET /operations-manager/jobs/{id}` always returns the static workflow definition (empty-string outgoing placeholders) regardless of `include`/`dereference` params or job completion status — confirmed directly, including via the browser UI's own network call using session-cookie auth, not just a scripted API token. The two ways that do work: (a) open the job in Operations Manager / Studio and read the task's real Output/Response value directly in the UI, or (b) temporarily pass the reference through *without* a query, and have the script itself print the shape it received (`type()`, keys, a sample item) so you can see the real structure before committing to a query path.
+
+**Confirmed real-world case:** a REST/HTTP-style adapter task whose outgoing field is named `response` returns the full HTTP response object, not the API payload directly — the payload is at `response.body` (`response` itself is `{body, headers, statusCode, ...}`-shaped). This is a different wrapping than the existing documented `result.response` convention elsewhere in this file (different outgoing field name, different nesting depth) — don't conflate the two. Confirmed on NetBox's `dcim_devices_list`/`dcim_interfaces_list`: querying `#/results` directly failed (that path doesn't exist at the top level); the real path is `#/body`, landing on `{count, next, previous, results: [...]}}`.
+
+**The query must be the field's entire value — it does not work embedded inside a larger static object.** Confirmed by feeding `runCode`'s output into a second, non-`runCode` task (`extras_tags_create`) requiring a `requestBodyPayload` object with `name`/`slug`/`description`:
+
+- **Failed silently:** `requestBodyPayload` set to a static object literal with the query on one of its own keys — `{"name": "my-tag", "slug": "my-tag", "description": "$var.3c0b.result#/stdout_json/devices/0/name"}` + a decorator pointing at `/incoming/requestBodyPayload/description`. The query never resolved. Worse, this didn't fail loudly: the literal, unresolved `$var...#/...` string was sent through as-is, and NetBox — whose `description` field accepts any free text — happily stored the garbage literal string as if it were real data. The failure only became visible when the same pattern was tried on a strictly-typed field (`weight`, an integer): NetBox rejected the literal string with `"A valid integer is required"`, which looked like a type/casting problem but was actually a masked query-resolution failure. **A task query that "succeeds" into a loosely-typed field is not proof the query itself worked — check a strict field, or inspect the literal value sent, before trusting it.**
+- **Confirmed working:** shape the upstream task's output to already match the downstream field's whole expected structure, then query the *entire* field in one shot — `"requestBodyPayload": "$var.3c0b.result#/stdout_json/tags_payload"` (where `tags_payload` in `runCode`'s own JSON output is already `{name, slug, description}`-shaped), decorator `{"pointer": "/incoming/requestBodyPayload", "displayPath": ".stdout_json.tags_payload"}`. Verified end-to-end: real HTTP POST to NetBox, real object received (confirmed via a genuine `"tag with this name already exists"` conflict on a repeat run — proof the resolved payload's `name`/`slug` were real values, not placeholders).
+- This also confirms task query is not `runCode`-specific — it works the same way on a plain adapter task, as long as the whole-field rule above is followed.
+
+**3. Access the variables inside the script.** Everything in `data` arrives as one JSON object on stdin, keyed exactly as configured:
+
+```python
+import sys, json
+data = json.load(sys.stdin)
+devicelist = data['devicelist']    # already whatever step 2's query resolved it to, if a query was used
+interfacelist = data['interfacelist']
+```
+
+If a task query already unwrapped a field (e.g., to `.body`), the script receives that unwrapped value directly — it doesn't need to re-navigate past a level the query already resolved. If no query was used, the script receives the full raw reference and is responsible for navigating it itself (defensive code that handles more than one possible shape is reasonable here, since a script CAN branch/fall back at runtime, unlike a query decorator which fails hard on a wrong path).
+
+**4. Return the result.** The last line printed to stdout must be `json.dumps(...)` of whatever the next task (or the workflow's output) should consume — this becomes `result.stdout_json`. Anything else printed for debugging goes to stderr instead, so it doesn't corrupt the parsed result (see the `runCode` fields table above).
 
 ### Task Endpoint Patterns (Standalone Testing)
 
@@ -2319,6 +2483,14 @@ The `revert` transition moves execution back to a previous task, allowing the us
 22. **`newVariable` value with `$var` stores the literal string** — use merge + query to build dynamic values.
 23. **`makeData` `variables` must be a resolved object** — use merge first, then pass `$var.taskId.merged_object`.
 24. **Adapter task `result` is always an object** — never a primitive. When the upstream API returns a simple string (e.g., Infoblox `_ref`), it's at `result.response`. Passing raw `result` in a string context produces `[object Object]`.
+24a. **`childJob` cannot resolve project-scoped workflow names** — `"@<projectId>: <name>"` and the bare name both fail with `"Cannot find workflow ..."`, even from a calling workflow in the same project. Inline the target task(s) instead; there's no known childJob workaround. See `### childJob` for how this was confirmed.
+24b. **A `merge` reading a `childJob`'s output must use `"value"`, not `"variable"`** — the one exception to "merge uses variable." Using `"variable"` fails workflow create/update with a generic, task-unattributed `"Cannot read properties of undefined (reading 'task')"` error.
+24c. **`push`'s incoming must omit `job_id`** (even though `tasks.json` lists it) and its outgoing must declare `job_variable_value` (not an empty `{}`) — both cause the same generic create/update failure as 24b if wrong.
+24d. **`parse`'s real fields are `text`/`textObject`**, not `stringToParse`/`result`.
+24e. **`objectToString`'s `replacer` is a property whitelist — `replacer: []` silently produces `{}` for every input, no error, no warning.** `replacer`/`space` are both optional (`required: false`); if you don't need them, OMIT the keys entirely rather than passing `null` (which trips a validate-time type warning) or `[]`/`0` (which is schema-valid but semantically means "include zero properties" — the empty-whitelist regression). This is a genuine silent-data-loss bug, not cosmetic: the task's own `stringified` output reads as `"{}"` with no error while `$var.job.<sourceVar>` is fully populated the whole time. If you see `objectToString` "losing" data that a job's final variable dump shows was correct, check `replacer` first before suspecting a timing/race issue in whatever produced the source object.
+24f. **`$var` does not resolve when written as an element inside an inline array literal** — `"groups": ["$var.job.myGroup"]` sends the literal unresolved string, not the resolved value (confirmed via A/B test: `["academy"]` worked, `["$var.job.groupVar"]` sent the literal 21-character string and the API rejected it as an unknown group name). Same family as "no `$var` inside nested object values," but applies to plain arrays of primitives too. Fix: build the array with `newVariable` (`value: []`) + `push` (one item at a time), then reference the whole array as a single top-level `$var.job.<name>` — a bare job-variable reference resolves fine.
+24g. **`InventoryManager.getNodesByInventory`'s `params` field is required at runtime even though its live schema (`multipleTaskDetails?dereferenceSchemas=true`) doesn't mark it `required: true`.** Omitting it fails job start with `"Cannot find match for input: \"params\" from model"`. Always pass `"params": {}` explicitly for this task, regardless of what the schema implies.
+24h. **`InventoryManager.getInventoryByIdentifier` surfaces "not found" as a task-level `error` transition, not a `success` with an error-shaped body** (confirmed with an isolated probe: HTTP 404 → job `status: error`, task's `outgoing.response` stays unset). Branch on the task's own `success`/`error` transitions for existence checks — no `evaluation` task needed to inspect a response field.
 
 ### Templates
 25. **Template `group` cannot be empty or whitespace-only** — causes a silent rejection.
@@ -2446,6 +2618,7 @@ Real, production-tested workflows. Use the jq commands to extract and study them
 | ITSM ticket + update (ServiceNow) | `vendor-servicenow.json` | `select(.document.name \| test("Create Incident"))` |
 | LCM action workflow (must output `instance`) | `lcm/lcm-vxlan-fabric-services-project.json` | `select(.document.name \| test("Create\|Delete"))` — note: this file uses `.data.project.components[]` |
 | Email/notification | `itential-platform-email.json` | `select(.document.name \| test("Email"))` |
+| Per-item transform loop replaced by `runCode` + Enable Query (zero/near-zero WorkFlowEngine utility tasks) | `netbox-inventory-sync-runcode-enablequery.json` | `select(.document.name \| test("runCode"))` — 2 real workflows: one calling an external script, one using only native app tasks, both with the same `runCode` device-mapping pattern |
 
 ```bash
 # General pattern to read any workflow by name from an asset project:
