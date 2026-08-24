@@ -69,3 +69,42 @@ jobs:
           fi
 
           echo "All $count commit(s) conform to conventional commits."
+
+  workflow-asset-validation:
+    name: Workflow Asset Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate changed/added workflow asset JSON files
+        run: |
+          # Only lints assets touched by this PR -- pre-existing violations in untouched files
+          # are tracked separately, not blocking unrelated PRs. See helpers/validate_workflow.py
+          # for what's checked and why (each rule maps to a confirmed-live gotcha in
+          # .claude/skills/builder-agent/SKILL.md, not a guess).
+          changed=$(git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...${{ github.event.pull_request.head.sha }}" -- 'helpers/assets/*.json')
+
+          if [[ -z "$changed" ]]; then
+            echo "No workflow asset files changed in this PR."
+            exit 0
+          fi
+
+          failed=0
+          while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            echo "--- $f ---"
+            if ! python3 helpers/validate_workflow.py "$f"; then
+              failed=1
+            fi
+            echo ""
+          done <<< "$changed"
+
+          if [[ $failed -eq 1 ]]; then
+            echo "::error::One or more changed workflow asset files failed validation. See helpers/validate_workflow.py output above."
+            exit 1
+          fi

@@ -201,6 +201,8 @@ Before writing any JSON, identify the parent/child split from the solution desig
 
 Build order is always: **children first, orchestrator last.** The orchestrator is just childJob calls to tested children — it should not contain raw adapter tasks unless there is no logical way to split.
 
+**Mandatory: validate before saving or POSTing any workflow.** Run `python3 helpers/validate_workflow.py <path-to-json>` against the constructed workflow document and fix every reported violation *before* calling `workflow_builder/workflows/save` or starting a job against it. This is not optional and not a "remember to check the gotchas list" step. It exists because the platform itself mostly won't catch these for you: `workflows/save` never blocks on a bad workflow structure (see `docs/platform-validation-model.md` for how this was confirmed against the real platform source), and even job start only blocks on a narrow set of cases — several of the gotchas below fail completely silently, including as a job that hangs forever with zero error anywhere. The script encodes every gotcha below that's checkable from the JSON alone as a real, deterministic rule. If you find a new confirmed gotcha that's structurally checkable (detectable from the JSON alone, not an environment/runtime fact), add a rule to that script in the same PR that documents it — don't just add prose, and ground the rule in the real source in `app-workflow_engine`/`app-workflow_builder` where possible, not just an observed symptom. Gotchas that genuinely can't be checked this way (environment/OS/infra facts, like the IAG gotchas later in this file, or platform behavior with no source-level backing) stay as documentation, not as an entry in this script.
+
 **Read a full workflow from asset projects before building any multi-workflow solution:**
 ```bash
 # Parent → childJob → evaluation pattern
@@ -2300,9 +2302,20 @@ The `revert` transition moves execution back to a previous task, allowing the us
 7. **`accessControl` in PATCH body is silently ignored** — API returns 200 but the field is a no-op. Always use the `members` array format (`[{type, reference, role}]`).
 
 ### Workflows
+
+> See `docs/platform-validation-model.md` for how these were confirmed against
+> the real platform source (`app-workflow_builder`/`app-workflow_engine`/
+> `app-automation_studio`), not just observed live behavior. Key fact from
+> that doc: `workflows/save` **never** blocks on any of these except #9,
+> which turned out NOT to be enforced either (a live-tested working asset
+> in this repo has a non-hex task id). Job **start** does throw on a real
+> `validateTask`/`validateTransition` error (not a warning) — but most of
+> these items aren't checked by that mechanism at all, so they fail silently
+> at runtime instead, sometimes as a hung job with no error anywhere.
+
 8. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`. Wrong `canvasName` causes silent `$var` failures.
-9. **Task IDs must be hex `[0-9a-f]{1,4}`** — non-hex causes silent `$var` failure.
-10. **Validation errors = draft workflow** that cannot be started. Run `POST /automation-studio/workflows/validate` before every create or update.
+9. ~~Task IDs must be hex `[0-9a-f]{1,4}`~~ — **not actually enforced.** `workflowDocument.json` declares this, but no code path applies it to a normal `POST /workflows/save` body, and this repo has a live-tested working asset with a non-hex task id (`tagCreate`). Not worth avoiding.
+10. **Validation errors block job start, not save** — a workflow with real `validateTask`/`validateTransition` errors saves fine but throws at `jobs/start` (`JSON.stringify(validationErrors)`). Run `POST /automation-studio/workflows/validate` before every create or update to see this ahead of time instead of at job start.
 11. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object first.
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
 13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever.
@@ -2311,14 +2324,15 @@ The `revert` transition moves execution back to a previous task, allowing the us
 ### Utility Tasks
 15. **merge uses `"variable"`, childJob uses `"value"`** — don't mix them. Using `"variable"` in childJob causes `undefined.indexOf()` at job start (P6.4.0+).
 16. **merge requires at least 2 items** — 1 item silently returns null.
-17. **childJob `actor` MUST be `"job"`**, `task` MUST be `""`, `job_details` outgoing MUST be `null`.
+17. **childJob `actor` must be `"Pronghorn"`, `"job"`, or a real task id** — anything else throws "Cannot read properties of undefined (reading 'owner')" at job start with no earlier warning. `incoming.task`'s value does NOT matter (the platform unconditionally overwrites it with the real task id, both at compile and at every execution — don't bother tuning it, just don't omit the key). `job_details` outgoing being `null` is a convention, not a platform-enforced rule — nothing reads or validates this value.
 18. **childJob `variables` use `{"task","value"}` NOT `$var`** — `$var` strings inside variables cause an indefinite hang at runtime.
-19. **`evaluation` MUST have both success AND failure transitions** — missing one silently drops the job.
-20. **`forEach` last body task transition must be empty `{}`** — do NOT connect it back to forEach.
+19. **`evaluation` MUST have both success AND failure transitions** — missing one silently hangs the job forever with no error anywhere (`finishTask.js`'s transition-lookup has no else branch, and nothing in the platform's own validation checks transition-state completeness for any task type). Enforced by `helpers/validate_workflow.py` — running it against this repo's own reference assets found 8 real, previously-undetected instances of this exact bug.
+20. **`forEach` last body task transition must be empty `{}`** — do NOT connect it back to forEach; doing so corrupts loop-iteration bookkeeping silently. Enforced by `helpers/validate_workflow.py`.
 21. **`push`/`pop`/`shift` take variable NAME as a plain string** — `"myArray"` not `"$var.job.myArray"`.
 22. **`newVariable` value with `$var` stores the literal string** — use merge + query to build dynamic values.
 23. **`makeData` `variables` must be a resolved object** — use merge first, then pass `$var.taskId.merged_object`.
 24. **Adapter task `result` is always an object** — never a primitive. When the upstream API returns a simple string (e.g., Infoblox `_ref`), it's at `result.response`. Passing raw `result` in a string context produces `[object Object]`.
+24a. **Every `$var.<taskId>.<field>` reference must point at a real task id in this workflow** — the platform does check this (`lib.js` pushes it as an `errors` entry, blocking job start), but it's free to catch statically too. Enforced by `helpers/validate_workflow.py`.
 
 ### Templates
 25. **Template `group` cannot be empty or whitespace-only** — causes a silent rejection.
