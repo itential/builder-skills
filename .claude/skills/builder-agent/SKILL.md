@@ -1660,6 +1660,23 @@ jq '[.components[] | select(.type=="workflow") | select(.document.name | test("P
 
 ### Create a Command Template
 
+**Build via `helpers/mop_builder.py`'s `MopTemplateBuilder`, not by hand-typing the JSON.** Named methods for every real eval type mean the case-sensitive `"RegEx"` string (not `"regex"`/`"REGEX"`) is never hand-typed, and `finish()` refuses to complete if any command has zero rules — the real platform's silent always-pass footgun:
+```python
+import sys
+sys.path.insert(0, '${CLAUDE_PLUGIN_ROOT}/helpers')
+from mop_builder import MopTemplateBuilder
+
+mop = MopTemplateBuilder('Port_Turn_Up_Pre_Check', description='Validates interface and VLAN')
+c1 = mop.add_command('show interface <!interface!>')
+mop.contains(c1, 'line protocol is')
+c2 = mop.add_command('show vlan brief')
+mop.contains(c2, '<!vlan_id!>')
+mop.finish()  # raises if any command ended up with zero rules
+doc = mop.to_document()
+```
+`POST /mop/createTemplate` with `{"mop": doc}`. `mop_builder.validate(doc)` is the backstop for hand-authored MOP JSON, checking the same eval-type and empty-rules rules.
+
+The raw JSON shape this produces, useful for reading an existing template:
 ```
 POST /mop/createTemplate
 ```
@@ -1730,11 +1747,11 @@ POST /mop/createTemplate
 ```
 Evaluators: `=`, `!=`, `<`, `>`, `<=`, `>=`, `%` (percentage)
 
-**Flags:** `case: true` = case-INSENSITIVE (confusing name), `global: true`, `multiline: true` (RegEx only)
+**Flags:** `case: true` = case-INSENSITIVE (confusing name — `MopTemplateBuilder.regex()`'s own parameter is named `case_insensitive` for exactly this reason), `global: true`, `multiline: true` (RegEx only)
 
-**A command with no rules always passes.** Add at least one rule to actually validate output — an empty `rules` array is a silent auto-pass, not an error.
+**A command with no rules always passes.** Add at least one rule to actually validate output — an empty `rules` array is a silent auto-pass, not an error. `MopTemplateBuilder.finish()` refuses to complete otherwise.
 
-**A rule referencing a variable that wasn't passed is skipped, and a skipped rule counts as a pass.** Always confirm the variables you expect are actually present in the `variables` object before trusting a passing result.
+**A rule referencing a variable that wasn't passed is skipped, and a skipped rule counts as a pass.** This is a runtime fact the builder can't prevent (it doesn't control what's passed at invocation time) — call `mop.find_referenced_variables()` to get every `<!var!>` placeholder used across the template, and check it against the variables you actually intend to pass before trusting a passing result.
 
 ### Run a Command Template
 
