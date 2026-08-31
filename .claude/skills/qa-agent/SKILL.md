@@ -107,6 +107,8 @@ Read `customer-spec.md` Section 9 (Acceptance Criteria) and `solution-design.md`
 
 **Not every criterion needs a live job.** Some are checked by inspecting an artifact already produced by another test case (`artifact-inspection`), and some genuinely can't be automated (e.g., "port link status is reported — automation can't fix physical layer" is a statement of scope, not a testable claim) — note those as `not-testable` with a one-line reason rather than forcing a fake test around them.
 
+**Criteria that depend on a pending integration** (`⚠ Stub` in the solution design) get type `pending-adapter`. They are not failed — the workflow is structurally correct; the adapter is the blocker. In the test plan, note what the criterion requires and reference the as-built activation recipe. In the test report, mark them `⏳ Pending adapter` with the activation steps inline. They do not block delivery — they are explicitly accepted residual items unless the engineer says otherwise.
+
 **Static checks are one shared checklist, not itemized per criterion.** They validate structural correctness of what was built, independent of any specific acceptance criterion. Pull the machine-checkable subset of `builder-agent`'s Step 9 pre-submit checklist — skip the visual/canvas-layout items (spacing, crossing lines), since those are aesthetic, not correctness bugs:
 
 ```markdown
@@ -210,7 +212,7 @@ Once every case passes, or the engineer explicitly accepts a residual known issu
 ```
 
 **Fields:**
-- `type` — `static` (structural, no live call), `acceptance` (live job + outcome check), `artifact-inspection` (checks an artifact from a prior case), or `not-testable` (documented scope limitation, no execution)
+- `type` — `static` (structural, no live call), `acceptance` (live job + outcome check), `artifact-inspection` (checks an artifact from a prior case), `not-testable` (documented scope limitation, no execution), or `pending-adapter` (criterion requires an integration marked `⚠ Stub` — not failed, not skipped; documented as an accepted residual with activation steps)
 - `criterion` — the acceptance-criteria ID this case verifies, or `null` for static checks that apply to the whole build
 - `check` / `verify` — human-readable enough that a different engineer could execute it manually if needed; this file is evidence, not just automation input
 
@@ -238,6 +240,7 @@ Once every case passes, or the engineer explicitly accepts a residual known issu
 |---|---|---|---|
 | AC-1 | Port is in the correct VLAN and mode after turn-up | PASS | Job `67d0...`, post-check shows vlan=100 mode=access |
 | AC-8 | ITSM ticket is updated with results | FAIL | Job `67d1...` completed, but GET on the change request shows state unchanged — handed back to builder-agent 2026-07-02 |
+| AC-9 | Notification sent via Slack | ⏳ Pending adapter | Slack adapter not installed. Stub workflow `stub-slack` runs cleanly; placeholder sets slackStatus=pending_adapter. Activate per as-built §Activate: Slack. |
 
 ## Re-runs
 

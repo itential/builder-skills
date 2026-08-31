@@ -149,6 +149,72 @@ The memory file is what makes it possible to pick up a use-case after weeks with
 
 ---
 
+## Pending Integration Pattern
+
+Use this pattern when the solution design includes `⚠ Stub` integrations — adapters that are required but not yet installed on the platform, or whose connection details (hostname, auth method, credentials) are still being confirmed by the customer.
+
+**Goal:** deliver a fully buildable, testable project now. The customer sees real workflows and real progress. When the adapter arrives, swapping in the real task is a single targeted update.
+
+### Stub Workflow (`stub-{integration-name}`)
+
+Build one stub workflow per pending integration. It exercises one core connectivity action — enough to prove the integration wires up correctly end-to-end when the adapter is provisioned.
+
+**Structure:**
+```
+workflow_start
+  → buildPayload    (newVariable — assembles minimum input for the core action)
+  → callIntegration (newVariable placeholder — sets {integrationName}Status = "pending_adapter")
+       ↓ error
+  → workflow_end
+workflow_end
+```
+
+**Rules:**
+- `buildPayload` — `newVariable` task. Assembles the minimum required input per the `integration-model-{name}.json` (e.g., for Slack: `{channel, text}`). No adapter dependency — always runnable without a real adapter.
+- `callIntegration` — `newVariable` placeholder. Sets `{integrationName}Status = "pending_adapter"`. Use the hex task ID that the real adapter task will occupy. Error transition pre-wired to `workflow_end`.
+- One input variable: `dryRun` (boolean, default `true`). Stub ignores it; activated workflow can use it to skip side effects during testing.
+- Add all stub workflows to the same project as the main delivery workflows.
+
+**Choosing the core action:**
+- Prefer the simplest write/action that validates auth end-to-end (post a message, launch a job, write a secret)
+- If the integration is read-only in this use case, use a lightweight read (get current user, health check)
+- Derive the request payload from `integration-model-{name}.json` — that file is the contract
+
+### Placeholder Task (in any workflow)
+
+When a workflow needs to call an adapter that isn't installed, replace the real adapter task with a `newVariable` placeholder — same position, same task ID, same transitions:
+
+1. Use a `newVariable` task in the exact slot the real adapter task will occupy
+2. Assign the same hex task ID the real task will use when activated
+3. Set variable: `{integrationName}Status = "pending_adapter"` — machine-readable pending state
+4. Wire all transitions identically (including the error transition) to how the real task will be wired
+
+### As-Built: Activate Integration Section
+
+For every pending integration, include a dedicated section in `as-built.md`:
+
+```markdown
+## Activate: {Integration Name}
+
+When the {AdapterType} adapter is provisioned:
+
+1. Confirm adapter instance name:
+   jq '.results[] | select(.package_id | test("{name}";"i")) | {id,state}' adapters.json
+
+2. Replace task `{taskId}` in workflow `{workflowId}` with:
+   (complete replacement task JSON — all fields pre-filled from integration-model-{name}.json,
+    app and locationType set to the adapter type name, incoming variables wired from the workflow)
+   Only field left blank: `adapter_id` — fill from step 1.
+
+3. Verify exact field names from the live schema before activating:
+   POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
+   body: {"tasks": [{"name": "{taskName}", "app": "{appType}"}]}
+```
+
+This pattern works for both standard Itential adapters (EmailOpensource, Slack) and custom OpenAPI virtual integrations. The `integration-model-{name}.json` file is the contract in both cases.
+
+---
+
 ## Guides
 
 ### Guide 1: Build a workflow end-to-end

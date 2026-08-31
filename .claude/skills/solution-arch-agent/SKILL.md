@@ -222,8 +222,11 @@ For each row in the spec's Capabilities table:
 For each row in the spec's Integrations table:
 - Found + Running? → **✓ Resolved** (record adapter name, app name)
 - Found + Stopped? → **⚠ Warning** (needs to be started)
-- Not found + Required? → **⚠ Blocked** (stop and discuss)
+- Not found, required, adapter unavailable or customer details TBD? → **⚠ Stub** (proceed — Design produces stub artifacts)
+- Not found, required, and nothing can be built without it? → **⚠ Blocked** (stop and discuss)
 - Not found + Not Required? → **✗ Skipped**
+
+**`⚠ Stub` vs `⚠ Blocked`:** Stub means the integration is required but not yet available — delivery proceeds by building stub workflows and placeholder tasks now, activating the real adapter later. Blocked means the entire delivery is gated on resolving this first (e.g., the main workflow can't be designed without data only this adapter provides). Rule of thumb: if at least one component can be built and tested without the adapter, it's Stub, not Blocked.
 
 ### Find Reuse Opportunities
 
@@ -296,6 +299,32 @@ The orchestrator is always the last thing built, after all children are tested.
 │ 3  │ Orchestrator                 │ Parent Workflow     │ Build    │
 └────┴──────────────────────────────┴─────────────────────┴──────────┘
 ```
+
+For every `⚠ Stub` integration, add to the inventory:
+- `integration-model-{name}.json` — OpenAPI 3.0.3 stub spec (Type: Integration Model, Action: Build)
+- `stub-{name}` — stub connectivity workflow (Type: Stub Workflow, Action: Build)
+- `integration-questions.md` — customer questionnaire (Type: Questionnaire, Action: Build — one file covers all pending integrations)
+
+**Producing stub artifacts:**
+
+`integration-model-{name}.json` — OpenAPI 3.0.3, minimal and use-case scoped:
+- `info.title` — the adapter type name as it will appear in Itential (e.g., `Slack`, `AWX`) — this becomes the `app` and `locationType` field values in workflow tasks
+- `info.description` — one line: what this integration does in this use case; append `— STUB: scope TBC with customer` if endpoints aren't yet confirmed
+- `servers[].url` — use a `variables` block for unknown hostnames; add `"description": "STUB: confirm with customer"` to any unknown variable
+- `components.securitySchemes` — mark `description` as `STUB: confirm auth method with customer` if not yet confirmed
+- `paths` — only the operations the stub workflow will call; use accurate schemas where known
+
+`integration-questions.md` — one section per pending integration, three-column table:
+
+| Question | Why needed | Customer answer |
+|----------|-----------|-----------------|
+| Hostname / base URL | Needed to configure the adapter server | |
+| Auth method (bearer / basic / API key) | Determines how credentials are stored | |
+| Token source / how to obtain it | Needed to provision the adapter | |
+| API version or path prefix differences | Affects endpoint wiring in workflows | |
+| Firewall / IP allowlisting requirements | Platform must be able to reach this system | |
+
+Close `integration-questions.md` with a **Next steps** note: once all questions are answered, update each integration model, provision the adapter, and replace placeholder tasks using the as-built activation recipes.
 
 **E. Implementation Plan** — ordered build steps with test method for each
 
