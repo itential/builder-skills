@@ -1,0 +1,218 @@
+{
+  "components": [
+    {
+      "type": "workflow",
+      "folder": null,
+      "document": {
+        "name": "runCode and Task Query Reference",
+        "description": "example of run code and task query",
+        "tasks": {
+          "8850": {
+            "name": "dcim_devices_list",
+            "canvasName": "dcim_devices_list",
+            "summary": "dcim_devices_list",
+            "description": "Get a list of device objects.",
+            "location": "Adapter",
+            "locationType": "NetBox:latest",
+            "app": "NetBox:latest",
+            "type": "automatic",
+            "displayName": "NetBox PS Lab",
+            "variables": {
+              "incoming": {
+                "adapter_id": "NetBox PS Lab"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -408
+            }
+          },
+          "workflow_start": {
+            "name": "workflow_start",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -500
+            },
+            "x": 0,
+            "y": 0.5
+          },
+          "workflow_end": {
+            "name": "workflow_end",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 500
+            },
+            "x": 1,
+            "y": 0.5
+          },
+          "3c0b": {
+            "name": "runCode",
+            "canvasName": "runCode",
+            "summary": "Execute code on a gateway",
+            "description": "Execute code (e.g. Python) on a Gateway5 cluster without requiring a pre-configured service. The code is sent directly to the gateway for execution.",
+            "location": "Application",
+            "locationType": null,
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
+            "variables": {
+              "incoming": {
+                "clusterId": "cluster-itential",
+                "language": "python",
+                "code": "import sys, json, time\ndata = json.load(sys.stdin)\ndef extract_results(value):\n    \"\"\"Accept either the raw NetBox paginated wrapper ({count, results: [...]})\n    or an already-queried plain array (if inline query extracts .results upstream).\"\"\"\n    if isinstance(value, dict) and 'results' in value:\n        return value['results']\n    if isinstance(value, list):\n        return value\n    return []\n\ndevices = extract_results(data.get('devicelist'))\ninterfaces = extract_results(data.get('interfacelist'))\n\n# Group interfaces under their parent device. Real NetBox interfaces reference the device\n# via interface['device']['id']; fall back to matching interface['id'] directly if that\n# shape isn't present (matches the sample data given, which mirrors the device shape).\ninterfaces_by_device = {}\nfor iface in interfaces:\n    device_ref = iface.get('device') or {}\n    device_id = device_ref.get('id', iface.get('id'))\n    interfaces_by_device.setdefault(device_id, []).append(iface)\n\ncombined = []\nfor device in devices:\n    device_type = device.get('device_type') or {}\n    manufacturer = device_type.get('manufacturer') or {}\n    device_id = device.get('id')\n    device_interfaces = interfaces_by_device.get(device_id, [])\n\n    combined.append({\n        'id': device_id,\n        'name': device.get('name'),\n        'display': device.get('display'),\n        'manufacturer': manufacturer.get('name'),\n        'model': device_type.get('model'),\n        'interface_count': len(device_interfaces),\n        'interfaces': [i.get('name') for i in device_interfaces if i.get('name')],\n    })\n\nsuffix = str(int(time.time()))\ntags_payload = {\n    'name': f'runcode-summary-tag-{suffix}',\n    'slug': f'runcode-summary-tag-{suffix}',\n    'description': devices[0]['name'] if devices else 'no-devices-found',\n}\n\nprint(json.dumps({\n    'device_count': len(devices),\n    'devices': combined,\n    'tags_payload': tags_payload,\n}))\n",
+                "data": {
+                  "devicelist": "$var.8850.response#/body",
+                  "interfacelist": "$var.4e04.response#/body"
+                },
+                "safety": {
+                  "timeout": 30
+                },
+                "packages": []
+              },
+              "outgoing": {
+                "result": ""
+              },
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/data/devicelist",
+                  "displayPath": ".body"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/data/interfacelist",
+                  "displayPath": ".body"
+                }
+              ]
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -132
+            }
+          },
+          "4e04": {
+            "name": "dcim_interfaces_list",
+            "canvasName": "dcim_interfaces_list",
+            "summary": "dcim_interfaces_list",
+            "description": "Get a list of interface objects.",
+            "location": "Adapter",
+            "locationType": "NetBox:latest",
+            "app": "NetBox:latest",
+            "type": "automatic",
+            "displayName": "NetBox PS Lab",
+            "variables": {
+              "incoming": {
+                "adapter_id": "NetBox PS Lab"
+              },
+              "outgoing": {
+                "response": ""
+              }
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": -316
+            }
+          },
+          "tagCreate": {
+            "name": "extras_tags_create",
+            "canvasName": "extras_tags_create",
+            "summary": "extras_tags_create",
+            "description": "Create a tag summarizing the runCode combiner output.",
+            "location": "Adapter",
+            "locationType": "NetBox:latest",
+            "app": "NetBox:latest",
+            "type": "automatic",
+            "displayName": "NetBox PS Lab",
+            "variables": {
+              "incoming": {
+                "bodyContentType": "application/json",
+                "requestBodyPayload": "$var.3c0b.result#/stdout_json/tags_payload",
+                "adapter_id": "NetBox PS Lab"
+              },
+              "outgoing": {
+                "response": ""
+              },
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/requestBodyPayload",
+                  "displayPath": ".stdout_json.tags_payload"
+                }
+              ]
+            },
+            "actor": "Pronghorn",
+            "groups": [],
+            "nodeLocation": {
+              "x": 0,
+              "y": 50
+            }
+          }
+        },
+        "transitions": {
+          "8850": {
+            "4e04": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_start": {
+            "8850": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "workflow_end": {},
+          "3c0b": {
+            "tagCreate": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "4e04": {
+            "3c0b": {
+              "state": "success",
+              "type": "standard"
+            }
+          },
+          "tagCreate": {
+            "workflow_end": {
+              "state": "success",
+              "type": "standard"
+            }
+          }
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$"
+            },
+            "initiator": {
+              "type": "string"
+            }
+          }
+        },
+        "canvasVersion": 3,
+        "type": "automation",
+        "font_size": 12,
+        "groups": []
+      }
+    }
+  ]
+}
