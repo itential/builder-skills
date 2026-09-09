@@ -153,6 +153,8 @@ Cheaper and faster than a live job — catch a broken workflow before spending a
 
 For each `acceptance`-type case: `POST /operations-manager/jobs/start` with the confirmed test data, poll `GET /operations-manager/jobs/{jobId}` until `data.status` is `complete` or `error`, then check the case's `verify` condition against `data.variables` / task outputs. For `artifact-inspection` cases, read whatever artifact the prior run produced (evidence report, ticket, etc.) and check it directly — no new job needed.
 
+**Acceptance evidence must come from a job run of the actual delivered workflow, never a substitute.** Verifying that an underlying service works in isolation (e.g., curling an IAG5 service directly, or calling an adapter task standalone) is not acceptance evidence for the workflow that wraps it — it only proves the component works, not that the workflow wires it correctly. If you haven't started a job against the named workflow/automation itself and read back `data.status`, you don't have a passing acceptance case yet, regardless of how convincing the component-level result looked.
+
 ### Step 7: Write `test-report.md`
 
 One row per case — static and acceptance — with a pass/fail verdict and cited evidence (job ID, exact field values, or the specific static-check output). See format below.
@@ -326,3 +328,4 @@ Once `as-built.md` is signed off, update `use-case-memory.md` to `Stage: deliver
 - **Static checks catching a failure doesn't mean the whole build is bad** — it usually means one specific rule was missed on one specific task. Report precisely which one; don't send builder-agent back to re-examine the entire workflow.
 - **`test-report.md` is written incrementally, not all at once.** Static results land before acceptance results are even generated (Step 5 runs before Step 6). Don't wait until everything is done to start writing it.
 - **Residual issues are a documented decision, not a loophole.** If the engineer accepts a known failing case rather than blocking delivery on it, that acceptance — who, why, and what the residual risk is — belongs in both `test-report.md` and `as-built.md`. Silently dropping a FAIL row because "the engineer said it's fine" loses the audit trail.
+- **A workflow with active `warnings` from its own validate/save response is not ready for acceptance testing, even if a job happens to run.** If Builder handed off a component that still carries schema-type warnings (object passed where string expected, etc.), treat that as a static-check failure and hand it back per Step 8 — don't let a "the job completed anyway" result paper over a structurally unsound build.

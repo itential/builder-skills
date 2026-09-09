@@ -787,7 +787,13 @@ The parent can then check `taskStatus` from `job_details` to decide what to do.
 
 ### Preferred: Import a project (atomic — all assets in one call)
 
+**Before writing the first line of a project/workflow import payload, open `helpers/create/import-project.json` and start from that scaffold.** Do not build the `{project: {components: [...]}}` shape from scratch in memory, even if you're confident in it — the wrapper shape (project-level vs. component-level metadata, which fields need `_id` vs. which don't, the exact `created_by` shape difference between project and workflow) is easy to get subtly wrong in ways that produce contradictory-looking "additional properties" / "required property" errors that seem like they're about unrelated fields (e.g., `groups`).
+
+**If the platform's import mechanism you're using is a file-upload UI dialog (not a REST call you make directly), the payload shape may differ from the `POST /automation-studio/projects/import` API documented below.** Always call the documented API endpoint yourself via `curl`/HTTP client rather than asking a human to paste/upload a file through a UI — you have the credentials and the ability to make the call directly; routing through a human as a manual courier for a schema you haven't verified multiplies the round-trip cost of every guess. If a UI-only import path is genuinely the only option available, treat its error messages with the same Repeat-Failure Circuit Breaker discipline as any other validation error — don't iterate blindly.
+
 **Always use import instead of create + add components.** Import creates the project with all workflows, templates, and MOP templates inside it in a single atomic call. No intermediate state, no broken childJob refs, no project-locking issues.
+
+**⚠️ Data-loss warning: importing against an EXISTING project `_id` replaces that project's entire components array — it does not merge or add to it.** If you're reusing a helper asset (e.g., cloning `helpers/assets/itential-platform-email.json`) to add a NEW capability to a project that already has other components in it, and you set the payload's `_id` to that existing project's ID, every component not listed in your payload will be silently deleted — including workflows built and verified in a prior session. **Before every import against an existing project `_id`: run `GET /automation-studio/projects/{id}` first, and merge its current `components` array into your import payload** alongside whatever you're adding — do not assume the call is additive just because you're only trying to add one new thing.
 
 ```
 POST /automation-studio/projects/import
@@ -842,6 +848,8 @@ POST /automation-studio/projects/import
 | `reference` (MOP) | `@{projectId}: Template Name` | String reference |
 | `iid` (components) | Sequential integers starting at 1 | Incrementing ID |
 
+> **NEVER feed a `GET /automation-studio/workflows/detailed/{name}` read-back document into `projects/import` unmodified — it crashes the import and, against an EXISTING project `_id`, wipes its components.** The platform mutates workflow documents after import/save: `created_by`/`last_updated_by` become plain account-ID strings (import requires the object shape above), `outputSchema` is expanded with platform-generated fields, and `encodingVersion`/`_id`/`errors`/`warnings`/`namespace` appear. Importing such a document fails every component with `"WorkflowBuilder stopped during execution"` — and because a re-import is a destructive full-replace, the project is left with `components: []` (confirmed data loss, recovered only by re-importing the ORIGINAL known-good documents). To re-import over an existing project: reuse the original import documents, or normalize the read-back first (restore object-shaped `created_by`/`last_updated_by`, strip `encodingVersion`, `_id`, `errors`, `warnings`, `namespace`, and strip the `@projectId: ` name prefix).
+
 Response:
 ```json
 {
@@ -862,6 +870,8 @@ Response:
 | API calls | Create + create each asset + move + fix refs | One POST |
 | Reproducibility | Hard to replay | `project-import.json` is the artifact |
 
+**If a project reference you were relying on turns out to be missing or stale** (e.g., `GET /automation-studio/projects/{id}` returns `"Project not found"` for a project you thought you'd already created), **do not respond by creating a brand-new project and moving a pre-existing standalone workflow into it via `components/add`.** That's the create-then-move pattern above, just arrived at while recovering from an unrelated error instead of choosing it deliberately — it's still the discouraged pattern. Rebuild the intended end state atomically via `projects/import` instead, even if that means recreating a workflow that technically already exists standalone elsewhere.
+
 ### Legacy: Create + add components (avoid if possible)
 
 Only use this for adding a single asset to an existing project after initial import.
@@ -879,6 +889,8 @@ POST /automation-studio/projects/{projectId}/components/add
 ```
 
 **Warning:** Both `move` and `copy` rename assets with `@projectId:` prefix but do NOT update internal references (childJob `workflow` fields, template names). You must fix these manually.
+
+**A bare `{type, reference}` component does NOT embed the workflow's tasks/transitions — it stores a pointer to a separately-existing workflow document.** If you fetch the project afterward and the component has no `document` field (or an empty one), this is why — not a save failure. This is the most common reason `components/add` looks like it silently failed, and it's the root cause of the "create-then-move" anti-pattern above: reaching for `components/add` expecting it to carry the full document, discovering it didn't, deleting and retrying. If you need the full document inside the project, use atomic `projects/import` with the document nested under each component from the start instead — don't retry `components/add` variations expecting different behavior.
 
 **Component types:** `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
 
@@ -917,7 +929,7 @@ If a name cannot be resolved, ask the engineer for the reference ID — do not g
 
 ### Resolve membership references from spec
 
-> **_MANDATORY:_** Import sets the OAuth service account as project owner — not the UI user from the spec. The engineer specified in the spec's Project Membership table will be locked out of the project unless you PATCH membership immediately after import. This runs in **Phase 3 (Import)**, not Phase 6 (Deliver).
+> **Your very next tool call after a successful `projects/import` must be the membership PATCH below — before verifying the import, before building the next component, before anything else.** Import sets the OAuth service account as sole project owner, not the UI user from the spec. If your next action isn't this PATCH, you've skipped it — reading this warning is not the same as having acted on it. This runs in **Phase 3 (Import)**, not Phase 6 (Deliver).
 
 There is no user/group lookup API on the Itential platform. The only way to resolve a username (e.g., `joksan.flores@itential.com`) or group name (e.g., `solutions-engineers`) to a platform reference ID is by scanning existing projects' members.
 
@@ -949,6 +961,8 @@ For each member in the spec's Project Membership table, find their `reference` I
 grep "joksan.flores@itential.com" {use-case}/membership-lookup.txt
 # → account  699a67bb...  joksan.flores@itential.com  CloudAAA
 ```
+
+**Step 3: Cache the result — don't re-scan for the same person next time.** Append resolved `{username: accountId}` pairs to `use-case-memory.md` (or a shared `membership-lookup.txt` if working across multiple use-cases). Re-scanning every project from scratch each time the same engineer needs to be added as owner on a new use-case is a wasted 50-100+ API calls when the answer was already resolved once. If `use-case-memory.md` doesn't exist yet for this engagement (e.g., in freestyle/explore-mode work with no formal spec), create it anyway — see the Directory Layout section's "living context" note.
 
 **Step 3: PATCH membership immediately after import.**
 
@@ -1306,7 +1320,7 @@ The `groups` field on a task definition is **task-level GBAC** — group-based a
 
 ### Task IDs
 
-Task IDs must be **hex-only**: `[0-9a-f]{1,4}`. Non-hex IDs (e.g., `apush`) cause `$var` references to silently fail.
+Task IDs must be **hex-only**: `[0-9a-f]{1,4}`, plus the two reserved names `workflow_start` and `workflow_end`. Non-hex IDs (e.g., `apush`) cause `$var` references to silently fail. **This includes the start/end tasks themselves** — do not key them as `"start"`/`"end"` (a natural-sounding but invalid shortcut); the reserved keys are the literal strings `workflow_start` and `workflow_end`, not any descriptive substitute. Using `"start"`/`"end"` (or any other non-hex, non-reserved key) produces a generic `"must NOT have additional properties"` import error that looks unrelated to task naming — if you see that error and your task keys include anything other than hex IDs or the two reserved names, fix the keys first before investigating any other field.
 
 ### Transitions
 
@@ -1738,6 +1752,8 @@ Multi-way branching based on conditions. Unlike `evaluation` (binary true/false)
 
 Make external HTTP calls from within a workflow. Use when calling APIs not exposed through adapters.
 
+**Before reaching for `restCall`, search `tasks.json` for a native app task first** — `jq '.[] | select(.app=="GatewayManager")' tasks.json` (or `InventoryManager`, or the target adapter's type name). `restCall` against the Itential platform's **own** internal REST API (e.g., `/gateway_manager/v1/services/run`, `/automation-studio/...`) is almost always the wrong choice — a native task exists for this (e.g., `GatewayManager.sendCommand`/`runService`, `InventoryManager.buildInventoryFilter`) and handles auth, response shaping, and validation for you. Reach for `restCall` only for genuinely external third-party APIs that have no adapter and no native task.
+
 **Response shape — no wrapper.** `restCall` returns the **already-parsed JSON body directly** as the outgoing value. There is no `response` or `result` wrapper. Query paths target body fields directly:
 
 ```
@@ -1787,6 +1803,8 @@ Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereference
 
 ### runCode (GatewayManager) — real Python instead of chaining WorkFlowEngine utility tasks
 
+**Before wiring a `runCode` task, read this section and `helpers/assets/runcode-taskquery-reference.json` in full.** Do not construct the task shape from a live job's error trace or from memory — `runCode` is a `GatewayManager` **automatic** task (not a `WorkFlowEngine` operation task, an easy but costly mix-up), and its exact field names (`clusterId`, `language`, `code`, `data`, `safety.timeout`, `packages`) are documented in the table below. Getting this wrong produces confusing "additional properties"/"required property" validation errors that look like a project-import problem when the real cause is simply the wrong `app`/`type` on this one task.
+
 `runCode` ships arbitrary Python to a Gateway5 cluster for execution — no pre-configured IAG service needed, unlike `runService`. It is the single biggest lever for collapsing a `forEach` + `query`×N + `evaluation` + `merge`×N + `push`/`objectToString`/`join` chain (the kind of per-item transform loop that's the source of most WorkFlowEngine utility-task gotchas in this file) into 1-2 tasks.
 
 **Prerequisites (per official docs):**
@@ -1823,9 +1841,13 @@ print(json.dumps(result))            # last line to stdout is the result
 ```
 Anything printed to `stderr` is captured separately and does NOT pollute the parsed result — use it for debug logging inside the script if needed.
 
+**This exact boilerplate (`import sys, json` / `data = json.load(sys.stdin)`) is required in every `runCode` script — the incoming `data` field is NOT injected as a pre-parsed variable, it must be read from stdin.** A script that references `data.get(...)` without first loading it from stdin fails at runtime with `NameError: name 'data' is not defined`. If you've already written one correct `runCode` script in this session, copy its stdin-reading boilerplate verbatim into every subsequent `runCode` task rather than re-deriving the input-handling logic from assumptions each time — a model that gets this right once and then writes a different, incorrect version for the next `runCode` task has not actually learned the contract.
+
 **Outgoing `result` object:** `stdout` (raw string — use when the consumer needs a JSON string, e.g. an IAG service's string-typed param), `stdout_json` (already-parsed JSON — use when the consumer wants a real array/object, e.g. a task field typed `array`/`object`; absent/`null` if stdout wasn't valid JSON), `stderr`, `return_code` (0 = success), `status` (`"completed"`/`"error"`), `started_at`/`finished_at`/`elapsed_ms`. Pick `stdout` vs `stdout_json` based on what the NEXT task's field type actually wants — don't always reach for `stdout_json` by default.
 
 **Errors and timeout (per official docs):** the task catches unhandled Python exceptions and captures the traceback in `result.stderr` — the task still completes and the workflow does NOT follow the error transition for an in-script exception. `safety.timeout` stops execution if exceeded; when exceeded, `result.status` becomes `"error"` and `result.error` contains the platform-specific failure reason. The timeout applies to your code only, not to package installation. If the task cannot run on the gateway at all (not enabled, lost connectivity), the task itself fails and no `result` output is produced — that error is visible in the task's Error tab in Operations Manager instead, as a distinct `{state, domain, code, message}` shape (e.g. `"message": "Gateway with id test-code-task is not enabled"`).
+
+**This is exactly why a job showing `workflow_end: complete` is not proof the workflow worked (see AGENTS.md Rule 28) — an in-script exception in `runCode` does NOT trigger the task's error transition,** so the workflow sails through to a "successful" completion while `result.status` is `"error"` and `result.stderr` holds a traceback. Always check `result.status`/`result.stderr` on every `runCode` task in a job before reporting the run as successful.
 
 **Execution status vs. exit code (per official docs) — three genuinely different failure modes, don't conflate them:**
 - `status: "completed"` + `return_code: 0` — the script ran and exited cleanly.
@@ -2209,6 +2231,8 @@ Response wrapped in `{message, data, metadata}`:
 | Adapter error | Wrong app name or adapter down | Check `apps.json` and `GET /health/adapters` |
 | "No config found for Adapter: X" | `app` field uses adapter instance name instead of type name | `app`/`locationType` must be the **type** from `apps.json` (e.g., `EmailOpensource`), not instance name (e.g., `email`). Instance name goes in `adapter_id`. |
 | Silent data mismatch | Field type doesn't match schema (string vs array) | Check `task-schemas.json` — pass arrays for array fields, numbers for number fields |
+| Same type-mismatch warning recurs after a "fix" that changed task type but not data shape | `$var` Resolution Rule violated (object/array passed as static value) | Don't swap task types — build the value through `merge`/`makeData` per the `$var` Resolution Rules section, then re-validate |
+| Workflow built via `restCall` against Itential's own internal API (e.g., `/gateway_manager/v1/...`) | Skipped searching `tasks.json` for a native task before reaching for `restCall` | Search `tasks.json` filtered by `app` (e.g., `GatewayManager`, `InventoryManager`) — a native task almost always exists |
 
 ### Standalone Test Endpoints
 
@@ -2233,12 +2257,18 @@ POST /automation-studio/workflows/validate
 ```
 Empty `errors` = schema valid. Run this before every POST or PUT.
 
+**A non-empty `warnings` array is not "good enough to ship."** `errors` blocks a job from starting; `warnings` (e.g., `"input should be of type string but is of type object"`, `"outputType is of type enum but got non-enumerated value..."`) means a task's static data won't behave the way you intended even though the workflow will technically save and run. Treat any non-empty `warnings` array as a build defect to fix before marking the component delivered — don't report a workflow as built/delivered just because the save call returned a 200. If the same warning reappears after a "fix," you've patched the symptom, not the cause — re-check the `$var` Resolution Rules section below before trying another variation.
+
+**Never author a large workflow JSON payload as an inline shell string.** Write it to a file with a proper file-editing tool, or if constrained to `bash`, generate it via `python3 -c "..." ` with `json.dump()` — never an interactive heredoc with embedded Jinja/markdown/emoji. If a payload fails to parse, regenerate it cleanly rather than patching it byte-by-byte with `sed`.
+
 **Workflow rename:**
 ```
 POST /workflow_builder/workflows/rename
 {"workflow": {...full doc...}, "newName": "New Workflow Name"}
 ```
 Renames in-place without recreating. Use instead of appending `[Fixed]` suffixes.
+
+**Fetch → modify → PUT → re-verify, in one contiguous chain — never PUT from a locally-cached copy.** If you fetched a workflow/project/template earlier in the session and it may have changed since (you or something else edited it), a PUT built from that stale local file will silently revert any change made in between — the PUT succeeds, but it overwrites the newer state with the old one. Always: fetch fresh immediately before modifying, PUT, then GET again immediately after to confirm the change actually landed. This is easy to trigger across a multi-step debugging session where the same asset is fetched and modified several times.
 
 ---
 
