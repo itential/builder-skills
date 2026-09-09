@@ -385,15 +385,16 @@ If both success and error need to reach `workflow_end`, route error to an interm
 **Step 8: Add inputSchema/outputSchema.** List all job variables the workflow expects as input and produces as output.
 
 **Step 9: Pre-submit checklist.**
+- [ ] Every task has a non-empty `description` field — schema-required on every task, easy to forget, and `POST /workflow_engine/workflows/validate` will reject a document missing it
 - [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`)
 - [ ] `app` and `locationType` values come from apps.json `.name`, NOT tasks.json and NOT the adapter instance name (e.g., `EmailOpensource` not `email`)
 - [ ] `adapter_id` is the adapter **instance** name (e.g., `email`), NOT the type name
 - [ ] `adapter_id` values come from `adapters.json` `.results[].id` — NEVER from the spec's adapter identity table. The spec is a design document; `adapters.json` is the source of truth for the target environment.
 - [ ] `canvasName` values come from tasks.json `canvasName` field
 - [ ] Every adapter task has `adapter_id` in incoming
-- [ ] Every adapter task has an error transition
-- [ ] `evaluation` tasks have both success AND failure transitions
-- [ ] `evaluation` operators are from the closed enum (`contains, !contains, <, <=, >, >=, ==, !=`) — no others exist
+- [ ] Every adapter task has an error transition — `/workflow_engine/workflows/validate` does not check for this; missing error transitions pass validation and hang the job at runtime
+- [ ] `evaluation` tasks have both success AND failure transitions — `/workflow_engine/workflows/validate` does not check for this either
+- [ ] `evaluation` operators are from the closed enum (`contains, !contains, <, <=, >, >=, ==, !=`) — no others exist. `/workflow_engine/workflows/validate` does not enforce this enum on a workflow's embedded `evaluation` tasks; an invalid operator passes validation and fails silently at runtime (`finish_state: failure`, no error message)
 - [ ] `evaluation` `operand_2` literal values containing regex metacharacters (`.`, `(`, `)`, `[`, `]`, `?`, `+`, `*`, `|`) are properly escaped, OR stored in a `newVariable` constant-holder task to avoid `incomingRefs` cache issues after API PUT
 - [ ] No `$var.<taskId>.<out>` references inside nested forEach bodies — use `$var.job.<varName>` instead
 - [ ] Incoming variable types match task schema exactly (arrays for `to`/`cc`/`bcc`, numbers for `page`/`pageSize`, etc.)
@@ -407,7 +408,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
 - [ ] Sequential y-delta ~108px (tight grid)
 - [ ] **LCM Create actions only:** the instance-write merge task's `data_to_merge` covers every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's `schema.required` before building the merge task: `jq '.schema.required' helpers/assets/lcm/<model>.json`
-- [ ] **ViewData manual tasks:** `view` is a top-level field; `incoming.variables` is present (even if `{}`); `displayName: "Tools"`, no `actor` field
+- [ ] **ViewData manual tasks:** `type` MUST be `"manual"` — `view` is a top-level field; `incoming.variables` is present (even if `{}`); `displayName: "Tools"`, no `actor` field (manual tasks never take one). A wrong `type` on a manual-view task can crash `POST /workflow_engine/workflows/validate` (HTTP 500) or produce a contradictory `actor`-required error on a task that never needs one — fix `type` first, don't chase either symptom.
 - [ ] **restCall downstream query:** path targets body field directly (e.g., `"access_token"`) — NOT `"response.access_token"` (restCall has no wrapper, unlike adapter tasks)
 - [ ] **childJob loop:** if child workflow has `inputSchema.required` fields beyond what each `data_array` element contains, use the forEach enrichment pattern (forEach → merge → arrayPush) to add shared fields into each element before the childJob loop; set `variables: {}` on the childJob
 - [ ] **forEach body:** `incoming` contains ONLY `data_array` (no `job_id`); loop body tasks have no external error transitions; last body task has an empty `{}` transition; `$var.job.<varName>` inside loop body instead of `$var.<taskId>.<output>`
@@ -1353,7 +1354,7 @@ Task IDs must be **hex-only**: `[0-9a-f]{1,4}`, plus the two reserved names `wor
 - `standard` — moves forward
 - `revert` — moves backward to a previous task (retry loops)
 
-**MANDATORY: Every adapter/external task needs an error transition.** Without one, errors cause "Job has no available transitions" and the job gets stuck forever.
+**MANDATORY: Every adapter/external task needs an error transition.** Without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a task missing a *success* path, never a missing *error* path. A workflow with no error transitions anywhere can still return `isValid: true`. Do not skip this check because validate passed.
 
 **JSON duplicate key problem:** If both success and error need to go to `workflow_end`, you can't use `workflow_end` as a key twice. Route error to an intermediate task (e.g., `newVariable` to set error status), then route that to `workflow_end`.
 
@@ -1403,7 +1404,19 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **Outgoing must write to job var for cross-task `$var` to be readable by downstream tasks.** Pattern: `"outgoing": {"result": "$var.job.raw_result"}` then downstream: `"obj": "$var.job.raw_result"`. If outgoing is `null`, the value is accessible via task iteration (`GET /operations-manager/tasks/{iterationId}`) but NOT via `$var.taskId.result` in downstream tasks at runtime. Use job vars for any result you need to pass forward.
 
-**`POST /automation-studio/workflows/validate`** — runs pre-flight schema validation before create or update. Returns `{errors: [], warnings: []}`. An empty `errors` array means the workflow is schema-valid. Run this on every workflow before POSTing or PUTting.
+**`POST /workflow_engine/workflows/validate`** (6.5.2+) — deep validation before create or update; body `{"asset": {...}}`, returns `{isValid, errors: [], warnings: []}`. `isValid` is `errors.length === 0` — warnings don't count against it, so always check both. See the pre-flight section under "Updating Assets" below for exactly what this endpoint does and doesn't catch. Use this instead of the older `POST /automation-studio/workflows/validate` (`{"workflow": {...}}` → `{errors, warnings}`, no `isValid`), which misses errors this one catches.
+
+**Nested `$var` references do not resolve, except for one narrow, named exception list.** The engine only substitutes a reference when an incoming value is *entirely* a `$var...` string — it does not walk into nested objects/arrays looking for one to substitute (Key Rule 8 in `AGENTS.md`). The deep validator (above) warns when it finds one. Exceptions — these methods resolve a reference sitting directly on one specific nested key's values (nothing deeper than one level):
+
+| App | Method | Nested key that's resolved |
+|---|---|---|
+| `GatewayManager` | `runService` | `params` |
+| `GatewayManager` | `runServiceStatic` | `params` |
+| `GatewayManager` | `runCode` | `data` |
+| `AgentSessionManager` | `runAgent` | `inputs` |
+| `WorkFlowEngine` | `transformation` | `variableMap` |
+
+Everywhere else — including plain adapter `body` fields — a `$var` inside an object or array is passed through as a literal string and never substituted; build the object with `merge`/`makeData`/`query` first instead.
 
 ---
 
@@ -2249,13 +2262,20 @@ Some tasks have REST endpoints for quick testing without creating workflows:
 | Template | `POST /automation-studio/templates` | `PUT /automation-studio/templates/{id}` with `{"update": {...}}` | `DELETE /automation-studio/templates/{id}` |
 | Command Template | `POST /mop/createTemplate` | `POST /mop/updateTemplate/{name}` with `{"mop": {...}}` (full replacement) | — |
 
-**Pre-flight validate before every create or update:**
+**Pre-flight validate before every create or update — use the deep validator (6.5.2+):**
 ```
-POST /automation-studio/workflows/validate
-{"workflow": {...}}
-→ {"errors": [], "warnings": []}
+POST /workflow_engine/workflows/validate
+{"asset": {...workflow document...}}
+→ {"isValid": true|false, "errors": [], "warnings": []}
 ```
-Empty `errors` = schema valid. Run this before every POST or PUT.
+`isValid` is exactly `errors.length === 0` — warnings never affect it. This is the default pre-flight gate; it is stateless and safe to call as often as needed. Prefer it over `POST /automation-studio/workflows/validate` (`{"workflow": {...}}` → `{errors, warnings}`, no `isValid`), which misses errors this one catches.
+
+**The endpoint can return HTTP 500 instead of a normal body.** A manual-view task (e.g. `ViewData`) with `type` set to anything other than `"manual"` returns `{"message":"An unknown error occurred...", "data":{"error":"Cannot destructure property 'input' of 'undefined'..."}}` at HTTP 500. Always check for this shape before parsing `isValid`/`errors`/`warnings`. Fix the task's `type` first if you hit it.
+
+**What this endpoint catches, by category** (full breakdown in `use-cases/_analysis/workflow-validate-deep-dive.md` if present locally):
+- **Errors (block `isValid`):** non-hex/reserved task IDs, workflow-level required fields, per-task required fields (including `description`, required on every task), adapter `app` checked against the platform's registered adapter types (`"No config found for Adapter: X"`), adapter `adapter_id` checked against live registered adapter instances (`"X is not a configured adapter within the platform"` — exempts `$var`/task-ref values), adapter/application method incoming and outgoing field-name mismatches, transition type/state enum values, dangling/missing transition entries, cycles in standard transitions, `created_by`/`last_updated_by` object-vs-string shape on import documents.
+- **Warnings only (`isValid` stays `true` — inspect `warnings[]` separately):** nested `$var` inside an object/array incoming value (see the allow-list exceptions in the `$var` Resolution Rules section below), static-value type mismatches (`"should be of type X but is of type Y"`), enum-typed static values with a non-enumerated value, dangling/out-of-order job-variable and task-to-task `$var` references.
+- **Not checked at all — keep doing these manually:** missing `error`/`failure` transitions (only a missing success path is flagged), `evaluation.operator` invalid values like `"regex"` (the closed enum is only wired to the standalone evaluation-test endpoints, not to a workflow document's embedded `evaluation` task), `merge`/`childJob` `"value"` vs `"variable"` key-naming mistakes, wrong `canvasName`, `incomingRefs` cache staleness after PUT, adapter response-shape assumptions, `projects/import` semantics (different service).
 
 **A non-empty `warnings` array is not "good enough to ship."** `errors` blocks a job from starting; `warnings` (e.g., `"input should be of type string but is of type object"`, `"outputType is of type enum but got non-enumerated value..."`) means a task's static data won't behave the way you intended even though the workflow will technically save and run. Treat any non-empty `warnings` array as a build defect to fix before marking the component delivered — don't report a workflow as built/delivered just because the save call returned a 200. If the same warning reappears after a "fix," you've patched the symptom, not the cause — re-check the `$var` Resolution Rules section below before trying another variation.
 
@@ -2508,10 +2528,10 @@ The `revert` transition moves execution back to a previous task, allowing the us
 ### Workflows
 8. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`. Wrong `canvasName` causes silent `$var` failures.
 9. **Task IDs must be hex `[0-9a-f]{1,4}`** — non-hex causes silent `$var` failure.
-10. **Validation errors = draft workflow** that cannot be started. Run `POST /automation-studio/workflows/validate` before every create or update.
-11. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object first.
+10. **Validation errors = draft workflow** that cannot be started. Run `POST /workflow_engine/workflows/validate` (deep validation, prefer over `/automation-studio/workflows/validate`) before every create or update, and check `warnings[]` too — `isValid` ignores them.
+11. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object first. Exception: `GatewayManager.runService`/`runServiceStatic` (`params`), `GatewayManager.runCode` (`data`), `AgentSessionManager.runAgent` (`inputs`) resolve one level deep into that one specific key.
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
-13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever.
+13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a missing success path.
 14. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, route error to an intermediate `newVariable` task first.
 
 ### Utility Tasks
