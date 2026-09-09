@@ -66,8 +66,46 @@ Pure additions don't need this format — just state the new rule under an `## A
 
 `.claude/skills/*/custom/**` is gitignored in this repo (see `.gitignore`) except for placeholder files. Itential's own commits never contain real content under a `custom/` path, so pulling an upstream update can never conflict with or overwrite a customer's override — there's nothing there to conflict with.
 
-If your team wants your own `org/`/`team/` files version-controlled and shared (e.g. across a fork), track them in your own fork and protect the path with a merge strategy so future upstream pulls can't touch them even by accident:
+## Two ways to consume this repo, and how to update each
 
+There are two supported ways to use these skills, and the update procedure differs.
+
+### Path A — Installed as a Claude Code plugin (simplest)
+
+```bash
+/plugin marketplace add itential/builder-skills
+/plugin install itential-builder@itential-builder
+```
+
+To pick up new Itential releases:
+
+```bash
+/plugin update itential-builder@itential-builder
+```
+
+**Before relying on this path for real customization, verify it once:** add a throwaway file under a skill's `custom/dev/` (e.g. `.claude/skills/iag/custom/dev/test.md` with any content), run `/plugin update`, and confirm the file is still there afterward. This repo's design assumes the plugin installer keeps a persistent local copy that gets updated in place (so untracked files like your `custom/` content naturally survive, the same way an untracked file survives a `git pull`) — but that's a property of Claude Code's plugin installer, not of this repo, and isn't something this repo can guarantee on your behalf. If the test file disappears after an update, your `custom/` content isn't safe under Path A and you should use Path B instead for anything you don't want to lose.
+
+### Path B — Clone or fork directly (if you need a guaranteed customization workflow)
+
+Skip the plugin installer and work directly in a clone:
+
+```bash
+git clone https://github.com/itential/builder-skills.git
+# or, if you want your own remote to push customizations to:
+gh repo fork itential/builder-skills --clone
+```
+
+Add your `org/`/`team/`/`dev/` files under the relevant skills' `custom/` folders as usual. By default they're gitignored (per this repo's `.gitignore`), so they exist on your disk but `git status` won't offer to commit them — fine for solo, local-only customization.
+
+**If you want your `org/`/`team/` files version-controlled and shared with your team**, force-track them past the ignore rule (no need to edit `.gitignore` itself):
+
+```bash
+git add -f .claude/skills/iag/custom/org/naming-conventions.md
+git commit -m "org: add IAG naming convention"
+```
+Once a file is tracked this way, normal `git add`/`git commit` works on it going forward — `git` doesn't re-apply `.gitignore` to files it's already tracking.
+
+**Protect those tracked files from ever being touched by an upstream merge**, so pulling Itential's updates is always safe even if you have local customizations tracked in the same repo:
 ```
 # .gitattributes, in your fork
 .claude/skills/*/custom/** merge=ours
@@ -75,3 +113,11 @@ If your team wants your own `org/`/`team/` files version-controlled and shared (
 ```bash
 git config merge.ours.driver true   # one-time, per clone
 ```
+
+**To update from Itential's upstream:**
+```bash
+git remote add upstream https://github.com/itential/builder-skills.git   # one-time
+git fetch upstream
+git merge upstream/main
+```
+Because Itential's own commits never touch `custom/` paths, and your `merge=ours` rule protects any of your own tracked files there even if that ever changed, this merge should be conflict-free by construction — you're not depending on manual conflict resolution to keep your customizations intact.
