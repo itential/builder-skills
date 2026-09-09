@@ -14,6 +14,7 @@ Spec-driven infrastructure automation and orchestration — delivered by AI agen
   - [Getting Started](#getting-started)
   - [How to Use It](#how-to-use-it)
   - [Skills](#skills)
+  - [Customization](#customization)
   - [Spec Library](#spec-library)
   - [Demo Specs](#demo-specs)
   - [Docs](#docs)
@@ -161,6 +162,25 @@ See [`docs/quickstart.md`](docs/quickstart.md) for the full setup and first deli
 
 ---
 
+## Customization
+
+Every skill above is foundational — owned and updated by Itential. Don't edit a skill's `SKILL.md` directly; those edits get silently overwritten (or produce merge conflicts) the next time this plugin is updated.
+
+Instead, every skill has a `custom/` folder with three layers, read automatically before the skill acts. More specific overrides less specific — `dev` overrides `team` overrides `org` overrides the foundational skill:
+
+```
+.claude/skills/<skill-name>/
+├── SKILL.md              ← foundational, Itential-owned — never edit this
+└── custom/
+    ├── org/                ← company-wide rules (e.g. naming conventions, security policy)
+    ├── team/               ← your team's rules
+    └── dev/                ← your own local overrides and drafts
+```
+
+See [`.claude/CUSTOMIZATION.md`](.claude/CUSTOMIZATION.md) for the full framework — precedence rules, the required format for stating an override, and a decision guide for which layer a given customization belongs in.
+
+---
+
 ## Spec Library
 
 22 technology-agnostic HLD specs in [`spec-files/`](spec-files/). Each spec is ready to use with `/itential-builder:spec-agent` as the starting point for a delivery.
@@ -193,6 +213,7 @@ Ready-to-run specs in [`spec-files/demo/`](spec-files/demo/) for walkthroughs an
 - [`docs/developer-flow.md`](docs/developer-flow.md) — full lifecycle diagram and design principles
 - [`docs/builder-flow.md`](docs/builder-flow.md) — build sequence, asset structure, and import pattern
 - [`docs/troubleshooting.md`](docs/troubleshooting.md) — common issues and fixes
+- [`.claude/CUSTOMIZATION.md`](.claude/CUSTOMIZATION.md) — customize any skill without editing it directly (org/team/dev layers)
 - [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, projects, and reference patterns
 
 ---
