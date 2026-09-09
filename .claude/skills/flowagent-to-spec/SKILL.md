@@ -12,6 +12,18 @@ argument-hint: "[agent-name or agent-id]"
 
 ---
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## The Core Idea
 
 A FlowAgent proves a use case works. The LLM figured out which tools to call in what order to accomplish an objective. Now you want to productionize it — remove the LLM from the execution path and replace it with a deterministic workflow that does the same thing reliably every time.

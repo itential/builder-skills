@@ -10,6 +10,18 @@ JSON Forms are reusable form definitions stored in the `json-forms` application.
 
 A form is a single document with four cooperating schemas — `struct` (UI rendering), `schema` (data contract / validation), `uiSchema` (per-field widget hints), and `bindingSchema` (live-data binding for REST dropdowns). Get the relationships wrong and the form will render but break silently at runtime.
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## Concepts
 
 - **`struct`** — the UI definition. `struct.type` is always `"array"`; `struct.items[]` is the list of fields. `customKey` on each field becomes the property key in `schema` and the variable key when the form's data is consumed.

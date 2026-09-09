@@ -12,6 +12,18 @@ argument-hint: "[project-name or project-id]"
 
 ---
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## What This Does
 
 Takes an undocumented or partially-documented project and produces the spec and design documents that *should* have existed before it was built. The engineer reviews and corrects the inferred documents — then they can feed into the standard delivery lifecycle for updates, rebuilds, or knowledge transfer.

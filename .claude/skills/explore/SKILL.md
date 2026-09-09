@@ -11,6 +11,18 @@ description: Use this skill whenever someone wants to connect to an Itential pla
 
 ---
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## What This Does
 
 Connects you to a platform, pulls everything needed to work freely, and routes you to the right skill for whatever you want to do.

@@ -8,6 +8,18 @@ argument-hint: "[action or resource-name]"
 
 Lifecycle Manager (LCM) provides a declarative framework for managing the lifecycle of reusable resources. Define a resource model (schema + actions), create instances of it, and run workflow-driven actions to create, update, or delete those instances — with full execution history and optional pre/post transformations.
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## Concepts
 
 - **Resource Model** — a template defining what a resource looks like (JSON Schema) and what actions can be performed on it. Actions link to workflows.

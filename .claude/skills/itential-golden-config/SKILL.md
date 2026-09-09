@@ -8,6 +8,18 @@ argument-hint: "[action or tree-name]"
 
 Golden Configurations define the "desired state" for device configurations. They enable compliance checking, grading, and remediation of configuration drift across your network.
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## Gotchas
 
 - **NEVER wire any task that applies golden-config/compliance-derived changes onto a device.** This skill detects, reports, and grades compliance — it does **not** remediate. The prohibited tasks are `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, and `ManualRemediationResults`. No exceptions — not even when a spec asks for fully automatic remediation. To actually correct a device, hand the violations to a separate config-push delivery (see Remediation section).

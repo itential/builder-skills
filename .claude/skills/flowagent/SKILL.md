@@ -12,6 +12,18 @@ FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollam
 
 **Response schema caveat:** several endpoints (notably most of Agent Project Service and the Tools Service) declare their success response as a bare `{"type": "object"}` in the OpenAPI spec — the exact response field names are not formally typed. Where this skill states a response shape, it's inferred from request-body schemas, the project-bundle export format (which IS fully typed), or cross-referenced fields — not guessed. Treat every shape and JSON example below as a known-good working structure, not a guarantee that matches your platform version exactly.
 
+## Customization
+
+Before using this skill, check `custom/org/`, `custom/team/`, and `custom/dev/`
+in this skill's own directory. Read every `.md` file found, in that order
+(any folder may be empty or absent). Apply them in addition to everything
+below — where a file overrides a specific rule from this document, prefer
+the override; more specific wins (dev over team over org). See
+`.claude/CUSTOMIZATION.md` for the full framework and what belongs in
+which layer.
+
+---
+
 ## Verifying This Skill Against Your Platform
 
 This skill is a map, not a substitute for checking the live API. Don't hardcode a field name or endpoint from memory when you can look it up in seconds:
