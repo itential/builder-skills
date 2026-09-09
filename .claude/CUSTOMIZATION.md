@@ -83,7 +83,7 @@ To pick up new Itential releases:
 /plugin update itential-builder@itential-builder
 ```
 
-**Before relying on this path for real customization, verify it once:** add a throwaway file under a skill's `custom/dev/` (e.g. `.claude/skills/iag/custom/dev/test.md` with any content), run `/plugin update`, and confirm the file is still there afterward. This repo's design assumes the plugin installer keeps a persistent local copy that gets updated in place (so untracked files like your `custom/` content naturally survive, the same way an untracked file survives a `git pull`) — but that's a property of Claude Code's plugin installer, not of this repo, and isn't something this repo can guarantee on your behalf. If the test file disappears after an update, your `custom/` content isn't safe under Path A and you should use Path B instead for anything you don't want to lose.
+**Verified, not assumed:** Claude Code's plugin marketplace mechanism keeps each installed marketplace as a real local git clone (`.git/` and all) and updates it via `git fetch`/`merge` from upstream, not a wholesale re-download. We confirmed this directly — planted an untracked test file in an already-installed marketplace clone, ran a real fetch+merge that pulled in genuine new upstream commits, and the untracked file came through completely untouched, same as any file `git` doesn't track. Since `custom/**/*` content is exactly that — untracked (gitignored) in this repo — it survives a `/plugin update` for the same reason: `git` only touches what it's syncing, never a file sitting outside its tracked set.
 
 ### Path B — Clone or fork directly (if you need a guaranteed customization workflow)
 

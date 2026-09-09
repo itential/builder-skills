@@ -179,9 +179,9 @@ Instead, every skill has a `custom/` folder with three layers, read automaticall
 
 See [`.claude/CUSTOMIZATION.md`](.claude/CUSTOMIZATION.md) for the full framework — precedence rules, the required format for stating an override, and a decision guide for which layer a given customization belongs in.
 
-**Two ways to consume this repo, with different update stories:**
-- **Plugin install** (`/plugin update itential-builder@itential-builder`) — simplest, but verify once that your `custom/` files actually survive an update before relying on it (see `.claude/CUSTOMIZATION.md`).
-- **Clone or fork directly** — skip the plugin installer, `git pull`/`git merge` from upstream yourself. Guaranteed conflict-free for your customizations by construction, since Itential's commits never touch `custom/` paths. Full setup and update commands are in `.claude/CUSTOMIZATION.md`.
+**Two ways to consume this repo, both safe for `custom/` content:**
+- **Plugin install** (`/plugin update itential-builder@itential-builder`) — simplest. Claude Code's plugin installer keeps each marketplace as a real git clone updated via fetch/merge, so untracked `custom/` content survives an update the same way any untracked file survives a `git pull` (verified directly — see `.claude/CUSTOMIZATION.md`).
+- **Clone or fork directly** — skip the plugin installer, `git pull`/`git merge` from upstream yourself. Same guarantee, plus the option to track and share your `custom/` files across your team. Full setup and update commands are in `.claude/CUSTOMIZATION.md`.
 
 ---
 
