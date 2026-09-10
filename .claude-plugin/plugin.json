@@ -1,13 +1,19 @@
 {
   "name": "itential-builder",
-  "description": "AI agent skills for the Itential Platform — deliver infrastructure automation from spec through acceptance testing and as-built documentation. Covers requirements, feasibility, design, build, QA/acceptance testing, FlowAgent, IAG, and MOP.",
-  "version": "1.6.0",
+  "description": "AI agent skills for the Itential Platform \u2014 deliver infrastructure automation from spec through acceptance testing and as-built documentation. Covers requirements, feasibility, design, build, QA/acceptance testing, FlowAgent, IAG, and MOP.",
+  "version": "1.6.1",
   "author": {
     "name": "Itential"
   },
   "homepage": "https://github.com/itential/builder-skills",
   "repository": "https://github.com/itential/builder-skills",
   "license": "GPL-3.0-or-later",
-  "keywords": ["itential", "network-automation", "infrastructure", "flowagent", "iag"],
+  "keywords": [
+    "itential",
+    "network-automation",
+    "infrastructure",
+    "flowagent",
+    "iag"
+  ],
   "commands": "./.claude/skills"
 }
