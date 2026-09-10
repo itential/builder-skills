@@ -27,7 +27,7 @@ which layer.
 - **`struct`** — the UI definition. `struct.type` is always `"array"`; `struct.items[]` is the list of fields. `customKey` on each field becomes the property key in `schema` and the variable key when the form's data is consumed.
 - **`schema`** — the data contract. `schema.properties.<customKey>` must exist for every field in `struct.items[]` (and stay in sync with the field's type, enum values, etc.). `schema.required` lists mandatory `customKey`s.
 - **`uiSchema`** — per-`customKey` widget hints: placeholder text, `ui:widget` overrides, disabled flags. Required for cascading dropdowns (see below).
-- **`bindingSchema`** — empty `{}` for static-enum forms. Required (and non-trivial) for REST-bound dropdowns: every REST-bound field needs a mirroring `bindingSchema.properties.<customKey>` entry. Studio fills this in invisibly through the GUI; the server does not.
+- **`bindingSchema`** — empty `{}` for static-enum forms; see REST-bound dropdowns below for the mirroring requirement when a field is REST-bound.
 - **Static vs. REST-bound dropdowns** — static dropdowns hardcode the list via `enum`/`enumNames`. REST-bound dropdowns pull options live from an IAP endpoint at form-render time.
 - **Cascading dropdowns** (aka **field dependency** in the Studio UI) — a REST-bound dropdown whose URL path parameter is filled from another field's current value. The dependent field re-fetches when the source field changes.
 

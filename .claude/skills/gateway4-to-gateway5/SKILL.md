@@ -39,12 +39,11 @@ them, STOP and ask the user instead.
    neither, ask. **Never contact Gateway5, and never use `iagctl`** — `iagctl` is a Gateway5 CLI (it
    does not exist on Gateway4). Gateway5 is entirely out of scope and must never be contacted or
    mentioned to the user.
-2. **Never make up information, and never contact Gateway5 directly.** Do NOT guess identifiers,
+2. **Never make up information.** (Gateway5/`iagctl` scope is covered by Rule 1 — this rule is about not guessing.) Do NOT guess identifiers,
    task classifications, workflow/task references, adapter names, or the contents of anything you
    could not read. If something is unknown, ambiguous, or unreadable, **go back to the user to
    clarify** — do not invent, infer, or fill in a plausible value. The analyzer's
    `unresolved_children`/`warnings` exist precisely so unknowns are surfaced, not fabricated.
-   Gateway5 is out of scope — never call it, `iagctl`, or any Gateway5 endpoint, and never mention it.
 3. **Respect the scan scope absolutely.** When the user points you at a project or specific
    workflow(s) (anything other than an explicit `--all`), analyze ONLY that item **plus** any other
    workflow/project it (or its children) references via childJob — the transitive downward closure.
@@ -84,12 +83,9 @@ directory** (the report, plus any pulled read-cache JSON).
   assets (scripts/playbooks/roles/inventory) from **either** a **local directory** the user supplies
   **or** read-only GETs against **Gateway4's HTTP API** when the user provides Gateway4
   username/password.
-- **Forbidden:** any create/update/delete/import/patch on IAP or Gateway4 — no state-mutating
-  `POST/PUT/PATCH/DELETE`, no editing/creating workflows, forms, projects, inventory, or gateway
-  assets. **Never contact Gateway5 and never use `iagctl`** — `iagctl` is a Gateway5 CLI and does
-  not exist on Gateway4; Gateway5 is out of scope (do not call it and do not mention it to the user).
-  If a step *would* mutate a platform, **do not do it** — record it in the report as a manual
-  action for the user.
+- **Forbidden:** any create/update/delete/import/patch on IAP or Gateway4 (see Rule 1 for the
+  Gateway5/`iagctl` scope boundary). If a step *would* mutate a platform, **do not do it** — record
+  it in the report as a manual action for the user.
 
 These two rules are agent guidance — they shape the recommendations but are **not** printed in
 the report (the report is a terse checklist, not a narrative):
@@ -149,8 +145,7 @@ Same inputs ⇒ identical report. Enforce:
      exports already on disk), or none.
    - **Gateway4** — **live** (read-only GETs against Gateway4's HTTP API using the username/password
      the user provides) or a **local directory** of scripts/playbooks/roles/inventory, or none.
-   - **Never** offer, ask about, or use `iagctl` or any Gateway5 endpoint — Gateway5 is out of scope
-     (`iagctl` is a Gateway5 CLI and does not exist on Gateway4).
+   - (Gateway5/`iagctl` out of scope — see Rule 1.)
    - When a source is fully local, pass `--local` (and `--local-dir <dir>`) to the analyzer; it makes
      no API calls for that source. Anything referenced but not readable becomes a last-resort
      warning — never a guess.
@@ -434,7 +429,7 @@ Only if Gateway4 is in scope. Read the assets from whichever source the user has
 - **Gateway4 HTTP API** → read-only GETs against Gateway4 using the username/password the user
   provided (never a mutating call).
 
-Never use `iagctl` or any Gateway5 endpoint (out of scope). If the user has neither a local dir nor
+If the user has neither a local dir nor
 Gateway4 credentials, ask which they can provide; do not fabricate the asset list. Classify each
 file/asset and attach the verbatim recommendation:
 

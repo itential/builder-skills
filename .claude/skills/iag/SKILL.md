@@ -31,19 +31,16 @@ which layer.
 - **`clusterId` must match** the IAG cluster config — discover with `GET /gateway_manager/v1/gateways/`
 - **`params` maps to decorator schema** — check with `iagctl run service <type> <name> --use`
 - **`inventory` is `""` (empty string)** when not targeting nodes, not `[]` or `null`
-- **OpenTofu services require `action: apply|plan|destroy`** in the service YAML — field names are `vars` and `var-files` (NOT `plan-vars` / `plan-var-files`)
-- **`runService` result is JSON-RPC wrapped** — extract with `query` path `result.stdout`, not `stdout`
+- **OpenTofu services require `action: apply|plan|destroy`** in the service YAML, with field names `vars`/`var-files` (see the OpenTofu example below for the full field list)
+- **`runService` result is JSON-RPC wrapped** — see "Result Shape — JSON-RPC Wrapper" below for the full unwrapping pattern
 - **`stdout` is always a string** — even when a Python script prints valid JSON, `result.stdout` is a string (e.g., `"{\"hostname\":\"Router1\"}"`). You must parse it before referencing fields inside it. Use a `parse` task (WorkFlowEngine) or `transformation` to convert the JSON string to an object.
 - **`req-file` path is relative to `working-directory`** — if `working-directory: scripts`, then `req-file: requirements.txt` looks for `scripts/requirements.txt` inside the cloned repo, not the repo root
-- **`$var` doesn't resolve inside `newVariable` objects** — use separate `query` tasks instead
-- **Secrets in YAML files contain raw values** — prefer `iagctl create secret --prompt-value`. Keep `secrets:` out of `services.yaml` so `--force` never overwrites them.
-- **Import is additive** — use `--force` to overwrite existing services
-- **`--force` overwrites secrets too** — placeholder secrets replace real ones
+- **`$var` doesn't resolve inside `newVariable` objects when wiring `runService` outputs** — see AGENTS.md Rule 8; use a `query` task instead
+- **`--force` skips existing same-name resources unless forced, and overwrites secrets too** — see "Adding Secrets" below for the full warning and the fix (keep `secrets:` out of the top-level YAML entirely).
 - **Decorators reject unknown params** — every `--set` key must exist in the decorator schema
-- **Validate first** — always run `iagctl db import file.yaml --validate` before importing
 - **Decorator property names become argparse flags verbatim, including underscores** — a property named `inventory_name` becomes `--inventory_name`, not `--inventory-name`. If your script's argparse flag uses a hyphen, IAG's `--inventory_name value` call fails with "unrecognized arguments". Name every argparse flag exactly like its decorator property.
 - **Unset decorator properties arrive as an empty string, not the schema `default`** — IAG always passes every decorator property as a CLI flag, even ones the caller didn't `--set`. If unset, the value is `""`, not the schema's declared `default`. Don't use `choices=["true","false"]` on boolean-style flags — `""` isn't in that list and argparse will reject it. Instead accept any string and treat anything but `"true"` as false.
-- **`python-script` services run under the host's default `python3`, with no documented way to pin a different interpreter** — if that's Python 3.9 (common on older RHEL/Rocky boxes) and a dependency uses PEP 604 syntax (`str | None`) internally without `from __future__ import annotations`, the import crashes inside IAG's venv even though it works locally on a newer Python. Pin the dependency to a 3.9-compatible version in `requirements.txt` rather than assuming "installs fine" means "compatible."
+- **No way to pin the Python interpreter version** — services run under the host's default `python3` (often 3.9 on older RHEL/Rocky). A dependency using PEP 604 syntax (`str | None`) without `from __future__ import annotations` will crash in IAG's venv even if it worked locally. Pin dependency versions in `requirements.txt` for 3.9 compatibility.
 - **Local secret storage requires one-time gateway setup** — `iagctl create secret --value`/`--prompt-value` fails with "you must specify a encryption file" until `[secrets].encrypt_key_file` is set in `gateway.conf` and the gateway is restarted. Check `iagctl-client get secret-providers` first — external providers (Vault, CyberArk, etc.) don't need this, but they can only *reference* secrets that already exist there, not create new ones.
 - **Run `iagctl-client` as the same OS user the gateway server runs as** (often not the SSH login user) **when creating local secrets** — the client reads the same `encrypt_key_file` path from config to encrypt the value before sending it, and a restrictive (e.g. `0400`) key file owned by the server's user will deny read access to any other OS user, failing with the same "permission denied" error even though the server itself can read it fine.
 - **Ansible `network_cli` needs `paramiko` + `look_for_keys = False`** — add `paramiko` to `runtime.req-file` (requirements.txt), and in `ansible.cfg` add `[paramiko_connection]\nlook_for_keys = False`. Without `look_for_keys = False`, password auth fails with "No existing session". Use `cisco.iosxr.iosxr_command` (or `ansible.netcommon.cli_command`) for show commands — NOT `ansible.builtin.raw`
@@ -57,14 +54,12 @@ which layer.
 3. **`iagctl run service`** — test from CLI
 4. **`GatewayManager.runService`** — call from Itential workflows
 
-**Always start from a helper template.** Read the matching example from `${CLAUDE_PLUGIN_ROOT}/helpers/iag/` first, then modify:
+**Always start from a helper template — do not build YAML from scratch.** Read the matching example first:
 - Python service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-python-service.yaml`
 - Ansible service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-ansible-service.yaml`
 - OpenTofu service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-opentofu-service.yaml`
 - Multi-service chain → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-multi-service-chain.yaml`
 - Full schema reference → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/service-file-schema.md`
-
-**Do NOT build YAML from scratch. Read the helper first.**
 
 ---
 
@@ -221,22 +216,9 @@ services:
       - name: aws_access_key_id
         type: env
         target: AWS_ACCESS_KEY_ID
-
-  - name: aws-ec2-delete
-    type: python-script
-    filename: aws-ec2.py                   # same file
-    working-directory: aws-operations
-    repository: my-repo
-    decorator: aws-ec2-delete
-    runtime:
-      env:
-        OPERATION: delete                  # different operation
-        OUTPUT_FORMAT: json
-    secrets:
-      - name: aws_access_key_id
-        type: env
-        target: AWS_ACCESS_KEY_ID
 ```
+
+Define a second service the same way, just with a different `name`/`decorator` and `OPERATION: delete` in `runtime.env` — same file, same secrets, only the operation value changes.
 
 The script checks env vars first, then falls back to argparse:
 ```python
@@ -445,9 +427,7 @@ services:
         ANSIBLE_STDOUT_CALLBACK: json
 ```
 
-**Key points:**
-- `paramiko` in `requirements.txt` — IAG installs it in the service venv
-- `look_for_keys = False` in `ansible.cfg` — fixes "No existing session" error with password auth
+**Key points** (paramiko/`look_for_keys` gotcha already covered above):
 - `ansible_network_os` must match the vendor collection (e.g., `cisco.iosxr.iosxr`, `sros`)
 - Inventory uses `{{ var }}` Jinja2 refs matching decorator schema property names
 - `runtime.req-file` can be a pip `requirements.txt` or ansible-galaxy `requirements.yml`
@@ -494,8 +474,6 @@ services:
     var-files: []                          # optional: ["-var-file flags"] e.g. ["prod.tfvars"]
     state-file: null                       # optional: custom state file path
 ```
-
-**IMPORTANT — field names:** The fields are `vars` and `var-files`, NOT `plan-vars` / `plan-var-files`. The `action` field is required.
 
 **Secrets for cloud credentials use the `TF_VAR_` convention:**
 
@@ -1034,15 +1012,3 @@ jobs:
 - [ ] No top-level `secrets:` section in committed service files
 - [ ] Git references pinned to tags (not branches) for production
 - [ ] Naming conventions followed
-
-## Helper Templates
-
-**Always start from a helper template.** Read the matching example from `${CLAUDE_PLUGIN_ROOT}/helpers/iag/` first, then modify:
-
-| File | Purpose |
-|------|---------|
-| `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-python-service.yaml` | Python script service |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-ansible-service.yaml` | Ansible playbook service |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-opentofu-service.yaml` | OpenTofu plan service |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-multi-service-chain.yaml` | Multi-service orchestration |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/iag/service-file-schema.md` | Full YAML schema reference |
