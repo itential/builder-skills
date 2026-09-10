@@ -24,7 +24,7 @@ which layer.
 
 - **Inventory** — a named collection of nodes with associated actions. Has groups for access control.
 - **Node** — a device or target within an inventory. Has a name, attributes (key-value pairs like host, platform, credentials), and tags.
-- **Action** — an operation that can be run against nodes. Currently only `iag5-service` type. Links to IAG services via `service_name` and `cluster_id`.
+- **Action** — an operation that can be run against nodes. Currently only `iag5-service` type. Links to IAG services via `service_name` and `cluster_id`. (Note: `/itential-lcm` also has an "Action" concept, meaning a create/update/delete/import lifecycle operation — different meaning, same word.)
 - **Tag** — a label for organizing inventories and nodes. Auto-created on first use, auto-cleaned when unused. Stored lowercase.
 
 ## Gotchas
