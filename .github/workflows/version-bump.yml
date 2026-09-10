@@ -1,7 +1,8 @@
 name: Version Bump
 
-# After a PR merges to main, bumps .claude-plugin/plugin.json and marketplace.json to
-# stay in sync with the version Release Drafter will resolve for the next release.
+# After a PR merges to main, opens a PR bumping .claude-plugin/plugin.json and
+# marketplace.json to stay in sync with the version Release Drafter will resolve for
+# the next release.
 #
 # Bump size comes from the merged PR's labels (applied by pr-labeler.yml, or manually
 # for breaking-change):
@@ -10,14 +11,26 @@ name: Version Bump
 #   fix / refactor             -> patch
 #   documentation / chore / skip-changelog / no matching label -> no bump
 #
-# PREREQUISITE: this workflow pushes a commit directly to main, which requires an
-# exemption from the branch-protection rule that otherwise blocks direct pushes
-# (the same rule that enforces the fork-only PR workflow for everything else in this
-# repo). Add the actor running this workflow — the default GITHUB_TOKEN acts as
-# "github-actions[bot]" — to the branch protection ruleset's bypass list, or replace
-# GITHUB_TOKEN below with a PAT/App token that already has bypass rights, before this
-# workflow can actually commit. Until that's configured, this job will fail at the
-# push step with a protected-branch rejection — it will not silently do nothing.
+# WHY THIS OPENS A PR INSTEAD OF PUSHING TO MAIN DIRECTLY (confirmed live, not assumed):
+# an earlier version of this workflow pushed the bump commit straight to main and was
+# rejected by GH006 with three separate violations: commits must be signed, changes must
+# go through a pull request, and required status checks never ran on a bare push. No
+# branch-protection bypass allowance fixes this — a raw `git push` can never satisfy
+# "status checks must run" (Branch Naming/Commit Messages only trigger on `pull_request`
+# events) or produce a GitHub-verified signature the way GitHub's own merge button does.
+# Going through a real PR is what makes this actually work: status checks run normally,
+# and the eventual squash-merge is signed by GitHub itself, exactly like every other
+# change in this repo.
+#
+# TOKEN NOTE: pushing the new branch and opening the PR with the default GITHUB_TOKEN
+# works, but GitHub deliberately does not let GITHUB_TOKEN-authored events trigger other
+# workflows (anti-recursion protection) — so pr-compliance.yml and pr-labeler.yml likely
+# won't fire on the resulting PR, leaving its required status checks permanently
+# "expected but never reported" until someone pushes a trivial commit to it manually. To
+# avoid that, set a repo secret VERSION_BUMP_TOKEN to a PAT (fine-grained, contents +
+# pull-requests write on this repo) — a PAT's events DO trigger other workflows normally.
+# Falls back to GITHUB_TOKEN if that secret isn't set, in which case the manual nudge
+# described above is the workaround.
 
 on:
   push:
@@ -25,7 +38,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   bump-version:
@@ -36,7 +49,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Determine merged PR number
         id: pr
@@ -71,13 +84,25 @@ jobs:
             echo "type=" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Bump manifest files and commit
+      - name: Bump manifest files, commit, and open a PR
         if: steps.bump.outputs.type != ''
+        env:
+          GH_TOKEN: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           new_version=$(python3 scripts/bump_version.py --bump "${{ steps.bump.outputs.type }}")
+          branch="chore/bump-version-to-${new_version//./-}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
           git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
-          git commit -m "chore: bump version to v${new_version} (#${{ steps.pr.outputs.number }})"
-          git push origin HEAD:main
+          git commit -m "chore: bump version to v${new_version}"
+          git push origin "$branch"
+
+          gh pr create \
+            --title "chore: bump version to v${new_version}" \
+            --body "Automated version bump, triggered by #${{ steps.pr.outputs.number }} (resolved to a **${{ steps.bump.outputs.type }}** bump). Merging this releases v${new_version} — see \`.github/workflows/version-bump.yml\` for how the bump size was determined." \
+            --base main \
+            --head "$branch" \
+            --label chore \
+            --label skip-changelog
