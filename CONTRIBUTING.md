@@ -136,6 +136,14 @@ Type meanings:
 - `chore/` — maintenance tasks (dependencies, tooling, build)
 - `docs/` — documentation updates
 
+**Read this before picking `docs/` for a skill-content change.** In most repos, "it's a `.md` file" and "it's documentation" mean the same thing. They don't here. `AGENTS.md` and every `.claude/skills/*/SKILL.md` file are this repo's **code** — Claude reads them and they directly determine what actions an agent takes. There is no separate interpreter or compiled artifact standing between this prose and agent behavior; the wording *is* the behavior spec. This is not a theoretical distinction — a wording change to one of these files has been directly measured (via fresh sub-agent runs, before/after) to change which API endpoint an agent calls and whether it independently verifies a risky path. That is a behavior change, full stop, regardless of the file extension.
+
+So classify skill-content changes (`AGENTS.md`, any `.claude/skills/*/SKILL.md`) by **behavior impact**, not file type:
+- **`feature/`** — adds a capability or default pattern the agent didn't have before
+- **`fix/`** — corrects wrong, incomplete, or misleading guidance that was producing (or could produce) wrong agent behavior — including "the explanation was technically inaccurate" even if no one filed a bug about it
+- **`refactor/`** — restructures how guidance is organized/worded with the underlying instruction genuinely unchanged (reordering, consolidating duplicates, renumbering) — the bar is that a behavioral eval run before and after would show no difference
+- **`docs/`** — reserve this for files that are *actually* documentation with no direct behavioral role: `README.md`, this file, issue/PR templates, comments. If you're touching `AGENTS.md` or a `SKILL.md` and the change could plausibly alter what an agent does in some situation, it is not `docs/`, even if it's phrased as "just consolidating duplicate content" — verify that claim (e.g., confirm every deleted line's content still exists verbatim at its pointer target) before defaulting to `docs/`.
+
 Examples:
 - `feature/add-authentication-support`
 - `fix/handle-connection-timeout`
@@ -249,7 +257,9 @@ This project uses [Release Drafter](https://github.com/release-drafter/release-d
 | `docs/` | `documentation`, `skip-changelog` | none — excluded from versioning |
 | `chore/` | `chore`, `skip-changelog` | none — excluded from versioning |
 
-**Major version bumps are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying or correcting existing skill guidance — even a large rewrite — is not breaking on its own; it's `docs`/`fix` at most.
+`docs/` and `chore/` get **no version bump at all** — see "Read this before picking `docs/` for a skill-content change" under Branch Naming Conventions above before choosing this prefix for anything touching `AGENTS.md` or a `SKILL.md`. Picking `docs/` for a change that actually corrects agent behavior means that fix ships with zero visibility in the version history.
+
+**Major version bumps are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying/correcting existing skill guidance is usually `fix` (patch), not breaking — see the behavior-impact test above for the `fix` vs. `refactor` vs. `docs` line.
 
 **Prerequisite for the version-bump workflow:** it pushes a commit directly to `main` to update the manifest files, which requires an exemption from the branch-protection rule that otherwise blocks direct pushes to `main` (the same rule enforcing the fork-only PR workflow for everything else here). A repo admin needs to add the workflow's actor to the branch protection ruleset's bypass list before this automation can actually commit — see the comment at the top of `version-bump.yml`.
 
