@@ -22,7 +22,7 @@ which layer.
 
 ## Gotchas
 
-- **NEVER wire any task that applies golden-config/compliance-derived changes onto a device.** This skill detects, reports, and grades compliance — it does **not** remediate. The prohibited tasks are `runAutoRemediation`, `advancedAutoRemediation`, `convertChangesToConfig`, `patchDeviceConfiguration`, `advancedPatchDeviceConfiguration`, `patchCMDeviceConfiguration`, `ManualRemediation`, and `ManualRemediationResults`. No exceptions — not even when a spec asks for fully automatic remediation. To actually correct a device, hand the violations to a separate config-push delivery (see Remediation section).
+- **NEVER wire a remediation task — see ## Remediation below for the full prohibited-task list and the correct config-push pattern.** This skill detects, reports, and grades compliance; it does not remediate, no exceptions.
 - `deviceType` must match exactly: `"cisco-ios"` not `"Cisco IOS"` or `"ios"`
 - `variables` in `PUT /configuration_manager/node/config` must be a **JSON object**, not a string
 - `updateVariables` boolean is **REQUIRED** in node config update — omitting it silently skips variable merge
@@ -50,7 +50,7 @@ Golden Config provides a hierarchical, version-controlled system for defining wh
 - **Configuration Parsers** - Define how raw CLI config is tokenized for comparison against config specs
 - **Compliance Reports** - Results of checking device configs against golden config specs
 - **Grading** - Scoring formula that produces a grade (Pass/Review/Fail) from compliance results
-- **Remediation** - Correcting a device is **out of scope for this skill** — it reports violations; a separate config-push delivery applies fixes. The Configuration Manager remediation tasks are never used (see Remediation section).
+- **Remediation** - out of scope; see ## Remediation section.
 
 ### How Inheritance Works
 
@@ -725,7 +725,9 @@ POST /configuration_manager/compliance_reports/grade/single
 | `ManualRemediation` | ConfigurationManager | Generates GC-derived device changes for review/apply |
 | `ManualRemediationResults` | ConfigurationManager | Applies the manual-remediation results to the device |
 
-There is **no exception** — not even when a spec asks for fully automatic remediation with no human in the loop. (Itential is also deprecating the auto-remediation feature: `updateNodeConfig` and `convertChangesToConfig` are deprecated in Platform 6.5 and removed in Platform 7 — see the [deprecation notice](https://docs.itential.com/itential-platform/release-notes/deprecations/autoremediation-tasks). Building on it is a dead end regardless.)
+*Note: `updateNodeConfig` is NOT prohibited — it authors the Golden Config **node template** (the standard), it doesn't touch a device. Likewise `applyDeviceConfig`/`applyDeviceTemplate` are generic config-apply tasks; they're fine for a deliberate push delivery but must never be wired to auto-apply changes derived from a compliance report.*
+
+There is **no exception** — not even when a spec asks for fully automatic remediation with no human in the loop. (`convertChangesToConfig` is also deprecated in Platform 6.5, removed in Platform 7 — see the [deprecation notice](https://docs.itential.com/itential-platform/release-notes/deprecations/autoremediation-tasks) — a dead end regardless of the prohibition.)
 
 **If a spec calls for remediation, do this instead:**
 1. This skill produces the compliance report — the list of violations (`issues`) per device.
@@ -737,10 +739,6 @@ There is **no exception** — not even when a spec asks for fully automatic reme
 
    See `/builder-agent`'s config-push pattern and the Arista EOS "Push Configuration to Device - IAG" workflow in `helpers/assets/vendor-arista-eos.json`.
 3. Re-run compliance (this skill) afterward to confirm the device is back in standard.
-
-This keeps detection (Golden Config) and correction (a reviewed config-push) cleanly separated, and survives the Platform 7 removal of auto-remediation.
-
-> Note: `updateNodeConfig` is **not** prohibited — it authors the Golden Config **node template** (the standard), it does not touch a device. Likewise `applyDeviceConfig`/`applyDeviceTemplate` are generic config-apply tasks; they're fine for a deliberate push delivery but must never be wired to auto-apply changes derived from a compliance report.
 
 ## Helper JSON Templates
 

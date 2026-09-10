@@ -8,9 +8,9 @@ argument-hint: "[action or agent-name]"
 
 FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to autonomously operate the Itential Platform. Agents can call adapters, run workflows, and invoke IAG services — all driven by natural language instructions and a typed input contract.
 
-**This skill documents six services**: **Agent Project Service** (projects + agents), **Model Registry Service** (LLM provider profiles + models), **Tools Service** (tools + decorators), **Agent Session Manager** (running and tracking agents), **Agent Execution Engine** (internal execution kernel — not called directly), and **Tool RPC** (tool-call execution tracking). Human-in-the-loop approval is handled by a separate WorkCenter Service — see Work Items in the API Reference below.
+This skill covers Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager, Tool RPC, and (read-only) Agent Execution Engine — plus Work Items via the separate WorkCenter Service. See the API Reference below for each.
 
-**Response schema caveat:** several endpoints (notably most of Agent Project Service and the Tools Service) declare their success response as a bare `{"type": "object"}` in the OpenAPI spec — the exact response field names are not formally typed. Where this skill states a response shape, it's inferred from request-body schemas, the project-bundle export format (which IS fully typed), or cross-referenced fields — not guessed. Treat every shape and JSON example below as a known-good working structure, not a guarantee that matches your platform version exactly.
+Several endpoints (notably Agent Project Service and Tools Service) declare an untyped `{"type": "object"}` success response in the OpenAPI spec — see Gotchas below for what this means in practice.
 
 ## Customization
 
@@ -53,16 +53,15 @@ This skill is a map, not a substitute for checking the live API. Don't hardcode 
 - **`inputSchema` only allows `string`/`number` property types**, requires `additionalProperties: false`, and validates session `inputs` at start time — a session start with inputs that don't match returns a validation error, not a soft failure inside the agent run.
 - **Every declared `inputSchema` property MUST be used in `instructions`.** `instructions` isn't just a static system prompt — it's a template, and `inputSchema` properties are substituted into it as `{{ propertyName }}` at session-start time. Declaring a property and never referencing it fails agent create/update with `"'<name>' is defined in schema but not used in template"`.
 - **Agent create vs. update field asymmetry:** `instructions`/`inputSchema` are top-level on create, but nested under `prompt` on `PATCH`. Tool changes are a full array on create (`tools`) but deltas on update (`addTools`/`removeTools`/`decorateTools`/`authorizeTools`).
-- **`provider.profile` and `provider.model` are two separate UUIDs, both required together** (`additionalProperties: false` — no inline API key, temperature, or other override at the agent level; all of that lives on the Profile).
+- **`provider` has no inline API key, temperature, or other override at the agent level** (`additionalProperties: false`) — all of that lives on the Profile; the agent only references `profile`/`model` UUIDs (see Concepts above).
 - **Profile credentials are always masked on read** (`credential.masked: true`) — there's no way to retrieve a saved secret via the API, by design.
 - **Provider type is immutable on a profile once created.** To switch providers, create a new profile and repoint agents at it — `GET /model-registry-service/profiles/{id}/agent-impact` first to see what breaks.
 - **Deleting a profile is irreversible (hard delete)** — always check `agent-impact` first.
 - **Deleting a project cascades to every agent inside it** — no soft-delete/recovery.
-- **Updating an agent's `operators` requires the owner GBAC role**, even though other agent fields only need editor — a common source of unexpected 403s.
-- **`operators` grants operate-access only — it does not configure what identity the agent's tool calls run as.** That's a separate concern, not set on the agent definition itself.
-- **Decorators replace the ENTIRE tool input schema**, not just the fields you specify. Omitting a required field means the agent will never send it, and the underlying adapter call fails with a schema validation error. Always test the tool directly first to enumerate every required field.
+- **`operators` doesn't set tool-call identity, and needs the owner GBAC role to update** — see Agents → `operators` for what it actually controls.
+- **Decorators replace the ENTIRE tool input schema**, not just the fields you specify — see Decorators below for the concrete example. Omitting a required field means the agent will never send it, and the underlying adapter call fails with a schema validation error.
 - **`agentSnapshot` on a session is frozen at session-start time.** Editing the agent afterward does not change what an already-running or already-completed session executed.
-- **Tool execution is asynchronous and externalized internally**, but a fast tool call still completes and shows up fully resolved in `messages` within seconds in practice — the async/receipt pattern is an internal implementation detail, not something that makes results harder to read via the session API. If a session does seem stuck mid-tool-call, check `GET /tool-rpc/executions?status=running`.
+- **Tool execution is asynchronous internally, but resolves fully in `messages` within seconds in practice** — see Agent Execution Engine below. If a tool call has been pending materially longer than that, check `GET /tool-rpc/executions?status=running` for a genuinely stuck execution.
 - **Generic WorkFlowEngine utility tasks (merge, query, getTime, etc.) are not discoverable as tools.** `POST /tools/discover` only registers adapter methods, app methods, workflows, and IAG gateway services — a task existing in `tasks.json` doesn't mean it's addressable as a tool `referenceId`. If you need simple platform-level info, look for it via an app method (e.g., `application:ConfigurationManager:*`) instead.
 - **No bulk session delete.** You must delete sessions one at a time.
 - **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint.
@@ -214,7 +213,7 @@ POST /agent-project-service/project-bundles/import
   "operators": ["<24-hex-account-or-group-id>"]
 }
 ```
-`tools[].referenceId` is the only required field per tool entry. `provider` requires both `profile` and `model` together if present — `additionalProperties: false` (no inline API keys or temperature here; those live on the Profile).
+`tools[].referenceId` is the only required field per tool entry. `provider` requires `profile`+`model` together — see Concepts above.
 
 **Writing `instructions` and `inputSchema`:**
 
@@ -252,9 +251,7 @@ This is a real function-signature-style contract now, not a free-form context ba
 ```
 - `instructions`/`inputSchema` are top-level on **create** but nested under `prompt` on **update** — an intentional API asymmetry, not a typo.
 - Tool changes on update are **deltas**, not a full-array replace: `addTools`, `removeTools`, `decorateTools` (attach/detach/change a decorator on an existing reference — `decoratorId: null` clears it), and `authorizeTools` (marks a tool reference as explicitly authorized — exact semantics not documented beyond the field name; verify against your platform before relying on it for anything security-sensitive).
-- **Updating `operators` requires the owner GBAC role** on the parent project, even though other agent edits only need editor.
-
-**`operators` — what it actually is:** a direct, agent-level access grant (array of 24-hex account/group IDs) letting those specific callers *operate* (run) this one agent, independent of their project role. It's additive to project GBAC, not a replacement — a project editor/owner can already operate every agent in the project; `operators` extends operate-access to accounts that otherwise wouldn't have it. This does not control what identity the agent's own tool calls run as — that's a separate concern not configured on the agent definition itself.
+**`operators` — what it actually is:** a direct, agent-level access grant (array of 24-hex account/group IDs) letting those specific callers *operate* (run) this one agent, independent of their project role. It's additive to project GBAC, not a replacement — a project editor/owner can already operate every agent in the project; `operators` extends operate-access to accounts that otherwise wouldn't have it. This does not control what identity the agent's own tool calls run as — that's a separate concern not configured on the agent definition itself. **Updating `operators` requires the owner GBAC role** on the parent project, even though other agent edits only need editor.
 
 ### Providers and Profiles (Model Registry Service)
 
@@ -531,7 +528,7 @@ Decorators are looked up by ID when an agent runs, not embedded inline — the s
 
 **Effect:** with the decorator attached, `createIncident` produces a single `tool-execution` message with `status: "succeeded"` — the LLM has the exact required fields up front and doesn't need a failed first attempt to discover them.
 
-**CRITICAL:** a decorator's `toolInputSchema` **replaces the entire schema the LLM sees** — any field you omit will never be sent by the agent, even if the underlying adapter requires it. Test the tool directly (see Tools above) to find every required field before writing the decorator.
+**A decorator's `toolInputSchema` replaces the entire schema the LLM sees** — any field you omit will never be sent by the agent, even if the underlying adapter requires it. Test the tool directly (see Tools above) to find every required field before writing the decorator.
 
 **When to create a decorator (and when NOT to):** create one only when the tool's native schema is too broad and the LLM sends wrong/incomplete inputs despite good `instructions`, or when different teams need different required fields on the same tool. Skip it for read-only tools and skip it if fixing the `instructions` text alone solves the problem.
 
@@ -622,7 +619,7 @@ Each message: `{ sessionId, eventId, timestamp, type, category, sequenceNumber?,
 - `category`: `AGENT_REASONING` | `TOOL_CALLED` | `AGENT_STATUS`
 - `sequenceNumber` is `null` on `tool-execution` and `AGENT_STATUS` messages — only `AGENT_REASONING` messages are sequenced.
 
-**Real `data` shapes:** session messages return the actual resolved tool input/output inline, not just a store/receipt pointer — the receipt pattern described under Agent Execution Engine below is internal plumbing between the execution engine and its tool executor; it doesn't change what this endpoint returns.
+**Real `data` shapes:** session messages return the actual resolved tool input/output inline, not just a store/receipt pointer — see Agent Execution Engine below for why (the receipt pattern is internal plumbing that doesn't change what this endpoint returns).
 
 `inference-succeeded`:
 ```json
@@ -729,7 +726,7 @@ PATCH /work-center-service/work-items/{id}/complete
 | PATCH | `/work-center-service/work-items/{id}/complete` | Submit the operator's response and resolve the item |
 | POST | `/work-center-service/work-items/cancel` / `/cancel-work-items` | Cancel one or more pending items |
 
-**Design implication:** if an agent's `instructions` call for presenting something to a human before finishing, expect the session to sit `RUNNING` indefinitely (minutes to hours, however long the human takes) until someone completes the corresponding work item. Poll or watch WorkCenter, not just the session — a session "stuck" in `RUNNING` with a `pending` `tool-execution` message is working as intended, not failing. Not just `QuickForm` — any `view`-type tool (e.g. `view:WorkFlowEngine:ViewHTML`) follows the same pause/work-item/complete pattern, and an agent can call more than one in sequence, each producing its own work item.
+**Design implication:** expect the session to sit `RUNNING` indefinitely (minutes to hours, however long the human takes) until someone completes the work item — this is expected, not a failure (see the Gotchas/Quick-fixes entries above). Not just `QuickForm` — any `view`-type tool (e.g. `view:WorkFlowEngine:ViewHTML`) follows the same pause/work-item/complete pattern, and an agent can call more than one in sequence, each producing its own work item.
 
 ### Tool Executions (Tool RPC — observability only)
 

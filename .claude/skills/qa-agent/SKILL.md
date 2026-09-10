@@ -26,6 +26,8 @@ which layer.
 
 ## Stage Expectations
 
+*(See AGENTS.md's Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
+
 ### Test
 
 | | |
