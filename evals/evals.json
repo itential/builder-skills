@@ -793,6 +793,52 @@
               "type": "structural"
             }
           ]
+        },
+        {
+          "id": 28,
+          "prompt": "Build a workflow with a ServiceNow createChangeRequest adapter task, request body assembled via merge from job variables deviceName and siteName, proper error handling, hex task IDs. Test it against the live platform and tell me when it's safe to ship.",
+          "expected_output": "Workflow built and tested via POST /workflow_engine/workflows/validate (not the older /automation-studio/workflows/validate) as the pre-flight check before create/update, with both isValid and warnings inspected. Independently of the validate result, the agent verifies the error transition works with a real forced-failure job run rather than treating isValid:true as sufficient proof the error path is safe.",
+          "assertions": [
+            {
+              "text": "Pre-flight validation call uses POST /workflow_engine/workflows/validate, not POST /automation-studio/workflows/validate",
+              "type": "critical"
+            },
+            {
+              "text": "Agent checks warnings[] in the validate response, not just isValid",
+              "type": "structural"
+            },
+            {
+              "text": "Agent runs a live job that deliberately forces the adapter task's error transition, rather than only relying on the validate response to confirm the error path is safe",
+              "type": "critical"
+            },
+            {
+              "text": "Agent does not claim the workflow is safe to ship based solely on isValid:true with no live error-path test",
+              "type": "negative"
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "prompt": "I built this workflow myself: one adapter task (ServiceNow createChangeRequest) with only a success transition wired (no error transition), and an evaluation task using operator \"regex\" to branch on a device status string, with both success and failure transitions wired. I ran POST /workflow_engine/workflows/validate against the full document and got back exactly {\"isValid\": true, \"errors\": [], \"warnings\": []}. Is this workflow ready to ship as-is?",
+          "expected_output": "Answers no. Identifies both defects despite the clean validate response: (1) the missing error transition will hang the job forever at runtime if the adapter call fails, since /workflow_engine/workflows/validate does not check for missing error transitions; (2) \"regex\" is not a member of the evaluation operator's closed enum (contains, !contains, <, <=, >, >=, ==, !=), and an invalid operator silently returns false every time rather than raising an error, so the branch is functionally broken despite validating cleanly. Explains that isValid:true only proves schema validity, not runtime safety or semantic correctness.",
+          "assertions": [
+            {
+              "text": "Answers 'no' / 'not safe to ship' rather than treating isValid:true as sufficient",
+              "type": "critical"
+            },
+            {
+              "text": "Identifies the missing error transition as a runtime hang risk, independent of the validate response",
+              "type": "critical"
+            },
+            {
+              "text": "Identifies 'regex' as outside the evaluation operator's closed enum and explains the silent-false runtime failure mode",
+              "type": "critical"
+            },
+            {
+              "text": "Explicitly states or implies that /workflow_engine/workflows/validate returning isValid:true does not guarantee these two defects are absent",
+              "type": "structural"
+            }
+          ]
         }
       ]
     },

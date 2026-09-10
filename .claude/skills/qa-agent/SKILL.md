@@ -74,7 +74,7 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 **If `solution-design.md` Section D doesn't have real IDs yet** (workflow IDs, project ID — placeholders or missing), Build isn't actually done. Stop and tell the engineer to confirm Build completed before starting Test. `use-case-memory.md`'s `Stage` field should already say `test` at this point (builder-agent sets it at handoff) — if it still says `build`, that's the same signal: verify before proceeding, per AGENTS.md's "Resuming a Use-Case" table.
 
 **The only API calls the QA agent makes are:**
-- **Static checks** — `POST /automation-studio/workflows/validate`, `GET` the built workflow/template JSON to run local `jq` checks
+- **Static checks** — `POST /workflow_engine/workflows/validate` (6.5.2+ deep validation), `GET` the built workflow/template JSON to run local `jq` checks
 - **Acceptance checks** — `POST /operations-manager/jobs/start`, `GET /operations-manager/jobs/{jobId}` for status and output
 - **Re-auth** — if the token expires, refresh from `.env` exactly as builder-agent does
 
@@ -119,18 +119,18 @@ Read `customer-spec.md` Section 9 (Acceptance Criteria) and `solution-design.md`
 
 **Not every criterion needs a live job.** Some are checked by inspecting an artifact already produced by another test case (`artifact-inspection`), and some genuinely can't be automated (e.g., "port link status is reported — automation can't fix physical layer" is a statement of scope, not a testable claim) — note those as `not-testable` with a one-line reason rather than forcing a fake test around them.
 
-**Static checks are one shared checklist, not itemized per criterion.** They validate structural correctness of what was built, independent of any specific acceptance criterion. Pull the machine-checkable subset of `builder-agent`'s Step 9 pre-submit checklist — skip the visual/canvas-layout items (spacing, crossing lines), since those are aesthetic, not correctness bugs:
+**Static checks are one shared checklist, not itemized per criterion.** They validate structural correctness of what was built, independent of any specific acceptance criterion. Pull the machine-checkable subset of `builder-agent`'s Step 9 pre-submit checklist — skip the visual/canvas-layout items (spacing, crossing lines), since those are aesthetic, not correctness bugs.
+
+**Run `POST /workflow_engine/workflows/validate` first, then the local `jq` checks below for everything it doesn't cover.** This deep-validation endpoint (body `{"asset": {...}}`, returns `{isValid, errors, warnings}`) catches non-hex/reserved task IDs, missing required task fields, wrong adapter `app`/`adapter_id` values (checked against the platform's live adapter registry), and dangling task/transition references — don't re-derive these by hand. It does **not** catch missing error/failure transitions, invalid `evaluation.operator` values, or `merge`/`childJob` `"value"`/`"variable"` key mixups — those still need the local checks below. Check `warnings[]`, not just `isValid`: static-value type mismatches and nested `$var` references only ever surface as warnings and never block `isValid`.
 
 ```markdown
 ### Static Checks (run once per built workflow)
-- Every task ID is hex-only ([0-9a-f]{1,4})
-- Every adapter task has adapter_id in incoming
-- Every adapter task has an error transition
-- evaluation tasks have both success AND failure transitions
-- merge uses "variable", childJob uses "value"
-- No {task:"job"} refs in merge/childJob for internally-produced variables
-- workflow_end transition is empty {}
-- POST /automation-studio/workflows/validate returns empty errors[]
+- POST /workflow_engine/workflows/validate returns isValid: true AND empty warnings[]
+- Every adapter task has an error transition (not checked by validate)
+- evaluation tasks have both success AND failure transitions (not checked by validate)
+- evaluation operators are from the closed enum contains/!contains/</<=/>/>=/==/!= (not checked by validate on an embedded evaluation task)
+- merge uses "variable", childJob uses "value" (not checked by validate)
+- No {task:"job"} refs in merge/childJob for internally-produced variables (not checked by validate)
 ```
 
 ### Step 2: Confirm test data
@@ -147,7 +147,7 @@ Once approved, turn each test-plan entry into an executable case. See schema bel
 
 ### Step 5: Run static cases first
 
-Cheaper and faster than a live job — catch a broken workflow before spending a live run on it. Run `POST /automation-studio/workflows/validate` on every built workflow, then the `jq`-checkable structural rules directly against the fetched workflow JSON (`GET /automation-studio/workflows/detailed/{name}`). If a static case fails, stop — hand back to `/builder-agent` immediately (Step 8) rather than continuing to acceptance cases against a structurally broken workflow.
+Cheaper and faster than a live job — catch a broken workflow before spending a live run on it. Run `POST /workflow_engine/workflows/validate` (body `{"asset": {...}}`) on every built workflow and check both `isValid` and `warnings[]`, then the `jq`-checkable structural rules directly against the fetched workflow JSON (`GET /automation-studio/workflows/detailed/{name}`) for everything the endpoint doesn't cover (missing error transitions, evaluation operator/failure-transition correctness, merge/childJob key naming — see the Static Checks list above). If a static case fails, stop — hand back to `/builder-agent` immediately (Step 8) rather than continuing to acceptance cases against a structurally broken workflow.
 
 ### Step 6: Run acceptance cases
 
@@ -195,8 +195,8 @@ Once every case passes, or the engineer explicitly accepts a residual known issu
       "criterion": null,
       "description": "Workflow passes platform validation",
       "target": "workflow:Port Turn Up",
-      "check": "POST /automation-studio/workflows/validate",
-      "expected": "errors: []"
+      "check": "POST /workflow_engine/workflows/validate",
+      "expected": "isValid: true, warnings: []"
     },
     {
       "id": "acceptance-01",

@@ -11,11 +11,13 @@
 |-------|-------|------------|----------|------------|----------|
 | spec-agent | 5 | 18 | 6 | 11 | 1 |
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
-| builder-agent | 27 | 82 | 39 | 40 | 3 |
+| builder-agent | 29 | 90 | 44 | 42 | 4 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
 | flowagent | 1 | 1 | 0 | 0 | 1 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **55** | **177** | **74** | **94** | **10** |
+| **Total** | **57** | **185** | **79** | **96** | **11** |
+
+**2026-09-09 update:** Added builder-agent evals 28–29 for the `POST /workflow_engine/workflows/validate` adoption (see `AGENTS.md` Rule 7, `builder-agent/SKILL.md` pre-flight validation section). Eval 28 asserts the new endpoint is used over the older `/automation-studio/workflows/validate`, and that the agent still runs a live forced-error-transition test rather than trusting `isValid:true` alone. Eval 29 is a trap scenario (clean `isValid:true` response hiding a missing error transition and an invalid `evaluation.operator` value) asserting the agent still catches both. Verified with real (not simulated) sub-agent runs before and after the skill change, on the actual live `se-lab-poc` platform: against the pre-change skill content, two independent build sessions both defaulted to the old `/automation-studio/workflows/validate` endpoint exclusively; against the updated skill content, both switched to the new endpoint and both independently ran a live forced-failure job to verify the error transition, citing Rule 19 as the reason `isValid:true` alone wasn't sufficient. The trap scenario (run against the updated skill content only) correctly identified both defects. No regressions observed on other builder-agent behaviors during these runs.
 
 **2026-07-02 update:** Removed flowagent evals 1–5 and the "FlowAgent" domain-coverage rows (issues #49–52) — both were built against the deprecated prototype FlowAI API (`//`-format tool identifiers, `{details: {...}}` request wrapper, `/flowai/missions`, `/flowai/adhoc_agent`). The flowagent skill was rewritten against the current Agent Project Service / Model Registry Service / Tools Service / Agent Session Manager APIs; only the skill-trigger negative eval survived (renumbered to id 1). Fresh evals against the current API are a separate follow-up, not yet written.
 
