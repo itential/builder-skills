@@ -1,0 +1,37 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels: ['feature']
+  - title: '🐛 Bug Fixes'
+    labels: ['fix']
+  - title: '🧰 Refactoring'
+    labels: ['refactor']
+  - title: '🧹 Chores'
+    labels: ['chore']
+  - title: '📝 Documentation'
+    labels: ['documentation']
+
+change-template: '- $TITLE (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels: ['breaking', 'breaking-change']
+  minor:
+    labels: ['feature']
+  patch:
+    labels: ['fix', 'refactor']
+  default: patch
+
+# docs/ and chore/ branches are auto-labeled with skip-changelog by pr-labeler.yml —
+# excluded entirely from both release notes and version resolution, matching the
+# "docs/chore = no bump" policy in CONTRIBUTING.md.
+exclude-labels:
+  - 'skip-changelog'
+
+template: |
+  ## Changes
+
+  $CHANGES

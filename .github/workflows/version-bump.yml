@@ -1,0 +1,83 @@
+name: Version Bump
+
+# After a PR merges to main, bumps .claude-plugin/plugin.json and marketplace.json to
+# stay in sync with the version Release Drafter will resolve for the next release.
+#
+# Bump size comes from the merged PR's labels (applied by pr-labeler.yml, or manually
+# for breaking-change):
+#   breaking-change / breaking -> major
+#   feature                    -> minor
+#   fix / refactor             -> patch
+#   documentation / chore / skip-changelog / no matching label -> no bump
+#
+# PREREQUISITE: this workflow pushes a commit directly to main, which requires an
+# exemption from the branch-protection rule that otherwise blocks direct pushes
+# (the same rule that enforces the fork-only PR workflow for everything else in this
+# repo). Add the actor running this workflow — the default GITHUB_TOKEN acts as
+# "github-actions[bot]" — to the branch protection ruleset's bypass list, or replace
+# GITHUB_TOKEN below with a PAT/App token that already has bypass rights, before this
+# workflow can actually commit. Until that's configured, this job will fail at the
+# push step with a protected-branch rejection — it will not silently do nothing.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  bump-version:
+    name: Bump plugin version
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'chore: bump version to')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine merged PR number
+        id: pr
+        run: |
+          number=$(git log -1 --format=%s | grep -oP '\(#\K[0-9]+(?=\)$)' || true)
+          if [[ -z "$number" ]]; then
+            echo "No PR number found in commit subject — not a squash-merged PR, skipping."
+            echo "number=" >> "$GITHUB_OUTPUT"
+          else
+            echo "number=$number" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Determine bump type from PR labels
+        id: bump
+        if: steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          labels=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')
+          echo "PR labels: $labels"
+
+          if grep -qE '^(breaking|breaking-change)$' <<< "$labels"; then
+            echo "type=major" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^skip-changelog$' <<< "$labels"; then
+            echo "type=" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^feature$' <<< "$labels"; then
+            echo "type=minor" >> "$GITHUB_OUTPUT"
+          elif grep -qE '^(fix|refactor)$' <<< "$labels"; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            echo "No version-impacting label found — skipping bump."
+            echo "type=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump manifest files and commit
+        if: steps.bump.outputs.type != ''
+        run: |
+          new_version=$(python3 scripts/bump_version.py --bump "${{ steps.bump.outputs.type }}")
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git commit -m "chore: bump version to v${new_version} (#${{ steps.pr.outputs.number }})"
+          git push origin HEAD:main
