@@ -33,42 +33,9 @@ Three things commonly go wrong even after this gate is respected — watch for a
 | `/itential-lcm` | — | Resource models, instances, lifecycle actions. |
 | `/itential-json-forms` | — | JSON Forms: static-enum, REST-bound, and cascading dropdowns for manual triggers and manual tasks. |
 
-### Delivery Lifecycle
+**Explore path** (no spec, no delivery lifecycle): `/explore → auth → pull platform data → summarize → use skills directly`
 
-Spec-based delivery follows six stages. Each stage has a named agent, a clear input, and a deliverable.
-
-```
-Requirements → Feasibility →   Design    →  Build   →    Test    →  As-Built
-      │              │             │            │             │            │
-  Spec Agent   Solution Arch  Solution Arch  Builder      QA Agent    QA Agent
-                   Agent          Agent       Agent
-      │              │             │            │             │            │
-  customer-      feasibility.md solution-    assets/    test-report.md as-built.md
-  spec.md        (assessment    design.md    configs    (evidence per  (delivered
-  (approved)     + decision)   (approved)   (delivered) criterion, from   state,
-                                                          test-plan.md    deviations,
-                                                          approved by     learnings)
-                                                          engineer)      ↳ design updates
-                                                                         ↳ spec amendments
-```
-
-**Deliverables:**
-
-| Deliverable | Artifact | Produced by | Audience |
-|-------------|----------|-------------|----------|
-| HLD | `customer-spec.md` | Spec Agent | Customer / stakeholder |
-| Feasibility Assessment | `feasibility.md` | Solution Architecture Agent | Customer / architect |
-| Solution Design / LLD | `solution-design.md` | Solution Architecture Agent | Engineer / delivery team |
-| Test Plan | `test-plan.md` | QA Agent | Engineer (approves before any live test execution) |
-| Test Report | `test-report.md` | QA Agent | Customer / delivery — evidence per acceptance criterion |
-| As-Built | `as-built.md` | QA Agent | Customer / delivery / support / system of record |
-
-**Explore path** (no spec, no delivery lifecycle):
-```
-/explore → auth → pull platform data → summarize → use skills directly
-```
-
-Build workflows/templates → invoke `/builder-agent`. Need acceptance testing or a closeout record → invoke `/qa-agent`. (Same hard gate as the Skill Router section above — invoke via the Skill tool, don't just reference a skill by name in text.)
+See **Developer Flow** below for the full six-stage delivery pipeline (stages, agents, deliverables, and what the engineer approves at each gate).
 
 ### Directory Layout
 
@@ -151,13 +118,20 @@ It contains the platform URL, project ID, what's already built, decisions made, 
 **Auth happens when first needed** — in `/explore` (explore path) or in `/solution-arch-agent` during Feasibility. The token is saved to `use-cases/{use-case}/.auth.json`. Every subsequent skill should:
 1. Read `use-cases/{use-case}/.auth.json` for the token
 2. Read `use-cases/{use-case}/.env` for `PLATFORM_URL` and credentials
-3. Use the token for all API calls (Bearer header for OAuth)
+3. Use the token for all API calls — Bearer header for OAuth, query parameter for local-dev `/login` tokens (see "Initial authentication" below for which)
 4. On auth error (401/403): re-authenticate silently — see procedure below
 5. **Never ask the user for credentials if `.env` exists**
 
 This means the user authenticates once and every subsequent skill just works.
 
-**Token expiry — silent re-auth procedure:**
+**Initial authentication — two modes, depending on environment.** Check for credentials in this order: `{use-case}/.auth.json` (already authenticated, reuse) → `{use-case}/.env` (saved during setup) → pre-configured environment files. If none found, ask the engineer for the platform URL and credentials, then use whichever mode matches:
+
+- **Local development (username/password):** `POST /login` with `Content-Type: application/json` and body `{"username": "...", "password": "..."}`. Returns a bare token string — used as a **query parameter** (`GET /endpoint?token=TOKEN`), not a Bearer header.
+- **Cloud / OAuth (client_credentials):** `POST /oauth/token` with `Content-Type: application/x-www-form-urlencoded` and body `grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}`. Returns `{"access_token": "..."}` — used as a **Bearer header**, per the reuse rules above.
+
+Write whichever token you got, plus `auth_method` (`"local"` or `"oauth"`) so downstream skills know which transport to use, to `{use-case}/.auth.json`. **Never author this file via a shell heredoc** — see Rule 27.
+
+**Token expiry — silent re-auth procedure (OAuth only; local-dev tokens don't expire the same way — re-run `/login` if one stops working):**
 
 When any API call returns 401 or 403, do not stop and do not ask the user. Re-authenticate silently:
 
@@ -171,6 +145,12 @@ If `.env` does not exist and re-auth is needed, then and only then ask the user 
 **"Ask the user" is not limited to missing credentials.** It also applies whenever the Repeat-Failure Circuit Breaker above triggers (the same class of error twice in a row) — surfacing the specific error and asking how to proceed is always preferable to a third silent guess.
 
 **Running fully autonomously with no user turns available? "Ask the user" becomes "stop and document."** Don't continue iterating past 3-4 attempts on the same error class just because no one is available to answer. Instead: stop, write a clear summary of the specific blocker to `use-case-memory.md` and your final response — the exact error, what you've tried, and what you believe the next diagnostic step should be. A clearly-documented stopping point is far more useful to whoever picks this up next than an unbounded attempt log that eventually runs out with no summary at all.
+
+### Project Visibility — Absence in a Response Isn't Proof of Absence
+
+**Itential projects use per-project ACLs only — there is no platform-wide admin or "all-projects" role.** Every project explicitly grants access to specific users/groups; the calling client sees a project iff its ACL includes that client or one of its groups. **Global Automation Studio assets** (workflows, templates, etc. living outside any named project) are NOT access-restricted this way — they're visible to any authenticated client, so absence of a *global* asset in a list response is real absence.
+
+If a named *project* (or anything inside one) the engineer expects doesn't show up in a list/get response: **don't declare it missing.** Say it's "not visible to this client — possibly access-restricted; ask the project owner or someone with manage rights to add this client to its ACL." Never grant yourself access on your own initiative — ask the engineer how to proceed.
 
 ### Key Rule: Look Up Before You Act — Don't Guess
 
@@ -279,25 +259,24 @@ Requirements → Feasibility →   Design    →  Build   →    Test    →  As
 
 **Stage summaries:**
 
-| Stage | Agent | What happens | Engineer does |
-|-------|-------|-------------|---------------|
-| Requirements | `/spec-agent` | Refines use case, defines scope, structures HLD | Approves `customer-spec.md` |
-| Feasibility | `/solution-arch-agent` | Connects to platform, assesses capabilities, flags constraints | Approves `feasibility.md` |
-| Design | `/solution-arch-agent` | Produces component inventory, adapter mappings, build plan, acceptance-criteria-to-test mapping | Approves `solution-design.md` |
-| Build | `/builder-agent` | Builds all assets, tests each component individually, delivers | Reviews and accepts delivery |
-| Test | `/qa-agent` | Drafts `test-plan.md`, runs static + acceptance test cases against confirmed test data, reports evidence | Approves `test-plan.md` before live execution; reviews `test-report.md` |
-| As-Built | `/qa-agent` | Records delivered state, deviations, learnings, backed by test evidence | Signs off on `as-built.md` |
+| Stage | Agent | Artifact | Audience | What happens | Engineer does |
+|-------|-------|----------|----------|-------------|---------------|
+| Requirements | `/spec-agent` | `customer-spec.md` (HLD) | Customer / stakeholder | Refines use case, defines scope, structures HLD | Approves `customer-spec.md` |
+| Feasibility | `/solution-arch-agent` | `feasibility.md` | Customer / architect | Connects to platform, assesses capabilities, flags constraints | Approves `feasibility.md` |
+| Design | `/solution-arch-agent` | `solution-design.md` (LLD) | Engineer / delivery team | Produces component inventory, adapter mappings, build plan, acceptance-criteria-to-test mapping | Approves `solution-design.md` |
+| Build | `/builder-agent` | Deployed assets | — | Builds all components per design, tests each piece individually, delivers | Reviews and accepts delivery |
+| Test | `/qa-agent` | `test-plan.md`, `test-report.md` | Engineer (approves plan); customer / delivery (report) | Drafts `test-plan.md`, runs static + acceptance test cases against confirmed test data, reports evidence per acceptance criterion | Approves `test-plan.md` before live execution; reviews `test-report.md` |
+| As-Built | `/qa-agent` | `as-built.md` | Customer / delivery / support / system of record | Records delivered state, deviations, learnings, backed by test evidence | Signs off on `as-built.md` |
 
-**For explore / freestyle work:**
-```
-/spec-agent → auth → pull platform data → use skills directly
-```
+Build workflows/templates → invoke `/builder-agent`. Need acceptance testing or a closeout record → invoke `/qa-agent`. (Same hard gate as the Skill Router section — invoke via the Skill tool, don't just reference a skill by name in text.)
+
+**For explore / freestyle work, skip this pipeline entirely:** `/explore → auth → pull platform data → use skills directly`
 
 ## Key Rules
 
 1. **Never invent task names** — always look them up from `tasks/list`
 2. **Always get the schema before building** — `multipleTaskDetails?dereferenceSchemas=true`
-3. **Adapter `app` AND `locationType` fields come from `apps/list`**, not `tasks/list` (names can be completely different, not just casing). The `app` field is the adapter **type name** (e.g., `EmailOpensource`), NOT the adapter **instance name** (e.g., `email`). Using the instance name causes `"No config found for Adapter"` errors. Resolve from local `apps.json` and `adapters.json`. When multiple adapter apps exist for the same product, ask the user.
+3. **Adapter `app` AND `locationType` fields come from `apps/list`**, not `tasks/list` — see Rule 23 below for the full type-vs-instance-name distinction. When multiple adapter apps exist for the same product, ask the user.
 4. **Test each piece individually** before composing into a larger workflow
 5. **Check `job.error` for failures**, not just task status
 6. **Variable syntax differs by context:**
@@ -332,7 +311,7 @@ Requirements → Feasibility →   Design    →  Build   →    Test    →  As
 27. **Never construct a large JSON payload as an inline shell string (bash heredoc, `-d '{...}'`).** Write it to a scratch file with a proper file-write tool, or if only `bash` is available, generate it with `python3 -c "..."` using `json.dump()` to a file (single-quoted script argument, not an interactive heredoc) — never hand-embed multi-line templated strings, backticks, or unicode inside a shell here-doc. Hand-authoring large JSON as escaped shell text is fragile and is the most common source of multi-turn "fix the JSON syntax error" loops. If a JSON payload fails to parse, don't try to patch it byte-by-byte with `sed`/string-replace — regenerate it cleanly from a script or template instead.
 28. **Don't declare a build/stage "delivered" or "complete" without objective evidence — job/task status is not that evidence by itself.** Three checks, all required: (a) a non-empty `warnings` array on save/validate blocks delivery the same as `errors` would; (b) "tested" means an actual job ran against the *delivered* asset and `job.error` was checked, not a component tested in isolation; (c) `workflow_end: complete` only means the orchestration finished — check every task's own result payload (`runCode`'s `result.status`/`stderr`, an adapter's response body, a `query`'s extracted value) for an embedded error, traceback, or **null/empty value where real data was expected** — a task can show `finish_state: success` while its own result is `"error"`, or while it evaluated successfully but produced nothing. State explicitly which task outputs you checked and their actual values before calling a run "successful."
 29. **Reuse a script/task pattern you already verified earlier in the same session — don't re-derive it from assumptions the second time.** If you've established a correct code contract once (e.g., a `runCode` script's `import sys, json; data = json.load(sys.stdin)` stdin-reading boilerplate, copied from a working example), copy that exact boilerplate verbatim into every subsequent task of the same type in the same session — don't rewrite the input-handling logic from scratch based on assumption each time you author a new instance of that task. A model that gets a pattern right once and then regresses away from it on the next occurrence has effectively not learned it at all.
-30. **If a project reference you were relying on turns out to be missing or stale (e.g., a `"Project not found"` error), do not paper over this by creating a new project and moving pre-existing standalone assets into it via `components/add`.** That is the create-then-move pattern (Rule 11) regardless of why you ended up there — falling into it while recovering from an unrelated error is still the discouraged pattern. Instead, rebuild the intended end state (project + all its components, including any workflow you'd already created standalone) atomically via `POST /automation-studio/projects/import`, even if that means recreating a workflow that technically already exists elsewhere.
+30. *(Merged into Rule 11c's "Corollary" — stale/missing project references and the create-then-move anti-pattern are covered there.)*
 
 ## Helper JSON Templates
 

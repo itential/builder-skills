@@ -26,6 +26,8 @@ which layer.
 
 ## Stage Expectations
 
+*(See AGENTS.md's Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
+
 ### Feasibility
 
 | | |
@@ -133,46 +135,7 @@ Go through the spec's Discovery Questions. Skip anything already answered by the
 
 ### Authenticate
 
-Check for credentials in this order:
-1. `{use-case}/.auth.json` — already authenticated (reuse token)
-2. `{use-case}/.env` — credentials saved during setup
-3. `${CLAUDE_PLUGIN_ROOT}/environments/*.env` — pre-configured environments at repo root
-
-If none found, ask the engineer for:
-1. Platform URL
-2. Credentials (username/password or client_id/secret)
-
-**Local Development (username/password):**
-```
-POST /login
-Content-Type: application/json
-
-{"username": "admin", "password": "admin"}
-```
-Returns a token string. Use as query parameter: `GET /endpoint?token=TOKEN`
-
-**Cloud / OAuth (client_credentials):**
-```
-POST /oauth/token
-Content-Type: application/x-www-form-urlencoded
-
-client_id=YOUR_CLIENT_ID
-client_secret=YOUR_CLIENT_SECRET
-grant_type=client_credentials
-```
-Returns `{"access_token": "eyJhbG..."}`. Use as Bearer header.
-
-**Save auth for all downstream skills:**
-```bash
-cat > {use-case}/.auth.json << EOF
-{
-  "platform_url": "https://platform.example.com",
-  "auth_method": "oauth",
-  "token": "eyJhbG...",
-  "timestamp": "2026-03-13T10:00:00Z"
-}
-EOF
-```
+See AGENTS.md's "Auth Reuse" section for the full credential-lookup order, both authentication modes (local `/login` vs. cloud OAuth), and how to save the result to `{use-case}/.auth.json` — this is the canonical procedure, used identically by every skill. One environment-specific addition for this skill: pre-configured environment files at `${CLAUDE_PLUGIN_ROOT}/environments/*.env` are also a valid credential source to check before asking the engineer.
 
 ### Pull Platform Data
 
@@ -408,7 +371,6 @@ To revise design only: invoke `/solution-architecture design-only` → reads exi
 
 ## Gotchas
 
-- OAuth MUST use `Content-Type: application/x-www-form-urlencoded`, not JSON
-- Tokens expire mid-session — on auth errors, re-authenticate silently from `.env`
+- Tokens expire mid-session — on auth errors, re-authenticate silently from `.env` (see AGENTS.md Auth Reuse)
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list`
 - OpenAPI spec is ~1.5MB — search it locally with `jq`, never load into context
