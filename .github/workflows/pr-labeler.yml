@@ -1,0 +1,61 @@
+name: PR Labeler
+
+# Auto-labels a PR from its branch-name prefix so Release Drafter (release-drafter.yml)
+# can resolve the next version without anyone applying labels by hand.
+#
+# Mapping (see .github/release-drafter.yml and CONTRIBUTING.md):
+#   feature/  -> feature   (minor)
+#   fix/      -> fix       (patch)
+#   refactor/ -> refactor  (patch)
+#   docs/     -> documentation + skip-changelog (excluded from versioning)
+#   chore/    -> chore + skip-changelog         (excluded from versioning)
+#
+# major/breaking bumps are NEVER inferred here — that requires a human to apply the
+# `breaking-change` label explicitly. See "what counts as breaking" in CONTRIBUTING.md.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  label-by-branch-prefix:
+    name: Label by branch prefix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Apply label from branch prefix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          BRANCH_NAME: ${{ github.head_ref }}
+        run: |
+          prefix="${BRANCH_NAME%%/*}"
+
+          case "$prefix" in
+            feature)
+              labels="feature"
+              ;;
+            fix)
+              labels="fix"
+              ;;
+            refactor)
+              labels="refactor"
+              ;;
+            docs)
+              labels="documentation,skip-changelog"
+              ;;
+            chore)
+              labels="chore,skip-changelog"
+              ;;
+            *)
+              echo "Branch prefix '$prefix' has no labeler mapping — skipping."
+              exit 0
+              ;;
+          esac
+
+          echo "Applying labels: $labels"
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "$labels"

@@ -100,16 +100,18 @@ evals/workspace/
 !.claude/skills/*/custom/dev/.gitkeep
 
 # =============================================================================
+# Python (scripts/)
+# =============================================================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# =============================================================================
 # MAINTAINER: Add language-specific patterns below
 # =============================================================================
 # Examples:
-#
-# Python:
-#   __pycache__/
-#   *.py[cod]
-#   .venv/
-#   venv/
-#   .pytest_cache/
 #
 # Node.js:
 #   node_modules/

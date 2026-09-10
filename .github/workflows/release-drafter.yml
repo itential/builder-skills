@@ -1,0 +1,26 @@
+name: Release Drafter
+
+# Maintains a draft GitHub Release that accumulates notes from merged PRs and computes
+# the next semver tag from their labels (applied by pr-labeler.yml, or manually for
+# breaking-change). Publishing the release (and its tag) is a manual, deliberate step —
+# this workflow only keeps the draft current.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  update-draft-release:
+    name: Update draft release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

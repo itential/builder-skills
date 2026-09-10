@@ -235,32 +235,23 @@ Brief description of what this PR does.
 Closes #123
 ```
 
-## Pull Request Labels
+## Pull Request Labels and Versioning
 
-This project uses Release Drafter to automatically generate release notes. Please apply appropriate labels to your pull requests:
+This project uses [Release Drafter](https://github.com/release-drafter/release-drafter) (`.github/release-drafter.yml`) to maintain a draft release with computed release notes and the next semver version, and a companion workflow (`.github/workflows/version-bump.yml`) that keeps `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` in sync with that version after merge. Publishing the draft release itself is still a manual, deliberate step.
 
-### Change Type Labels
-- `feature`, `enhancement` - New features and enhancements
-- `fix`, `bug`, `bugfix` - Bug fixes and corrections
-- `chore`, `dependencies`, `refactor` - Maintenance, dependency updates, and refactoring
-- `documentation`, `docs` - Documentation changes
-- `security` - Security fixes and improvements
-- `breaking`, `breaking-change` - Breaking changes that require major version bump
+**Labels are applied automatically from your branch name** by `.github/workflows/pr-labeler.yml` — you don't need to apply them yourself for the common cases:
 
-### Version Impact Labels
-- `major` - Breaking changes (increments major version)
-- `minor` - New features (increments minor version)
-- `patch` - Bug fixes and maintenance (increments patch version)
+| Branch prefix | Label(s) applied | Version impact |
+|---|---|---|
+| `feature/` | `feature` | minor |
+| `fix/` | `fix` | patch |
+| `refactor/` | `refactor` | patch |
+| `docs/` | `documentation`, `skip-changelog` | none — excluded from versioning |
+| `chore/` | `chore`, `skip-changelog` | none — excluded from versioning |
 
-### Auto-Labeling
-The Release Drafter will automatically apply labels based on:
-- **Branch names**: `feature/`, `fix/`, `chore/` prefixes
-- **File changes**: Documentation files, dependency files
-- **PR titles**: Keywords like "feat", "fix", "chore"
+**Major version bumps are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying or correcting existing skill guidance — even a large rewrite — is not breaking on its own; it's `docs`/`fix` at most.
 
-### Special Labels
-- `skip-changelog` - Exclude from release notes
-- `duplicate`, `question`, `invalid`, `wontfix` - Issues that don't represent changes
+**Prerequisite for the version-bump workflow:** it pushes a commit directly to `main` to update the manifest files, which requires an exemption from the branch-protection rule that otherwise blocks direct pushes to `main` (the same rule enforcing the fork-only PR workflow for everything else here). A repo admin needs to add the workflow's actor to the branch protection ruleset's bypass list before this automation can actually commit — see the comment at the top of `version-bump.yml`.
 
 ## Testing
 
