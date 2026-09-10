@@ -12,9 +12,18 @@ name: PR Labeler
 #
 # major/breaking bumps are NEVER inferred here — that requires a human to apply the
 # `breaking-change` label explicitly. See "what counts as breaking" in CONTRIBUTING.md.
+#
+# Uses pull_request_target, not pull_request: every PR in this repo comes from a fork
+# (see AGENTS.md/CONTRIBUTING.md's fork-only workflow), and the default GITHUB_TOKEN for
+# a fork-triggered `pull_request` event is read-only regardless of the `permissions:`
+# declared below — confirmed live (PR #97 failed with "Resource not accessible by
+# integration" until this was switched). `pull_request_target` runs with the base repo's
+# token permissions instead. This is safe here specifically because the job below never
+# checks out the PR's code — it only reads event metadata (PR number, branch name) — so
+# a malicious fork PR can't get its own code to run with elevated permissions.
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize]
     branches: [main]
 
