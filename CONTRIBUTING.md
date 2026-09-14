@@ -245,23 +245,27 @@ Closes #123
 
 ## Pull Request Labels and Versioning
 
-This project uses [Release Drafter](https://github.com/release-drafter/release-drafter) (`.github/release-drafter.yml`) to maintain a draft release with computed release notes and the next semver version, and a companion workflow (`.github/workflows/version-bump.yml`) that keeps `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` in sync with that version after merge. Publishing the draft release itself is still a manual, deliberate step.
+There are **two separate, deliberately decoupled version concepts** in this repo — don't assume they track each other.
 
-**Labels are applied automatically from your branch name** by `.github/workflows/pr-labeler.yml` — you don't need to apply them yourself for the common cases:
+**1. The plugin manifest version** (`.claude-plugin/plugin.json` / `marketplace.json`) — what Claude Code's `/plugin update` reads. `.github/workflows/version-bump.yml` bumps this by exactly **+0.0.1 on every single merge to `main`, no exceptions.** It does not look at labels, branch prefix, or PR content — every merge is a patch release of the manifest, whether it's a one-line typo fix or a new skill. This is intentionally dumb: no categorization logic to get wrong, no label to forget, no ambiguity about whether something "counts." If a change is significant enough to deserve a minor/major bump to the manifest, bump it by hand in that PR instead of relying on this workflow — it will only ever add 0.0.1.
 
-| Branch prefix | Label(s) applied | Version impact |
+**2. The GitHub Release version** — [Release Drafter](https://github.com/release-drafter/release-drafter) (`.github/release-drafter.yml`) maintains a draft release with computed notes and a *suggested* next semver tag, based on PR labels. This is the "real," human-meaningful version number for release notes; publishing the draft (and its tag) is still a manual, deliberate step, independent of the manifest bumping above.
+
+**Labels are applied automatically from your branch name** by `.github/workflows/pr-labeler.yml` — you don't need to apply them yourself for the common cases. They only affect Release Drafter's changelog/tag suggestion (concept 2) — they have **no effect on the manifest version** (concept 1) anymore:
+
+| Branch prefix | Label(s) applied | Release Drafter category |
 |---|---|---|
 | `feature/` | `feature` | minor |
 | `fix/` | `fix` | patch |
 | `refactor/` | `refactor` | patch |
-| `docs/` | `documentation`, `skip-changelog` | none — excluded from versioning |
-| `chore/` | `chore`, `skip-changelog` | none — excluded from versioning |
+| `docs/` | `documentation`, `skip-changelog` | excluded from release notes |
+| `chore/` | `chore`, `skip-changelog` | excluded from release notes |
 
-`docs/` and `chore/` get **no version bump at all** — see "Read this before picking `docs/` for a skill-content change" under Branch Naming Conventions above before choosing this prefix for anything touching `AGENTS.md` or a `SKILL.md`. Picking `docs/` for a change that actually corrects agent behavior means that fix ships with zero visibility in the version history.
+**Major version bumps for the GitHub Release are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying/correcting existing skill guidance is usually `fix`, not breaking — see the behavior-impact test above for the `fix` vs. `refactor` vs. `docs` line.
 
-**Major version bumps are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying/correcting existing skill guidance is usually `fix` (patch), not breaking — see the behavior-impact test above for the `fix` vs. `refactor` vs. `docs` line.
+**Expect the two version numbers to drift, and that's fine.** The manifest might read `1.9.3` (nine patch-bump merges) while Release Drafter's draft suggests the next real release should be `v2.0.0` (one of those merges was labeled `feature`) — the manifest number is just an ever-incrementing "something changed" counter for Claude Code's update mechanism, not a semver-meaningful release identity.
 
-**How the version-bump workflow actually lands its change:** it opens its own PR (branch `chore/bump-version-to-X-Y-Z`) rather than pushing to `main` directly — a direct push was tried first and rejected (`GH006`: unsigned commits, no PR, and required status checks that never ran on a bare push), and no branch-protection bypass fixes that, since a raw push can never satisfy "status checks must run on a pull request." Going through a PR means it gets reviewed and merged exactly like everything else, and GitHub signs the resulting squash-merge itself.
+**How `version-bump.yml` actually lands its change:** it opens its own PR (branch `chore/bump-version-to-X-Y-Z`) rather than pushing to `main` directly — a direct push was tried first and rejected (`GH006`: unsigned commits, no PR, and required status checks that never ran on a bare push), and no branch-protection bypass fixes that, since a raw push can never satisfy "status checks must run on a pull request." Going through a PR means it gets reviewed and merged exactly like everything else, and GitHub signs the resulting squash-merge itself.
 
 **Recommended (not required) for the version-bump workflow:** set a repo secret `VERSION_BUMP_TOKEN` to a fine-grained PAT with `contents`/`pull-requests` write on this repo. Without it, the workflow falls back to the default `GITHUB_TOKEN`, which works but won't trigger `pr-compliance.yml`/`pr-labeler.yml` on the PR it opens (GitHub deliberately blocks `GITHUB_TOKEN`-authored events from triggering other workflows) — its required status checks will show as permanently pending until someone pushes a trivial commit to nudge them, same workaround used elsewhere in this repo for out-of-date branches. See the comment at the top of `version-bump.yml`.
 

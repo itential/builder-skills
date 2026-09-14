@@ -1,36 +1,22 @@
 name: Version Bump
 
-# After a PR merges to main, opens a PR bumping .claude-plugin/plugin.json and
-# marketplace.json to stay in sync with the version Release Drafter will resolve for
-# the next release.
+# Deliberately dumb: bumps the PATCH version by 1 on every merge to main, no exceptions,
+# no categorization by label or PR type. Every merge ships as a patch release of
+# .claude-plugin/plugin.json and marketplace.json. If you want a minor/major bump for a
+# real feature or breaking change, edit the version by hand in that PR instead — this
+# workflow only ever adds 0.0.1.
 #
-# Bump size comes from the merged PR's labels (applied by pr-labeler.yml, or manually
-# for breaking-change):
-#   breaking-change / breaking -> major
-#   feature                    -> minor
-#   fix / refactor             -> patch
-#   documentation / chore / skip-changelog / no matching label -> no bump
+# Opens a PR rather than pushing to main directly (confirmed live: a direct push was
+# rejected by branch protection — GH006, unsigned commit + no PR + status checks that
+# never ran on a bare push). Going through a PR is what makes it land: status checks run
+# normally, and the eventual squash-merge is signed by GitHub itself.
 #
-# WHY THIS OPENS A PR INSTEAD OF PUSHING TO MAIN DIRECTLY (confirmed live, not assumed):
-# an earlier version of this workflow pushed the bump commit straight to main and was
-# rejected by GH006 with three separate violations: commits must be signed, changes must
-# go through a pull request, and required status checks never ran on a bare push. No
-# branch-protection bypass allowance fixes this — a raw `git push` can never satisfy
-# "status checks must run" (Branch Naming/Commit Messages only trigger on `pull_request`
-# events) or produce a GitHub-verified signature the way GitHub's own merge button does.
-# Going through a real PR is what makes this actually work: status checks run normally,
-# and the eventual squash-merge is signed by GitHub itself, exactly like every other
-# change in this repo.
-#
-# TOKEN NOTE: pushing the new branch and opening the PR with the default GITHUB_TOKEN
-# works, but GitHub deliberately does not let GITHUB_TOKEN-authored events trigger other
-# workflows (anti-recursion protection) — so pr-compliance.yml and pr-labeler.yml likely
-# won't fire on the resulting PR, leaving its required status checks permanently
-# "expected but never reported" until someone pushes a trivial commit to it manually. To
-# avoid that, set a repo secret VERSION_BUMP_TOKEN to a PAT (fine-grained, contents +
-# pull-requests write on this repo) — a PAT's events DO trigger other workflows normally.
-# Falls back to GITHUB_TOKEN if that secret isn't set, in which case the manual nudge
-# described above is the workaround.
+# TOKEN NOTE: the default GITHUB_TOKEN works for opening the PR, but GitHub blocks
+# GITHUB_TOKEN-authored events from triggering other workflows (anti-recursion
+# protection), so pr-compliance.yml/pr-labeler.yml won't fire on it automatically —
+# its required status checks stay pending until someone pushes a trivial commit to
+# nudge them. Set a repo secret VERSION_BUMP_TOKEN (fine-grained PAT, contents +
+# pull-requests write) to avoid that; a PAT's events trigger other workflows normally.
 
 on:
   push:
@@ -42,7 +28,7 @@ permissions:
 
 jobs:
   bump-version:
-    name: Bump plugin version
+    name: Bump patch version
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'chore: bump version to')"
     steps:
@@ -51,45 +37,11 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Determine merged PR number
-        id: pr
-        run: |
-          number=$(git log -1 --format=%s | grep -oP '\(#\K[0-9]+(?=\)$)' || true)
-          if [[ -z "$number" ]]; then
-            echo "No PR number found in commit subject — not a squash-merged PR, skipping."
-            echo "number=" >> "$GITHUB_OUTPUT"
-          else
-            echo "number=$number" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Determine bump type from PR labels
-        id: bump
-        if: steps.pr.outputs.number != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          labels=$(gh pr view "${{ steps.pr.outputs.number }}" --repo "${{ github.repository }}" --json labels --jq '.labels[].name')
-          echo "PR labels: $labels"
-
-          if grep -qE '^(breaking|breaking-change)$' <<< "$labels"; then
-            echo "type=major" >> "$GITHUB_OUTPUT"
-          elif grep -qE '^skip-changelog$' <<< "$labels"; then
-            echo "type=" >> "$GITHUB_OUTPUT"
-          elif grep -qE '^feature$' <<< "$labels"; then
-            echo "type=minor" >> "$GITHUB_OUTPUT"
-          elif grep -qE '^(fix|refactor)$' <<< "$labels"; then
-            echo "type=patch" >> "$GITHUB_OUTPUT"
-          else
-            echo "No version-impacting label found — skipping bump."
-            echo "type=" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Bump manifest files, commit, and open a PR
-        if: steps.bump.outputs.type != ''
+      - name: Bump patch version, commit, and open a PR
         env:
           GH_TOKEN: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
-          new_version=$(python3 scripts/bump_version.py --bump "${{ steps.bump.outputs.type }}")
+          new_version=$(python3 scripts/bump_version.py --bump patch)
           branch="chore/bump-version-to-${new_version//./-}"
 
           git config user.name "github-actions[bot]"
@@ -101,7 +53,7 @@ jobs:
 
           gh pr create \
             --title "chore: bump version to v${new_version}" \
-            --body "Automated version bump, triggered by #${{ steps.pr.outputs.number }} (resolved to a **${{ steps.bump.outputs.type }}** bump). Merging this releases v${new_version} — see \`.github/workflows/version-bump.yml\` for how the bump size was determined." \
+            --body "Automatic patch bump — every merge to main gets one, no categorization. Merging this releases v${new_version}." \
             --base main \
             --head "$branch" \
             --label chore \
