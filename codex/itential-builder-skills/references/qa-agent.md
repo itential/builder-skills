@@ -1,8 +1,8 @@
 <!-- Generated from canonical sources. Do not edit directly. Run scripts/generate-vendor-wrappers.sh. -->
 
-# builder agent
+# qa agent
 
-Use the `/builder-agent` skill.
+Use the `/qa-agent` skill.
 
-Read `AGENTS.md`, then load `skills/builder-agent/SKILL.md`.
+Read `AGENTS.md`, then load `skills/qa-agent/SKILL.md`.
 Follow that skill for the current user request.

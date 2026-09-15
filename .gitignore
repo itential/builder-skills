@@ -95,12 +95,12 @@ evals/workspace/
 # this repo's tracked history, so an upstream pull can never conflict with or
 # overwrite it. Placeholder .gitkeep files are explicitly kept so the folder
 # structure ships and is discoverable.
-.claude/skills/*/custom/org/*
-.claude/skills/*/custom/team/*
-.claude/skills/*/custom/dev/*
-!.claude/skills/*/custom/org/.gitkeep
-!.claude/skills/*/custom/team/.gitkeep
-!.claude/skills/*/custom/dev/.gitkeep
+skills/*/custom/org/*
+skills/*/custom/team/*
+skills/*/custom/dev/*
+!skills/*/custom/org/.gitkeep
+!skills/*/custom/team/.gitkeep
+!skills/*/custom/dev/.gitkeep
 
 # =============================================================================
 # Python (scripts/)

@@ -11,18 +11,28 @@ if [[ ! -d "${SKILLS_DIR}" ]]; then
   exit 1
 fi
 
-mkdir -p "${ROOT_DIR}/.claude/commands"
-mkdir -p "${ROOT_DIR}/.claude"
+# .claude/skills is a mirror of skills/, one symlink per skill directory -- not a copy.
+# skills/ is the single canonical source (per the Agent Plugins spec's fixed `skills/`
+# discovery location); a copy here would be a second source of truth that can drift,
+# and previously coexisted with .claude/commands/*.md registering the same skill name
+# a second time under Claude Code's separate custom-commands mechanism, which Claude
+# Code surfaced as duplicate entries for the same skill. Symlinks make that impossible:
+# there is exactly one real SKILL.md per skill, referenced from wherever a client needs it.
+rm -rf "${CLAUDE_SKILLS_DIR}"
+mkdir -p "${CLAUDE_SKILLS_DIR}"
+for skill_dir in "${SKILLS_DIR}"/*; do
+  [[ -d "${skill_dir}" ]] || continue
+  [[ -f "${skill_dir}/SKILL.md" ]] || continue
+  skill_name="$(basename "${skill_dir}")"
+  ln -s "../../skills/${skill_name}" "${CLAUDE_SKILLS_DIR}/${skill_name}"
+done
+
 mkdir -p "${ROOT_DIR}/.github/prompts"
 mkdir -p "${ROOT_DIR}/.cursor/rules"
 mkdir -p "${ROOT_DIR}/codex/itential-builder-skills/references"
 
-rm -f "${ROOT_DIR}/.claude/commands/"*.md
 rm -f "${ROOT_DIR}/.github/prompts/"*.prompt.md
 rm -f "${ROOT_DIR}/.cursor/rules/itential-skills.mdc"
-rm -rf "${CLAUDE_SKILLS_DIR}"
-cp -R "${SKILLS_DIR}" "${CLAUDE_SKILLS_DIR}"
-
 rm -f "${ROOT_DIR}/codex/itential-builder-skills/references/"*.md
 
 for skill_dir in "${SKILLS_DIR}"/*; do
@@ -31,17 +41,6 @@ for skill_dir in "${SKILLS_DIR}"/*; do
 
   skill_name="$(basename "${skill_dir}")"
   title="$(printf '%s' "${skill_name}" | tr '-' ' ')"
-
-  cat > "${ROOT_DIR}/.claude/commands/${skill_name}.md" <<EOF
-<!-- ${GENERATED_NOTICE} -->
-
-# ${title}
-
-Use the \`/${skill_name}\` skill.
-
-Read \`AGENTS.md\`, then load \`skills/${skill_name}/SKILL.md\`.
-Follow that skill for the current user request.
-EOF
 
   cat > "${ROOT_DIR}/.github/prompts/${skill_name}.prompt.md" <<EOF
 <!-- ${GENERATED_NOTICE} -->
@@ -55,7 +54,20 @@ Read \`AGENTS.md\`, then load \`skills/${skill_name}/SKILL.md\`.
 Follow that skill for the current user request.
 EOF
 
-  cp "${skill_dir}/SKILL.md" "${ROOT_DIR}/codex/itential-builder-skills/references/${skill_name}.md"
+  # Thin pointer, not a content copy -- same non-duplication rule as the Cursor/Copilot
+  # generators below. A prior version of this script `cp`'d the full SKILL.md here,
+  # creating a third full copy of the same content (after skills/ and .claude/skills/)
+  # that could silently drift from the canonical source.
+  cat > "${ROOT_DIR}/codex/itential-builder-skills/references/${skill_name}.md" <<EOF
+<!-- ${GENERATED_NOTICE} -->
+
+# ${title}
+
+Use the \`/${skill_name}\` skill.
+
+Read \`AGENTS.md\`, then load \`skills/${skill_name}/SKILL.md\`.
+Follow that skill for the current user request.
+EOF
 done
 
 cat > "${ROOT_DIR}/.github/copilot-instructions.md" <<'EOF'
@@ -119,6 +131,8 @@ Load the referenced file before acting in that domain:
 | Build golden config trees, compliance, grading, or remediation | `references/itential-golden-config.md` |
 | Work with device inventory nodes, actions, and tags | `references/itential-inventory.md` |
 | Build LCM resource models, instances, or lifecycle actions | `references/itential-lcm.md` |
+| Build JSON forms (static-enum, REST-bound, cascading dropdowns) | `references/itential-json-forms.md` |
+| Run acceptance testing and produce the as-built record after a build | `references/qa-agent.md` |
 
 ## Operating Rules
 

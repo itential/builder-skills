@@ -8,7 +8,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 paths=(
   ".claude/skills"
-  ".claude/commands"
   ".github/copilot-instructions.md"
   ".github/prompts"
   ".cursor/rules"

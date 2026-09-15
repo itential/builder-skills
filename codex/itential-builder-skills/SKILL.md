@@ -33,6 +33,8 @@ Load the referenced file before acting in that domain:
 | Build golden config trees, compliance, grading, or remediation | `references/itential-golden-config.md` |
 | Work with device inventory nodes, actions, and tags | `references/itential-inventory.md` |
 | Build LCM resource models, instances, or lifecycle actions | `references/itential-lcm.md` |
+| Build JSON forms (static-enum, REST-bound, cascading dropdowns) | `references/itential-json-forms.md` |
+| Run acceptance testing and produce the as-built record after a build | `references/qa-agent.md` |
 
 ## Operating Rules
 
