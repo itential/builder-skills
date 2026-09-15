@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "AI agent skills for the Itential Platform \u2014 deliver infrastructure automation from spec through acceptance testing and as-built documentation.",
-    "version": "1.6.6"
+    "version": "1.6.7"
   },
   "plugins": [
     {
@@ -16,7 +16,7 @@
         "repo": "itential/builder-skills"
       },
       "description": "AI agent skills for the Itential Platform \u2014 deliver infrastructure automation from spec through acceptance testing and as-built documentation. Covers requirements, feasibility, design, build, QA/acceptance testing, FlowAgent, IAG, and MOP.",
-      "version": "1.6.6",
+      "version": "1.6.7",
       "author": {
         "name": "Itential"
       },
