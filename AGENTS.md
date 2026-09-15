@@ -2,9 +2,11 @@
 
 This project contains skills for assisting developers on the Itential Platform. Read this first, then use the skills for detailed API references.
 
+**Cross-tool note:** this repo's skills (`.claude/skills/<name>/SKILL.md`) follow the open Agent Skills convention (`name`/`description` frontmatter, discovered from a standard `skills/` directory), so tools other than Claude Code — e.g., GitHub Copilot's coding agent, which scans `.claude/skills` directly and reads a repo-root `AGENTS.md` the same way — can use them with no changes. The one thing that doesn't travel automatically: skill files reference helper JSON under `helpers/` via `${CLAUDE_PLUGIN_ROOT}/helpers/...`, a Claude Code plugin-runtime variable that resolves to this repo's root regardless of the caller's working directory. If you're an agent running in a context where that variable is unset or empty, resolve `${CLAUDE_PLUGIN_ROOT}` as the root of *this* repository instead (find it by locating the directory containing `.claude-plugin/plugin.json`, or simply the repo root if you're already operating inside a checkout of it) — every `helpers/...` path is relative to that root either way.
+
 ## Skill Router
 
-Each skill owns a domain. **Invoke the skill using the Skill tool before working in that domain — this is a hard gate, not a suggestion.** If you are about to hand-author a workflow, template, project, or any other platform-asset JSON payload and you have not invoked a domain skill (e.g., `/builder-agent`) this session, stop and invoke it first. Do not construct the payload from general knowledge or from a prior job's error trace alone.
+Each skill owns a domain. **Load the matching skill before working in that domain — this is a hard gate, not a suggestion.** (In Claude Code, this means invoking it via the Skill tool; other tools may discover and load skill files by their own mechanism — the gate is "consult the skill first," not a specific tool name.) If you are about to hand-author a workflow, template, project, or any other platform-asset JSON payload and you have not consulted a domain skill (e.g., `/builder-agent`) this session, stop and load it first. Do not construct the payload from general knowledge or from a prior job's error trace alone.
 
 Three things commonly go wrong even after this gate is respected — watch for all three, they compound:
 
@@ -268,7 +270,7 @@ Requirements → Feasibility →   Design    →  Build   →    Test    →  As
 | Test | `/qa-agent` | `test-plan.md`, `test-report.md` | Engineer (approves plan); customer / delivery (report) | Drafts `test-plan.md`, runs static + acceptance test cases against confirmed test data, reports evidence per acceptance criterion | Approves `test-plan.md` before live execution; reviews `test-report.md` |
 | As-Built | `/qa-agent` | `as-built.md` | Customer / delivery / support / system of record | Records delivered state, deviations, learnings, backed by test evidence | Signs off on `as-built.md` |
 
-Build workflows/templates → invoke `/builder-agent`. Need acceptance testing or a closeout record → invoke `/qa-agent`. (Same hard gate as the Skill Router section — invoke via the Skill tool, don't just reference a skill by name in text.)
+Build workflows/templates → load `/builder-agent`. Need acceptance testing or a closeout record → load `/qa-agent`. (Same hard gate as the Skill Router section — actually load the skill's content, don't just reference its name in text.)
 
 **For explore / freestyle work, skip this pipeline entirely:** `/explore → auth → pull platform data → use skills directly`
 

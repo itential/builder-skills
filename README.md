@@ -49,7 +49,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 |-------------|---------|-------|
 | Itential Platform | 6.x | |
 | IAG | 5.x | Required only for the `/iag` skill |
-| Claude Code | Latest | [Install guide](https://claude.ai/code) |
+| An Agent Skills-compatible AI coding tool | — | [Claude Code](https://claude.ai/code) is the primary target and gets the richest experience (plugin install, `/plugin update`). The skills also follow the open [Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) convention (`.claude/skills/<name>/SKILL.md`, `name`/`description` frontmatter, root-level `AGENTS.md`), so tools that support it — e.g. GitHub Copilot's coding agent — can use this repo's skills directly with no changes. See the cross-tool note at the top of `AGENTS.md`. |
 
 ---
 
