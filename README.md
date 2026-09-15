@@ -50,8 +50,6 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 | Itential Platform | 6.x | Target platform for every skill |
 | IAG | 5.x | Only for the `/iag` skill |
 | AI coding tool | — | [Claude Code](https://claude.ai/code) is the primary target (`.claude/skills/<name>/SKILL.md`, plugin install, `/plugin update`). Copilot reads the same `.claude/skills` path. Codex CLI and Cursor read `.agents/skills` instead — symlinked here to `.claude/skills`. See `AGENTS.md`. |
-| Python 3 | 3.x | Runs `scripts/platform_pull.py` and `scripts/use_case_init.py` (stdlib only — no packages to install) |
-| `jq` | — | Used throughout the skills to query local JSON (`tasks.json`, `openapi.json`, etc.) without loading it into context |
 
 ---
 
