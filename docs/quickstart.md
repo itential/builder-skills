@@ -50,14 +50,14 @@ Connect to a platform, browse capabilities, build freely. No lifecycle required.
 
 ## 1. Install the Plugin
 
-Open Claude Code and run:
+| Tool | Steps |
+|------|-------|
+| **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder`. |
+| **Codex CLI** | `codex plugin marketplace add itential/builder-skills`, then install from Codex's Plugins UI. |
+| **GitHub Copilot** | No install step — clone or open this repo; Copilot reads `.claude/skills` directly. |
+| **Cursor** | No install step — clone or open this repo; Cursor auto-discovers `.agents/skills`. |
 
-```bash
-/plugin marketplace add itential/builder-skills
-/plugin install itential-builder@itential-builder
-```
-
-This gives you all the skills as slash commands, available anywhere in Claude Code.
+This guide shows Claude Code's `/itential-builder:skill-name` slash-command syntax throughout. On other tools, invoke the same skill by name (e.g. `/spec-agent`) — see the Prerequisites table in the root [`README.md`](../README.md) for which directory each tool reads.
 
 ---
 
