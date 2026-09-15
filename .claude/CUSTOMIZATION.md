@@ -68,7 +68,7 @@ Pure additions don't need this format — just state the new rule under an `## A
 
 ## Two ways to consume this repo, and how to update each
 
-There are two supported ways to use these skills, and the update procedure differs.
+There are two supported ways to use these skills, and the update procedure differs. (Using Codex CLI or Cursor instead, via `.agents/skills`? Those are symlinks back to `.claude/skills/<name>`, `custom/` included — everything below applies identically, no separate setup.)
 
 ### Path A — Installed as a Claude Code plugin (simplest)
 
