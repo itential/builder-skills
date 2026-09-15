@@ -11,13 +11,6 @@ patch counter in `.claude-plugin/plugin.json`. The two are expected to drift.
 
 ## [Unreleased]
 
-No GitHub Release has ever been published for this repo (Release Drafter's
-only draft, `v0.1.0`, was never cut) — so everything below is a retroactive,
-high-level summary of merged work to date, not a single release's worth of
-changes. Going forward, new entries land here per-PR as described in
-`CONTRIBUTING.md`; purely internal docs/chore changes (`skip-changelog`) are
-intentionally omitted, matching Release Drafter's own exclusion rule.
-
 ### Added
 - Full six-stage delivery lifecycle skills: `spec-agent`, `solution-arch-agent`,
   `builder-agent`, `qa-agent`, plus `flowagent-to-spec` and `project-to-spec`
