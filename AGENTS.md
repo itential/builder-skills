@@ -2,7 +2,7 @@
 
 This project contains skills for assisting developers on the Itential Platform. Read this first, then use the skills for detailed API references.
 
-**Cross-tool note:** this repo's skills (`.claude/skills/<name>/SKILL.md`) follow the open Agent Skills convention (`name`/`description` frontmatter, discovered from a standard `skills/` directory), so tools other than Claude Code — e.g., GitHub Copilot's coding agent, which scans `.claude/skills` directly and reads a repo-root `AGENTS.md` the same way — can use them with no changes. The one thing that doesn't travel automatically: skill files reference helper JSON under `helpers/` via `${CLAUDE_PLUGIN_ROOT}/helpers/...`, a Claude Code plugin-runtime variable that resolves to this repo's root regardless of the caller's working directory. If you're an agent running in a context where that variable is unset or empty, resolve `${CLAUDE_PLUGIN_ROOT}` as the root of *this* repository instead (find it by locating the directory containing `.claude-plugin/plugin.json`, or simply the repo root if you're already operating inside a checkout of it) — every `helpers/...` path is relative to that root either way.
+**Cross-tool note:** skills follow the open Agent Skills convention (`SKILL.md`, `name`/`description` frontmatter). Claude Code and Copilot read `.claude/skills`; Codex CLI and Cursor read `.agents/skills` instead, which mirrors `.claude/skills` via symlinks — same content, no changes needed. One caveat: `${CLAUDE_PLUGIN_ROOT}/helpers/...` paths are a Claude Code runtime variable. If it's unset, resolve it as this repo's root (the directory containing `.claude-plugin/plugin.json`).
 
 ## Skill Router
 
