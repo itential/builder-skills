@@ -271,9 +271,9 @@ There are **two separate, deliberately decoupled version concepts** in this repo
 
 ## Changelog
 
-`CHANGELOG.md` is hand-maintained, not auto-generated — nothing in CI writes to it. If your PR is user-facing (a new or changed skill, a fixed bug, a behavior change), add a bullet under `## [Unreleased]` describing it, using the same `Added`/`Changed`/`Fixed`/`Removed`/`Security` subsections as [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Skip it for anything that would carry the `skip-changelog` label (docs, chore) — same exclusion Release Drafter already applies.
+`CHANGELOG.md` is hand-maintained, not auto-generated — nothing in CI writes to it. Format follows Claude Code's own `CHANGELOG.md`: a flat bullet list under each version heading, no subsections, no dates — each bullet leads with `Added`/`Fixed`/`Changed`/`Improved`/`Removed` inline. If your PR is user-facing (a new or changed skill, a fixed bug, a behavior change), add a bullet under `## Unreleased` in that style. Skip it for anything that would carry the `skip-changelog` label (docs, chore) — same exclusion Release Drafter already applies.
 
-Periodically, a maintainer renames `[Unreleased]` to whatever the current manifest version happens to be plus that day's date, and adds a new empty `[Unreleased]` section above it — this is a manual snapshot, not tied to any single merge (the manifest version bumps on every merge, so a 1:1 mapping would defeat the point of batching entries).
+Periodically, a maintainer renames `Unreleased` to whatever the current manifest version happens to be, and adds a new empty `Unreleased` heading above it — this is a manual snapshot, not tied to any single merge (the manifest version bumps on every merge, so a 1:1 mapping would defeat the point of batching entries).
 
 ## Testing
 
