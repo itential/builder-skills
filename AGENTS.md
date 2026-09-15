@@ -4,6 +4,21 @@ This project contains skills for assisting developers on the Itential Platform. 
 
 **Cross-tool note:** skills follow the open Agent Skills convention (`SKILL.md`, `name`/`description` frontmatter). Claude Code and Copilot read `.claude/skills`; Codex CLI and Cursor read `.agents/skills` instead, which mirrors `.claude/skills` via symlinks — same content, no changes needed. One caveat: `${CLAUDE_PLUGIN_ROOT}/helpers/...` paths are a Claude Code runtime variable. If it's unset, resolve it as this repo's root (the directory containing `.claude-plugin/plugin.json`).
 
+> **Experimental, under test in this PR — not yet the shipped model above:** this PR proposes an alternate source/generated architecture conformant to the [Agent Plugins v1.0.0 specification](https://agent-plugins.org/) (root-level `plugin.json`, canonical skill content at `skills/{skill-name}/SKILL.md`). `AGENTS.md` is the cross-vendor guide; `.claude/skills/` is a **symlinked** mirror of `skills/`, not a copy (see `scripts/generate-vendor-wrappers.sh`/`scripts/check-vendor-skills.sh`) — this replaces an earlier version of this PR that copied `.claude/skills/` and separately generated `.claude/commands/*.md`, which caused Claude Code to register each skill twice under two different names. For agents without a native Skill tool, treat each `/skill-name` reference as a pointer to `skills/skill-name/SKILL.md`. Project governance lives in `docs/constitution.md`.
+>
+> ## Customization Layers
+>
+> Before acting, check optional customization guidance in this order:
+>
+> 1. `customizations/developer/` — local developer preferences, ignored by git except examples
+> 2. `customizations/team/` — team-specific standards
+> 3. `customizations/org/` — organization-wide standards
+> 4. Core repository guidance — `AGENTS.md`, `skills/`, `docs/constitution.md`
+>
+> Higher-priority customization may narrow style, naming, defaults, and review expectations, but it must not violate `docs/constitution.md` or fork canonical skill behavior.
+>
+> Note: this `customizations/` concept is separate from the already-shipped `.claude/skills/<name>/custom/{org,team,dev}` mechanism documented in `.claude/CUSTOMIZATION.md` — the two are not yet reconciled.
+
 ## Skill Router
 
 Each skill owns a domain. **Load the matching skill before working in that domain — this is a hard gate, not a suggestion.** (In Claude Code, this means invoking it via the Skill tool; other tools may discover and load skill files by their own mechanism — the gate is "consult the skill first," not a specific tool name.) If you are about to hand-author a workflow, template, project, or any other platform-asset JSON payload and you have not consulted a domain skill (e.g., `/builder-agent`) this session, stop and load it first. Do not construct the payload from general knowledge or from a prior job's error trace alone.
