@@ -269,6 +269,12 @@ There are **two separate, deliberately decoupled version concepts** in this repo
 
 **Recommended (not required) for the version-bump workflow:** set a repo secret `VERSION_BUMP_TOKEN` to a fine-grained PAT with `contents`/`pull-requests` write on this repo. Without it, the workflow falls back to the default `GITHUB_TOKEN`, which works but won't trigger `pr-compliance.yml`/`pr-labeler.yml` on the PR it opens (GitHub deliberately blocks `GITHUB_TOKEN`-authored events from triggering other workflows) — its required status checks will show as permanently pending until someone pushes a trivial commit to nudge them, same workaround used elsewhere in this repo for out-of-date branches. See the comment at the top of `version-bump.yml`.
 
+## Changelog
+
+`CHANGELOG.md` is hand-maintained, not auto-generated — nothing in CI writes to it. If your PR is user-facing (a new or changed skill, a fixed bug, a behavior change), add a bullet under `## [Unreleased]` describing it, using the same `Added`/`Changed`/`Fixed`/`Removed`/`Security` subsections as [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Skip it for anything that would carry the `skip-changelog` label (docs, chore) — same exclusion Release Drafter already applies.
+
+When a maintainer cuts a real GitHub Release, `[Unreleased]` gets renamed to that release's version and date, and a new empty `[Unreleased]` section is added above it.
+
 ## Testing
 
 <!--
