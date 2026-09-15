@@ -47,52 +47,38 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 
 | Requirement | Version | Notes |
 |-------------|---------|-------|
-| Itential Platform | 6.x | |
-| IAG | 5.x | Required only for the `/iag` skill |
-| An Agent Skills-compatible AI coding tool | — | [Claude Code](https://claude.ai/code) is the primary target (`.claude/skills/<name>/SKILL.md`, plugin install, `/plugin update`). Copilot reads the same `.claude/skills` path. Codex CLI and Cursor read `.agents/skills` instead — symlinked here to `.claude/skills`. See `AGENTS.md`. |
+| Itential Platform | 6.x | Target platform for every skill |
+| IAG | 5.x | Only for the `/iag` skill |
+| AI coding tool | — | [Claude Code](https://claude.ai/code) is the primary target (`.claude/skills/<name>/SKILL.md`, plugin install, `/plugin update`). Copilot reads the same `.claude/skills` path. Codex CLI and Cursor read `.agents/skills` instead — symlinked here to `.claude/skills`. See `AGENTS.md`. |
+| Python 3 | 3.x | Runs `scripts/platform_pull.py` and `scripts/use_case_init.py` (stdlib only — no packages to install) |
+| `jq` | — | Used throughout the skills to query local JSON (`tasks.json`, `openapi.json`, etc.) without loading it into context |
 
 ---
 
 ## Getting Started
 
-**Install the plugin:**
+**Install:**
 
-```bash
-/plugin marketplace add itential/builder-skills
-/plugin install itential-builder@itential-builder
-```
-
-**Already installed? Update to the latest version:**
-
-```bash
-/plugin update itential-builder@itential-builder
-```
+| Tool | Steps |
+|------|-------|
+| **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder`. Update anytime with `/plugin update itential-builder@itential-builder`. |
+| **Codex CLI** | `codex plugin marketplace add itential/builder-skills` registers this repo (reads `.agents/plugins/marketplace.json`), then install it from Codex's Plugins UI. |
+| **GitHub Copilot** | No install step. Clone or open this repo — Copilot's coding agent reads `.claude/skills` directly. |
+| **Cursor** | No install step. Clone or open this repo — Cursor auto-discovers skills from `.agents/skills` on start. |
 
 **First-time setup:**
 
-Create a folder for your use case and add a `.env` file with your platform credentials:
+Create a folder for your use case and copy the environment template that matches your platform:
 
 ```bash
-mkdir my-use-case && cd my-use-case
+mkdir my-use-case
+cp environments/cloud-lab.env my-use-case/.env   # Cloud / OAuth
+# or: cp environments/local-dev.env my-use-case/.env   (Local / Password)
+# or: cp environments/staging.env my-use-case/.env
+cd my-use-case
 ```
 
-**Cloud / OAuth:**
-```bash
-# my-use-case/.env
-PLATFORM_URL=https://your-instance.itential.io
-AUTH_METHOD=oauth
-CLIENT_ID=your-client-id
-CLIENT_SECRET=your-client-secret
-```
-
-**Local / Password:**
-```bash
-# my-use-case/.env
-PLATFORM_URL=http://localhost:4000
-AUTH_METHOD=password
-USERNAME=admin
-PASSWORD=admin
-```
+Open `.env` and fill in your values — `PLATFORM_URL`, plus either `CLIENT_ID`/`CLIENT_SECRET` (OAuth) or `USERNAME`/`PASSWORD` (local dev).
 
 Then start your first delivery from inside that folder:
 
