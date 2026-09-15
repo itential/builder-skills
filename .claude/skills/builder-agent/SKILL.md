@@ -1147,11 +1147,13 @@ for tid, t in tasks.items():
 
 # Flag any task whose incoming transitions come from tasks with wildly different y —
 # a large y-gap into a task usually means an earlier removal/reorder left a stale position.
+# Skip revert transitions entirely: they're supposed to go backward (retry loops), so a
+# negative y-delta there is correct wiring, not a layout violation.
 for src, dsts in transitions.items():
     if src not in tasks:
         continue
-    for dst in dsts:
-        if dst not in tasks:
+    for dst, edge in dsts.items():
+        if dst not in tasks or edge.get("type") == "revert":
             continue
         dy = tasks[dst]["nodeLocation"]["y"] - tasks[src]["nodeLocation"]["y"]
         if dy < 0 or dy > 200:
