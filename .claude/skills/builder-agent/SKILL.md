@@ -1987,7 +1987,7 @@ jq '.[] | select(.app == "WorkFlowEngine") | {name, summary}' {use-case}/tasks.j
 **Reach for purpose-built tasks before chaining primitives.** Two tasks that are commonly underused:
 
 - **`setObjectKey`** (WorkFlowEngine) — writes a value directly into a nested key of an existing object. Use instead of `query` + `merge` when updating a single field on an object already in `$var.job.*`.
-- **`renderJinja2ContextWithCast`** (ConfigurationManager) — renders a Jinja2 template with the full job context automatically injected, plus optional type casting on the output. Use instead of `merge` → `renderJinja2` → `query` chains when the template needs access to existing job variables. Outputs `renderedTemplate` accessible via `$var.<taskId>.renderedTemplate`. On `TemplateBuilder`'s version of this task specifically, don't source `variables` from a `merge` task's output — see gotcha #62.
+- **`renderJinja2ContextWithCast`** (ConfigurationManager) — renders a Jinja2 template with the full job context automatically injected, plus optional type casting on the output. Use instead of `merge` → `renderJinja2` → `query` chains when the template needs access to existing job variables. Outputs `renderedTemplate` accessible via `$var.<taskId>.renderedTemplate`.
 
 Fetch full schemas with `POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true`.
 
@@ -2615,7 +2615,6 @@ The `revert` transition moves execution back to a previous task, allowing the us
 59. **Propose decomposition when a workflow exceeds ~20 tasks** — extract inner iteration bodies into reusable child workflows.
 60. **DRY check on sibling workflows** — if building multiple similarly-named workflows, compare task graphs. Identical graphs → propose one generic workflow, not N clones.
 61. **NEVER wire a Configuration Manager remediation task** — see AGENTS.md Rule 25 for the full prohibited-task list and the config-push alternative.
-62. **`TemplateBuilder.renderJinja2ContextWithCast`'s `variables` field cannot resolve a plain `$var` reference to a `merge` task's output** (e.g. `"variables": "$var.e1a1.merged_object"`) — confirmed on a freshly-created, never-PUT workflow, so it isn't the stale-`incomingRefs`-after-PUT issue (#50 above). This is a different failure from the general "no `$var` references inside nested objects" rule (checklist item, Guide 1 Step 5) — here the reference isn't embedded inside a literal object at all, it's the field's entire value, and it still doesn't resolve. The same `$var.<mergeTaskId>.merged_object` pattern is confirmed to work when wired into an *adapter* task's field instead (e.g. ServiceNow's `requestBodyPayload`, per Guide 1's own worked example) — the limitation is specific to this task/field combination, not `merge` output in general. If you need to build a JSON object for a Jinja2 template's `variables`, source it from a manual task's export or a job variable set directly by `outgoing` (see #53 above), not from an intermediate `merge` task. If a `merge`-built object is unavoidable, skip Jinja2 for that step and assemble the final payload with `merge` alone (or `merge` + `stringConcat` for any templated text), the way you would for an adapter's request body.
 
 ---
 
