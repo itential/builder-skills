@@ -941,6 +941,8 @@ Use the helper: `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-project-members.jso
 
 Include ALL members in every PATCH — this is a full replacement. Omitting an existing member removes them.
 
+**If regular `PATCH /automation-studio/projects/{projectId}` returns 403 for the service account (no GBAC role on the project yet), the bypass endpoint `PATCH /automation-studio/admin/projects/{projectId}` will succeed — but it silently drops any component not listed in the SAME request body**, even when the request only intends to change `members`. Confirmed live: PATCHing `{"members": [...]}` alone (no `components` key at all) removed a real `mopCommandTemplate` component from the project — the underlying asset was deleted outright, not just unlinked, and had to be recreated from a backup. Always `GET` the project immediately after any admin-endpoint PATCH and diff the `components` array against what it was before; if anything is missing, recreate it (via the asset's own create endpoint, e.g. `POST /mop/createTemplate`) and re-link with `components/add`.
+
 **To resolve a username or group name to a reference ID**, scan existing projects:
 ```bash
 for pid in $(curl -s "$BASE/automation-studio/projects?limit=100" \
@@ -1146,6 +1148,12 @@ POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
 2. Check if `{use-case}/task-schemas.json` exists — search it next
 3. Only call `multipleTaskDetails` for tasks not found in either place
 4. After fetching, append to `{use-case}/task-schemas.json`
+
+**Adapter list/search tasks (e.g. `ipam_prefixes_list`, `ipam_ip_addresses_list`) require every declared query parameter present in `incoming`, even the ones you don't care about — as an empty string.** Wiring only the parameters you actually want to set (e.g. just `adapter_id` and one filter) is enough to pass `workflows/validate`, but crashes `jobs/start` with the same opaque, task-unattributed `"Cannot convert undefined or null to object"` covered above. Copy the FULL `incoming` block from a real wired example in the asset projects rather than hand-picking fields, and only overwrite the specific ones you need.
+
+**Check each parameter's declared `type` before assigning it a plain string — some are `array`-typed even when sibling parameters with similar names are plain strings.** Confirmed with NetBox's `ipam_ip_addresses_list`: nearly every filter parameter is declared `type: array` in the dereferenced schema (via `multipleTaskDetails?dereferenceSchemas=true`), including ones like `parent` that read like a single-value filter. Passing a plain string (`"parent": "100.64.1.0/24"`) for an array-typed parameter fails at `jobs/start` with a swagger-client error, `"Could not parse parameter value string as JSON Object or JSON Array"` — pass a real JSON array instead (`"parent": ["100.64.1.0/24"]`).
+
+**A `_bulk_destroy`-style adapter task that issues `DELETE` with a request body will fail at the gateway/proxy layer, not the adapter or the target API** — confirmed with NetBox's `ipam_ip_addresses_bulk_destroy` (`requestBodyPayload` on a `DELETE`): the call never reaches NetBox, failing instead with `"error receiving task event: rpc error: ... invalid spec: HTTP method HTTP_METHOD_DELETE does not support request body"`. This is a hard gateway-proxy limitation, not something fixable via task configuration — for gateway-routed adapters, avoid any `DELETE`-with-body bulk operation and loop single-item `_destroy` calls instead (see `### forEach` above for the loop pattern; `state: "loop"`, not `childJob`, since the target of the loop body here is an adapter task rather than another workflow).
 
 ### nodeLocation Spacing Convention
 
@@ -1478,6 +1486,8 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 | `POST /workflow_builder/workflows/save` | Does NOT regenerate incomingRefs either | Open in Studio → Save |
 | Evaluation silently returns `false` after PUT | Stale operand cache | Constant-holder workaround below, or Studio save |
 | Workflow hangs at `workflow_start` (status: running forever) after PUT | Any task's incomingRefs stale | Recreate via fresh POST — more PUTs won't fix it |
+
+**`POST /workflow_builder/workflows/save`-created workflows are missing structural fields that `jobs/start` requires but `workflows/validate` doesn't check.** A workflow document built with only the fields shown in the `### Workflow Structure` example above (tasks, transitions, inputSchema, etc.) — omitting `scenarios`, `errors`, `warnings`, and `canvasVersion` — validates cleanly (`errors: []`) and displays correctly in Studio, but `jobs/start` crashes with an opaque, task-unattributed `"Cannot convert undefined or null to object"` (confirmed root cause: `Object.keys(undefined)` on one of these fields server-side). Always include `"scenarios": []`, `"errors": []`, `"warnings": []`, and `"canvasVersion": 3` explicitly when building a workflow document for this endpoint from scratch — the officially-documented `POST /automation-studio/automations` creation flow already includes `canvasVersion` in its example body, so prefer that endpoint when creating a new workflow; reach for `workflow_builder/workflows/save` only for updates to an existing (already-complete) document.
 
 **Constant-holder workaround (API-only, no Studio save needed):** store `operand_2` literal values in a `newVariable` task and reference via `{"task": "k_const", "variable": "value"}` — taskRef resolution bypasses the cache.
 
@@ -2683,6 +2693,13 @@ The `revert` transition moves execution back to a previous task, allowing the us
 59. **Propose decomposition when a workflow exceeds ~20 tasks** — extract inner iteration bodies into reusable child workflows.
 60. **DRY check on sibling workflows** — if building multiple similarly-named workflows, compare task graphs. Identical graphs → propose one generic workflow, not N clones.
 61. **NEVER wire a Configuration Manager remediation task** — see AGENTS.md Rule 25 for the full prohibited-task list and the config-push alternative.
+
+### API / Endpoints (continued)
+62. **`POST /workflow_builder/workflows/save` needs `scenarios: []`, `errors: []`, `warnings: []`, `canvasVersion` set explicitly on a from-scratch document** — omitting them validates fine but crashes `jobs/start` with a generic `"Cannot convert undefined or null to object"`. Prefer `POST /automation-studio/automations` for creation. See `### Workflow Structure`.
+63. **Admin-bypass project PATCH (`/automation-studio/admin/projects/{id}`) silently drops components not listed in the same request** — even a members-only PATCH can delete an unrelated asset outright. Always diff `components` after using this endpoint. See `### Update membership`.
+64. **Adapter list/search tasks need every declared query parameter present (even as `""`)** — partial `incoming` validates but crashes `jobs/start` the same generic way. Copy the full block from a wired example. See `### Get Full Task Schemas`.
+65. **Check each query parameter's declared `type` before assigning a plain string** — some are `array`-typed even when they read like single-value filters (e.g. NetBox `ipam_ip_addresses_list`'s `parent`). See `### Get Full Task Schemas`.
+66. **`DELETE`-with-body adapter tasks (e.g. `*_bulk_destroy`) fail at the gateway/proxy layer**, not the adapter — loop single-item `_destroy` calls instead. See `### Get Full Task Schemas`.
 
 ---
 
