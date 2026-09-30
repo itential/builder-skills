@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "FlowAgent to Spec"
+  short_description: "Turn a FlowAgent into a deterministic workflow spec"
+  default_prompt: "Turn my FlowAgent into a deterministic workflow spec"

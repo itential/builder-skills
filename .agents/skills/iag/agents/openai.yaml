@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "IAG Services"
+  short_description: "Build and run Automation Gateway services (Python, Ansible, OpenTofu)"
+  default_prompt: "Build an IAG Python service that backs up device configs"

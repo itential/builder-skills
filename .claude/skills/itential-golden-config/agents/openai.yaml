@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Golden Config"
+  short_description: "Define configuration standards and run compliance checks"
+  default_prompt: "Build a golden config for my Cisco devices and run compliance"

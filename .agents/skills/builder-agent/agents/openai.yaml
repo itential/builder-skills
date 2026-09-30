@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Builder Agent"
+  short_description: "Build and test the workflows, templates and projects in an approved design"
+  default_prompt: "The solution design is approved — build it"

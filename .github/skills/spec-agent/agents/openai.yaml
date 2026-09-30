@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Spec Agent"
+  short_description: "Turn a use case into an approved requirements spec (HLD)"
+  default_prompt: "I want to automate VLAN provisioning on my Itential platform"

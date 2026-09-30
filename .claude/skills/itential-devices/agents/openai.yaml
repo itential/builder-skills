@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Devices"
+  short_description: "Manage devices, config backups, diffs and device groups"
+  default_prompt: "Back up the configs for my core routers"

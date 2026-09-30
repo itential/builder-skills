@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Inventory Manager"
+  short_description: "Manage IAG5 inventories, nodes, actions and tags"
+  default_prompt: "Load my devices into an Inventory Manager inventory"

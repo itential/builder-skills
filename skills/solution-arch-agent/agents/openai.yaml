@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Solution Architecture Agent"
+  short_description: "Assess feasibility on your platform and produce the solution design"
+  default_prompt: "My customer-spec.md is approved — run feasibility and design the solution"

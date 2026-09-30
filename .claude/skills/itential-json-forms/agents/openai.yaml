@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "JSON Forms"
+  short_description: "Build input forms with static, REST-bound and cascading dropdowns"
+  default_prompt: "Build a form with a device dropdown that lists devices from inventory"

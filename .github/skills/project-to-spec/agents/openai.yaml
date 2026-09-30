@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "Project to Spec"
+  short_description: "Reverse-engineer an existing project into a spec and design"
+  default_prompt: "Document my DNS_Management project as a spec and solution design"

@@ -1,0 +1,17 @@
+{
+  "name": "itential-builder",
+  "owner": {
+    "name": "Itential"
+  },
+  "plugins": [
+    {
+      "name": "itential-builder",
+      "source": "./",
+      "description": "Itential Builder — spec-driven network automation skills for the Itential Platform",
+      "version": "1.6.7",
+      "author": {
+        "name": "Itential"
+      }
+    }
+  ]
+}
