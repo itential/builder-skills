@@ -20,7 +20,7 @@ This project contains skills for assisting developers on the Itential Platform. 
 > 5. `customizations/team/`
 > 6. `customizations/org/`
 >
-> 7. Core repository guidance — `AGENTS.md`, `skills/`, `docs/constitution.md` — lowest priority, everything above may narrow or override it, but must not violate `docs/constitution.md`.
+> 7. Core repository guidance — `AGENTS.md`, `skills/` — lowest priority. Everything above may narrow or override it, but must not weaken a skill's safety rules (e.g. the ban on remediation tasks) or put credentials in committed files.
 >
 > Non-conflicting rules from every layer present still apply — this is layering, not replacement. See `docs/customization.md` for the full per-skill framework (decision guide, override format, fork-maintenance workflow).
 

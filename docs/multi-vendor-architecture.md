@@ -17,7 +17,6 @@ Edit directly:
 | `AGENTS.md` | Repo entrypoint and skill router |
 | `skills/*/SKILL.md` | Canonical skill content |
 | `plugin.json` | Root manifest, agent-plugins.org v1.0.0 |
-| `docs/constitution.md` | Governance and quality gates |
 | `helpers/` | JSON scaffolds and build templates |
 | `spec-files/` | Customer spec templates |
 | `customizations/org/` | Org-wide standards |

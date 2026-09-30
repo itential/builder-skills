@@ -7,7 +7,6 @@ Canonical source remains:
 ```text
 AGENTS.md
 skills/*/SKILL.md
-docs/constitution.md
 ```
 
 Customization layers are optional and applied in this order:
@@ -17,9 +16,9 @@ Customization layers are optional and applied in this order:
 | 1 | Developer local | `customizations/developer/` | No, except examples |
 | 2 | Team | `customizations/team/` | Yes |
 | 3 | Organization | `customizations/org/` | Yes |
-| 4 | Core | `AGENTS.md`, `skills/`, `docs/constitution.md` | Yes |
+| 4 | Core | `AGENTS.md`, `skills/` | Yes |
 
-Higher-priority layers may add guidance or narrow choices, but they must not violate `docs/constitution.md`.
+Higher-priority layers may add guidance or narrow choices, but they must not weaken a skill's safety rules (e.g. the ban on remediation tasks) or put credentials in committed files.
 
 Recommended files:
 
