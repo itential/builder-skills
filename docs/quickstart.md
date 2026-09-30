@@ -50,7 +50,7 @@ Connect to a platform, browse capabilities, build freely. No lifecycle required.
 
 Follow your tool's section in [`vendor-install.md`](vendor-install.md) — install, then its "check it worked" step. Your org has its own customized copy? Install from that instead (same page explains).
 
-This guide uses Claude Code's `/itential-builder:skill-name` syntax. On other tools, use the same skill name: `$spec-agent` in Codex, `/spec-agent` in Copilot and Cursor.
+This guide uses Claude Code's `/itential-builder:skill-name` syntax. On other tools, use the same skill name: `$itential-builder:spec-agent` in Codex, `/spec-agent` in Copilot and Cursor.
 
 ---
 

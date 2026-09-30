@@ -98,7 +98,7 @@ Build all asset JSON in `{use-case}/` directory. Dependency order: leaves first,
 Pre-checks, post-checks, validation. Read-only — never push config.
 
 **Build cycle:**
-1. Read `helpers/create-command-template.json`
+1. Read `helpers/create/create-command-template.json`
 2. Define commands with `<!var!>` syntax and validation rules
 3. Save to `{use-case}/cmd-{name}.json`
 
@@ -109,7 +109,7 @@ No platform call yet — just build the JSON.
 Config generation (`{{ var }}`) and output parsing.
 
 **Build cycle:**
-1. Read `helpers/create-template-jinja2.json` or `helpers/create-template-textfsm.json`
+1. Read `helpers/create/create-template-jinja2.json` or `helpers/create/create-template-textfsm.json`
 2. Write the template content
 3. Set `data` field with sample values (JSON string, not object)
 4. Save to `{use-case}/tmpl-{name}.json`
@@ -136,7 +136,7 @@ POST /automation-studio/multipleTaskDetails?dereferenceSchemas=true
 Append results to `{use-case}/task-schemas.json`.
 
 **Step 4: Build workflow JSON.**
-1. Read `helpers/create-workflow.json` for scaffold
+1. Read `helpers/create/create-workflow.json` for scaffold
 2. Read task helpers for each task type
 3. Map schema → task JSON:
    - `name`, `canvasName`, `displayName` from tasks.json

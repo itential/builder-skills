@@ -2,9 +2,9 @@
 
 This project contains skills for assisting developers on the Itential Platform. Read this first, then use the skills for detailed API references.
 
-**Cross-tool note:** Canonical skill content: `skills/{skill-name}/SKILL.md`. Local-repo mirrors: `.claude/skills/` (Claude Code), `.agents/skills/` (Codex CLI, Cursor), `.github/skills/` (GitHub Copilot) — real copies, regenerated from `skills/` by CI (`.github/workflows/generate-mirrors.yml`); edit `skills/` only. Plugin install: `plugin.json` (Codex, Copilot, Cursor); `.claude-plugin/plugin.json` (Claude Code). Invoke: `/skill-name` (Claude Code, Cursor, Copilot), `$skill-name` or `/skills` (Codex). See `docs/vendor-install.md`.
+**Cross-tool note:** Canonical skill content: `skills/{skill-name}/SKILL.md`, plus a shared library edited in one place: `helpers/`, `spec-files/`, `environments/`, and this file. CI (`.github/workflows/generate-mirrors.yml`) bundles the library files each skill references into `skills/{skill-name}/assets/` and copies each complete skill into `.claude/skills/` (Claude Code), `.agents/skills/` (Codex CLI, Cursor, `gh skill`) and `.github/skills/` (GitHub Copilot) — all generated, edit `skills/` and the library only. Plugin manifests: `.claude-plugin/` (Claude Code), root `plugin.json` (Codex, Copilot, VS Code), `.cursor-plugin/` (Cursor). Invoke: `/itential-builder:skill-name` (Claude Code plugin), `/skill-name` (Claude Code clone, Copilot, Cursor), `$itential-builder:skill-name` (Codex). See `docs/vendor-install.md`.
 
-`${CLAUDE_PLUGIN_ROOT}/helpers/...` paths are a Claude Code runtime variable. If unset, resolve as this repo's root.
+**Paths:** skills refer to their files by paths relative to the skill's own folder (`assets/...`, `scripts/...`). In this file, `helpers/`, `spec-files/` and `environments/` are relative to the repo root — or, in the copy bundled inside a skill (`assets/AGENTS.md`), relative to that `assets/` folder, where the same files are bundled.
 
 > ## Customization Layers
 >

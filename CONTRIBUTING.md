@@ -10,7 +10,7 @@ Thank you for your interest in contributing to the builder-skills project! This 
 - [Development Setup](#development-setup)
 - [Contributing Process](#contributing-process)
 - [Pull Request Guidelines](#pull-request-guidelines)
-- [Pull Request Labels](#pull-request-labels)
+- [Pull Request Labels](#pull-request-labels-and-versioning)
 - [Testing](#testing)
 - [Code Style](#code-style)
 - [Documentation](#documentation)
@@ -136,9 +136,9 @@ Type meanings:
 - `chore/` — maintenance tasks (dependencies, tooling, build)
 - `docs/` — documentation updates
 
-**Read this before picking `docs/` for a skill-content change.** In most repos, "it's a `.md` file" and "it's documentation" mean the same thing. They don't here. `AGENTS.md` and every `.claude/skills/*/SKILL.md` file are this repo's **code** — Claude reads them and they directly determine what actions an agent takes. There is no separate interpreter or compiled artifact standing between this prose and agent behavior; the wording *is* the behavior spec. This is not a theoretical distinction — a wording change to one of these files has been directly measured (via fresh sub-agent runs, before/after) to change which API endpoint an agent calls and whether it independently verifies a risky path. That is a behavior change, full stop, regardless of the file extension.
+**Read this before picking `docs/` for a skill-content change.** In most repos, "it's a `.md` file" and "it's documentation" mean the same thing. They don't here. `AGENTS.md` and every `skills/*/SKILL.md` file are this repo's **code** — Claude reads them and they directly determine what actions an agent takes. There is no separate interpreter or compiled artifact standing between this prose and agent behavior; the wording *is* the behavior spec. This is not a theoretical distinction — a wording change to one of these files has been directly measured (via fresh sub-agent runs, before/after) to change which API endpoint an agent calls and whether it independently verifies a risky path. That is a behavior change, full stop, regardless of the file extension.
 
-So classify skill-content changes (`AGENTS.md`, any `.claude/skills/*/SKILL.md`) by **behavior impact**, not file type:
+So classify skill-content changes (`AGENTS.md`, any `skills/*/SKILL.md`) by **behavior impact**, not file type:
 - **`feature/`** — adds a capability or default pattern the agent didn't have before
 - **`fix/`** — corrects wrong, incomplete, or misleading guidance that was producing (or could produce) wrong agent behavior — including "the explanation was technically inaccurate" even if no one filed a bug about it
 - **`refactor/`** — restructures how guidance is organized/worded with the underlying instruction genuinely unchanged (reordering, consolidating duplicates, renumbering) — the bar is that a behavioral eval run before and after would show no difference

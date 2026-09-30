@@ -62,8 +62,8 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 | **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder` (same install covers the VS Code extension) |
 | **Codex CLI** | `codex plugin marketplace add itential/builder-skills` then `codex plugin add itential-builder@itential-builder` (same install covers the VS Code extension) |
 | **GitHub Copilot in VS Code** | Command Palette → **Chat: Install Plugin From Source** → `itential/builder-skills` |
-| **GitHub Copilot CLI** | `gh skill install itential/builder-skills --agent github-copilot --all` |
-| **Cursor** | `git clone https://github.com/itential/builder-skills.git` and open the folder |
+| **GitHub Copilot CLI** | `copilot plugin marketplace add itential/builder-skills` then `copilot plugin install itential-builder@itential-builder` |
+| **Cursor** | `gh skill install itential/builder-skills --agent cursor --all` in your project (or clone the repo and open it) |
 
 How to check it worked, run skills, and update — per tool: [`docs/vendor-install.md`](docs/vendor-install.md).
 
@@ -91,7 +91,7 @@ Open your tool in that folder and ask:
 
 > "I want to automate VLAN provisioning on my platform."
 
-The agent should start the **spec-agent** skill, offer the built-in VLAN Provisioning spec, and ask you about scope — rather than jumping straight to writing code. You can also start it directly: `/itential-builder:spec-agent` (Claude Code), `$spec-agent` (Codex), `/spec-agent` (Copilot, Cursor).
+The agent should start the **spec-agent** skill, offer the built-in VLAN Provisioning spec, and ask you about scope — rather than jumping straight to writing code. You can also start it directly: `/itential-builder:spec-agent` (Claude Code), `$itential-builder:spec-agent` (Codex), `/spec-agent` (Copilot, Cursor).
 
 Next: the full first-delivery walkthrough in [`docs/quickstart.md`](docs/quickstart.md).
 
