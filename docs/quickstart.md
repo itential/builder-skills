@@ -46,44 +46,39 @@ Connect to a platform, browse capabilities, build freely. No lifecycle required.
 
 ---
 
----
-
 ## 1. Install the Plugin
 
-| Tool | Steps |
-|------|-------|
-| **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder`. |
-| **Codex CLI** | `codex plugin marketplace add itential/builder-skills`, then install from Codex's Plugins UI. |
-| **GitHub Copilot** | No install step — clone or open this repo; Copilot reads `.claude/skills` directly. |
-| **Cursor** | No install step — clone or open this repo; Cursor auto-discovers `.agents/skills`. |
+Follow your tool's section in [`vendor-install.md`](vendor-install.md) — install, then its "check it worked" step. Your org has its own customized copy? Install from that instead (same page explains).
 
-This guide shows Claude Code's `/itential-builder:skill-name` slash-command syntax throughout. On other tools, invoke the same skill by name (e.g. `/spec-agent`) — see the Prerequisites table in the root [`README.md`](../README.md) for which directory each tool reads.
+This guide uses Claude Code's `/itential-builder:skill-name` syntax. On other tools, use the same skill name: `$spec-agent` in Codex, `/spec-agent` in Copilot and Cursor.
 
 ---
 
 ## 2. Set Up Your Environment
 
-Copy one of the environment templates to your use-case directory and edit it with your platform credentials:
+Make a folder for your use case and put a `.env` in it with your platform credentials:
 
 ```bash
-# Cloud / OAuth
-cp environments/cloud-lab.env my-use-case/.env
-
-# Local dev
-cp environments/local-dev.env my-use-case/.env
-
-# Staging
-cp environments/staging.env my-use-case/.env
+mkdir my-use-case && cd my-use-case
 ```
 
-Open `.env` and fill in your values:
-
 ```bash
+# .env — cloud / OAuth
 PLATFORM_URL=https://your-platform.itential.io
 AUTH_METHOD=oauth
 CLIENT_ID=your-client-id
 CLIENT_SECRET=your-client-secret
 ```
+
+```bash
+# .env — local / dev platform with a username and password
+PLATFORM_URL=http://localhost:4000
+AUTH_METHOD=password
+USERNAME=admin
+PASSWORD=your-password
+```
+
+(Working from a clone? The same templates are in `environments/` — `cp environments/cloud-lab.env my-use-case/.env`.)
 
 > The agent reads `.env` automatically — you authenticate once and every skill reuses the token.
 
@@ -171,8 +166,8 @@ Each artifact is approved by the engineer before the next stage begins.
 - For local: default is `USERNAME=admin` / `PASSWORD=admin`
 
 **Skill not found after install**
-- Restart Claude Code after installing the plugin
-- Verify install: `/plugin list`
+- Run your tool's "Check it worked" step in [`vendor-install.md`](vendor-install.md)
+- Claude Code: restart after installing, then check `/plugin`
 
 **Platform data not pulling**
 - Run `/itential-builder:explore` first to confirm connectivity

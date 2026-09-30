@@ -42,6 +42,9 @@ desktop.ini
 credentials.json
 secrets.yaml
 secrets.yml
+customizations/developer/*
+!customizations/developer/README.md
+!customizations/developer/*.example.md
 
 # =============================================================================
 # Logs and Databases
@@ -86,20 +89,6 @@ use-cases/
 evals/workspace/
 
 # =============================================================================
-# Customer Skill Customization (see .claude/CUSTOMIZATION.md)
-# =============================================================================
-# Real override content lives only in a customer's own fork/clone — never in
-# this repo's tracked history, so an upstream pull can never conflict with or
-# overwrite it. Placeholder .gitkeep files are explicitly kept so the folder
-# structure ships and is discoverable.
-.claude/skills/*/custom/org/*
-.claude/skills/*/custom/team/*
-.claude/skills/*/custom/dev/*
-!.claude/skills/*/custom/org/.gitkeep
-!.claude/skills/*/custom/team/.gitkeep
-!.claude/skills/*/custom/dev/.gitkeep
-
-# =============================================================================
 # Python (scripts/)
 # =============================================================================
 __pycache__/
@@ -125,3 +114,17 @@ venv/
 # Rust:
 #   target/
 #   Cargo.lock (for libraries only)
+
+# =============================================================================
+# Personal skill customization (see docs/customization.md)
+# =============================================================================
+# custom/dev/ is personal by definition -- never commit it to a shared copy.
+# custom/org/ and custom/team/ are meant to be committed in a customer's copy.
+skills/*/custom/dev/*
+.claude/skills/*/custom/dev/*
+.agents/skills/*/custom/dev/*
+.github/skills/*/custom/dev/*
+!skills/*/custom/dev/.gitkeep
+!.claude/skills/*/custom/dev/.gitkeep
+!.agents/skills/*/custom/dev/.gitkeep
+!.github/skills/*/custom/dev/.gitkeep

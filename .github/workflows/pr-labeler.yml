@@ -33,6 +33,7 @@ permissions:
 jobs:
   label-by-branch-prefix:
     name: Label by branch prefix
+    if: github.repository == 'itential/builder-skills'
     runs-on: ubuntu-latest
     steps:
       - name: Apply label from branch prefix

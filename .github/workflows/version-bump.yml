@@ -30,7 +30,10 @@ jobs:
   bump-version:
     name: Bump patch version
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'chore: bump version to')"
+    if: >-
+      github.repository == 'itential/builder-skills' &&
+      !contains(github.event.head_commit.message, 'chore: bump version to') &&
+      !contains(github.event.head_commit.message, 'chore: regenerate vendor mirrors')
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +50,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json
+          git add .claude-plugin/plugin.json .claude-plugin/marketplace.json plugin.json
           git commit -m "chore: bump version to v${new_version}"
           git push origin "$branch"
 

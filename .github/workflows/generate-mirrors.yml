@@ -1,0 +1,49 @@
+name: Generate Vendor Mirrors
+
+# Owns the skills/ -> .claude/skills, .agents/skills, .github/skills conversion so no
+# contributor or customer ever runs scripts/generate-vendor-wrappers.sh by hand. Runs in
+# itential/builder-skills AND in every customer copy of it -- a customer adds a file under
+# skills/<name>/custom/, pushes, and this propagates it into all three vendor folders.
+#
+# Pushes straight to the branch when allowed; if branch protection rejects that (as it
+# does on itential/builder-skills main -- see version-bump.yml), opens a PR instead.
+# The regeneration commit only touches the mirrors, not skills/**, so it can't retrigger
+# this workflow.
+#
+# TOKEN NOTE: same as version-bump.yml -- a PR opened with the default GITHUB_TOKEN won't
+# trigger other workflows' required checks. Set VERSION_BUMP_TOKEN (fine-grained PAT,
+# contents + pull-requests write) to avoid that.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+      - "scripts/generate-vendor-wrappers.sh"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: generate-mirrors-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    name: Regenerate vendor mirrors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Regenerate and publish
+        env:
+          GH_TOKEN: ${{ secrets.VERSION_BUMP_TOKEN || secrets.GITHUB_TOKEN }}
+          MIRRORS_BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          scripts/ci-regenerate-mirrors.sh

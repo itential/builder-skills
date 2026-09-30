@@ -16,6 +16,7 @@ permissions:
 jobs:
   update-draft-release:
     name: Update draft release
+    if: github.repository == 'itential/builder-skills'
     runs-on: ubuntu-latest
     permissions:
       contents: write

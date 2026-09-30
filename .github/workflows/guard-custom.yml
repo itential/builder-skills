@@ -1,0 +1,22 @@
+name: Guard Custom Folders
+
+# Keeps every skills/*/custom/ folder empty (placeholders only) in itential/builder-skills,
+# so customers' own customizations there never conflict with an Itential update.
+# Skipped in customer copies, where custom/ content is exactly what belongs.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  custom-folders-empty:
+    name: Custom folders empty
+    if: github.repository == 'itential/builder-skills'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check custom/ folders
+        run: scripts/check-custom-empty.sh
