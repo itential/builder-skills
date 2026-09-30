@@ -11,7 +11,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 BRANCH="${MIRRORS_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
-MIRRORS=(.claude/skills .agents/skills .github/skills ':(glob)skills/*/assets')
+MIRRORS=(.claude/skills .agents/skills .github/skills ':(glob)skills/*/assets/**')
 MESSAGE="chore: regenerate vendor mirrors"
 
 "${ROOT_DIR}/scripts/generate-vendor-wrappers.sh"

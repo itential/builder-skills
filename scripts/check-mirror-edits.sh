@@ -13,7 +13,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 BASE="${1:?usage: $0 <base-ref>}"
-MIRRORS=(.claude/skills .agents/skills .github/skills ':(glob)skills/*/assets')
+MIRRORS=(.claude/skills .agents/skills .github/skills ':(glob)skills/*/assets/**')
 
 touched="$(git diff --name-only "${BASE}...HEAD" -- "${MIRRORS[@]}")"
 if [[ -z "${touched}" ]]; then
