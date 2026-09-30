@@ -9,8 +9,6 @@ description: Use this skill to survey and catalog an Itential platform — when 
 **Output:** `customer-spec.md` (inferred HLD per use case) + `solution-design.md` (as-built LLD per use case) + `README.md` (master index, only when multiple use cases)
 **Feeds into:** Can be handed to `/spec-agent` for refinement or `/solution-arch-agent` for redesign
 
----
-
 ## Customization
 
 Before using this skill, check two layers, most specific wins:
@@ -150,6 +148,8 @@ GET /golden-config/plans
 GET /lifecycle-manager/model
 GET /automation-studio/projects?limit=500
 ```
+
+> **Visibility caveat:** see AGENTS.md's "Project Visibility" section. Global assets (this skill's focus) aren't ACL-restricted, so the global catalog isn't undercounted by RBAC — but `GET /automation-studio/projects?limit=500` is per-project-ACL-filtered. Since this skill targets globals, projects are out of scope by default; if the engineer names a specific project they expect, route to `/project-to-spec` instead.
 
 ### Classification Signatures
 
@@ -358,7 +358,7 @@ POST /automation-studio/projects/{projectId}/components/add
 }
 ```
 
-Component type values: `workflow`, `template`, `transformation`, `jsonForm`, `mopCommandTemplate`, `mopAnalyticTemplate`
+Component type values: see AGENTS.md Rule 13.
 
 **3. Build a reference impact report before moving anything:**
 
@@ -419,6 +419,7 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 
 ## Gotchas
 
+- **Global assets are not access-restricted; projects are** (see AGENTS.md Project Visibility). If the engineer names a specific project they expect, route to `/project-to-spec` rather than declaring it absent.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.
@@ -426,4 +427,3 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 - **Not every asset connects.** Don't force them into groups — catalog in Shared Utilities or Reference.
 - **When unsure about golden config or LCM relationships**, ask the engineer rather than guessing.
 - **Master README is only for multiple use cases.** Single use case → write files directly in reports directory, no subdirectory, no README.
-- **Task descriptions and summaries are the best source of intent** — use them heavily.

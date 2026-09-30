@@ -8,8 +8,6 @@ argument-hint: "[action or inventory-name]"
 
 Inventory Manager provides centralized device and endpoint inventory for the Itential Platform. It maintains inventories of nodes (devices/targets), with actions that can be executed against them via IAG5 services. Required for IAG5 and Configuration Manager Enterprise.
 
----
-
 ## Customization
 
 Before using this skill, check two layers, most specific wins:
@@ -32,7 +30,7 @@ the combined precedence.
 
 - **Inventory** — a named collection of nodes with associated actions. Has groups for access control.
 - **Node** — a device or target within an inventory. Has a name, attributes (key-value pairs like host, platform, credentials), and tags.
-- **Action** — an operation that can be run against nodes. Currently only `iag5-service` type. Links to IAG services via `service_name` and `cluster_id`.
+- **Action** — an operation that can be run against nodes. Currently only `iag5-service` type. Links to IAG services via `service_name` and `cluster_id`. (Note: `/itential-lcm` also has an "Action" concept, meaning a create/update/delete/import lifecycle operation — different meaning, same word.)
 - **Tag** — a label for organizing inventories and nodes. Auto-created on first use, auto-cleaned when unused. Stored lowercase.
 
 ## Gotchas

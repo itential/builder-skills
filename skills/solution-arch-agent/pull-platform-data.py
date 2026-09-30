@@ -102,8 +102,8 @@ def main():
         for a in results["adapters"].get("results", []):
             if a.get("state") == "RUNNING":
                 summary["adapters"].append({
-                    "id": a.get("id"),
-                    "package": a.get("package_id"),
+                    "name": a.get("id"),
+                    "package_id": a.get("package_id"),
                     "connection": a.get("connection", {}).get("state")
                 })
 
@@ -112,8 +112,8 @@ def main():
         for a in results["applications"].get("results", []):
             if a.get("state") == "RUNNING":
                 summary["applications"].append({
-                    "id": a.get("id"),
-                    "package": a.get("package_id")
+                    "name": a.get("id"),
+                    "package_id": a.get("package_id")
                 })
 
     # Adapter type names from apps (needed for workflow task app/locationType fields)

@@ -8,8 +8,6 @@ argument-hint: "[action or tree-name]"
 
 Golden Configurations define the "desired state" for device configurations. They enable compliance checking, grading, and remediation of configuration drift across your network.
 
----
-
 ## Customization
 
 Before using this skill, check two layers, most specific wins:
@@ -30,6 +28,7 @@ the combined precedence.
 
 ## Gotchas
 
+- **NEVER wire a remediation task — see ## Remediation below for the full prohibited-task list and the correct config-push pattern.** This skill detects, reports, and grades compliance; it does not remediate, no exceptions.
 - `deviceType` must match exactly: `"cisco-ios"` not `"Cisco IOS"` or `"ios"`
 - `variables` in `PUT /configuration_manager/node/config` must be a **JSON object**, not a string
 - `updateVariables` boolean is **REQUIRED** in node config update — omitting it silently skips variable merge
@@ -57,7 +56,7 @@ Golden Config provides a hierarchical, version-controlled system for defining wh
 - **Configuration Parsers** - Define how raw CLI config is tokenized for comparison against config specs
 - **Compliance Reports** - Results of checking device configs against golden config specs
 - **Grading** - Scoring formula that produces a grade (Pass/Review/Fail) from compliance results
-- **Remediation** - Auto-fix or manual remediation of compliance violations
+- **Remediation** - out of scope; see ## Remediation section.
 
 ### How Inheritance Works
 
@@ -136,49 +135,18 @@ Response creates the tree with version `initial`, a root node, and an empty conf
 
 **Device types:** `cisco-ios`, `cisco-ios-xr`, `cisco-nx`, `arista-eos`, `json` (for non-CLI structured data like AWS Security Groups)
 
-**Real-world tree example (multi-region hierarchy):**
+**`variables` are NOT set on create** — the create body only accepts `name`, `deviceType`, and `description`. Variables are set after creation via `PUT /configuration_manager/node/config` on the `base` node with `updateVariables: true`:
 ```json
 {
-  "name": "Global DC",
-  "deviceType": "cisco-ios",
-  "root": {
-    "name": "Global",
-    "attributes": { "configId": "...c00", "devices": [] },
-    "children": [
-      {
-        "name": "EMEA",
-        "attributes": { "configId": "...c01" },
-        "children": [
-          { "name": "London", "attributes": { "configId": "...c02" }, "children": [] }
-        ]
-      },
-      {
-        "name": "North America",
-        "attributes": { "configId": "...c03" },
-        "children": [
-          { "name": "Atlanta", "attributes": { "configId": "...c04" }, "children": [] }
-        ]
-      },
-      {
-        "name": "APAC",
-        "attributes": { "configId": "...c05" },
-        "children": [
-          { "name": "Sydney", "attributes": { "configId": "...c06" }, "children": [] }
-        ]
-      }
-    ]
-  },
-  "variables": {
-    "hostname": "www.itential.io",
-    "ntp_server_name": "ntp.itential.io",
-    "version_regex": "\\d+\\.\\d+",
-    "interfaces": [
-      { "name": "Loopback101", "description": "This is a test", "ip_address": "192.1.3.1" },
-      { "name": "Loopback102", "description": "This is a test loopback", "ip_address": "192.2.3.1" }
-    ]
-  }
+  "treeId": "{treeId}",
+  "treeVersion": "initial",
+  "nodePath": "base",
+  "data": { "template": "", "variables": { "hostname": "router.example.com" } },
+  "updateVariables": true
 }
 ```
+
+**Bulk delete trees** — `DELETE /configuration_manager/configs` requires body `{"treeIds": ["id1", "id2"]}`. A tree cannot be deleted while it is referenced by a compliance plan — delete the plan first.
 
 ### Nodes
 
@@ -460,7 +428,7 @@ Compliance plans group golden config nodes with their target devices into a runn
 | POST | `/configuration_manager/compliance_plans` | Create a compliance plan |
 | GET | `/configuration_manager/compliance_plans/{planId}` | Get a compliance plan |
 | PUT | `/configuration_manager/compliance_plans` | Update a compliance plan |
-| DELETE | `/configuration_manager/compliance_plans` | Delete compliance plans |
+| DELETE | `/configuration_manager/compliance_plans` | Delete compliance plans — body: `{"planIds": ["id1"]}` |
 | POST | `/configuration_manager/compliance_plans/run` | Run a compliance plan |
 | POST | `/configuration_manager/compliance_plans/nodes` | Add nodes to a compliance plan |
 | DELETE | `/configuration_manager/compliance_plans/nodes` | Remove nodes from a compliance plan |
@@ -748,19 +716,42 @@ POST /configuration_manager/compliance_reports/grade/single
 
 ## Remediation
 
-When compliance violations are found, Configuration Manager supports auto-remediation and manual remediation.
+> **This skill does not remediate. NEVER wire a Configuration Manager remediation task that pushes golden-config/compliance-derived changes onto a device — auto *or* human-reviewed.** The job of Golden Config is to define the standard, check devices against it, and grade the result. Applying a fix to a device is a separate, deliberately-designed config-push delivery with its own change control — not something Golden Config does automatically.
 
-**Workflow tasks for remediation:**
-- **`runAutoRemediation`** - Automatically fix violations: `in: [complianceReportId, removeDisallowedConfig]`
-- **`advancedAutoRemediation`** - Auto remediate with options: `in: [complianceReportId, removeDisallowedConfig, options]`
-- **`ManualRemediation`** - Present violations for manual review: `in: [compliance_report] → out: [device, changes]`
-- **`patchDeviceConfiguration`** - Apply specific changes: `in: [deviceName, changes]`
+**Prohibited tasks (never wire any of these into a workflow, never suggest them):**
+
+| Task | App | What it (wrongly) does here |
+|------|-----|------------------------------|
+| `runAutoRemediation` | ConfigurationManager | Auto-fixes the device from the compliance report |
+| `advancedAutoRemediation` | ConfigurationManager | Auto-fix with extra options |
+| `convertChangesToConfig` | ConfigurationManager | Converts compliance patch data into device config (auto-remediation plumbing) |
+| `patchDeviceConfiguration` | ConfigurationManager | Alters the device configuration |
+| `advancedPatchDeviceConfiguration` | ConfigurationManager | Alters the device configuration with options |
+| `patchCMDeviceConfiguration` | IAP (legacy) | Alters a device configuration to achieve compliance |
+| `ManualRemediation` | ConfigurationManager | Generates GC-derived device changes for review/apply |
+| `ManualRemediationResults` | ConfigurationManager | Applies the manual-remediation results to the device |
+
+*Note: `updateNodeConfig` is NOT prohibited — it authors the Golden Config **node template** (the standard), it doesn't touch a device. Likewise `applyDeviceConfig`/`applyDeviceTemplate` are generic config-apply tasks; they're fine for a deliberate push delivery but must never be wired to auto-apply changes derived from a compliance report.*
+
+There is **no exception** — not even when a spec asks for fully automatic remediation with no human in the loop. (`convertChangesToConfig` is also deprecated in Platform 6.5, removed in Platform 7 — see the [deprecation notice](https://docs.itential.com/itential-platform/release-notes/deprecations/autoremediation-tasks) — a dead end regardless of the prohibition.)
+
+**If a spec calls for remediation, do this instead:**
+1. This skill produces the compliance report — the list of violations (`issues`) per device.
+2. Hand those violations to a **config-push delivery** built with `/builder-agent`: render the corrective configuration, then push it through the **config-push mechanism available in the environment**, with the normal dry-run → approval → commit pattern that any config change gets. **Which push task to use depends on what the platform has configured** — check the task catalog / adapters first, don't assume. Common options:
+   - **`sendConfig`** (GatewayManager) — "Send configuration to inventory nodes" via an Automation Gateway
+   - **`runService`** (GatewayManager) — run a gateway service such as the `itential_cli` Ansible role
+   - **`netmikoSendConfig` / `netmikoSendConfigSet`** (AG) — netmiko-based config push
+   - whatever vendor/SSH adapter the environment uses for config push
+
+   See `/builder-agent`'s config-push pattern and the Arista EOS "Push Configuration to Device - IAG" workflow in `helpers/assets/vendor-arista-eos.json`.
+3. Re-run compliance (this skill) afterward to confirm the device is back in standard.
 
 ## Helper JSON Templates
 
 | File | API Call | Description |
 |------|----------|-------------|
 | `create-golden-config-tree.json` | `POST /configuration_manager/configs` | Create a golden config tree |
+| `reference-golden-config-tree.json` | `POST /configuration_manager/import/goldenconfigs` | Full multi-region tree reference (Global → EMEA/NA/APAC with node templates and variables) |
 | `update-node-config.json` | `PUT /configuration_manager/node/config` | Update node template with all syntax features |
 | `create-golden-config-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{parentPath}` | Create a child node |
 | `add-devices-to-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{nodePath}/devices` | Assign devices |

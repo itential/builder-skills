@@ -128,23 +128,19 @@ Ask: *"Here's your spec. Review it — add, remove, or change anything. When you
 
 Tell the engineer what happens next:
 
-> "Requirements are locked. Here's the rest of the delivery:
->
-> 1. **Feasibility** — The Solution Architecture Agent connects to your platform and assesses what's possible against your approved spec.
-> 2. **Design** — A solution design is produced with exactly what to build, reuse, and skip. You approve it before anything is built.
-> 3. **Build** — The Builder Agent implements the approved design, tests each component, and delivers the project.
-> 4. **As-Built** — What was actually delivered is recorded, including any deviations and learnings.
->
-> You own approval at Feasibility and Design. Nothing gets built without your sign-off."
+> "Requirements are locked. Next: Feasibility → Design → Build → Test → As-Built — full detail on each stage is in AGENTS.md's Developer Flow. You approve at Feasibility, Design, and the Test Plan; nothing gets built or tested live without your sign-off."
 
 **Artifact-based handoff.** The workspace the Solution Architecture Agent receives:
 
 ```
 {use-case}/
-  customer-spec.md    ← approved HLD (Requirements complete)
-  .env                ← credentials (if provided)
-  customer-context.md ← business rules, naming (if provided)
+  customer-spec.md     ← approved HLD (Requirements complete)
+  .env                 ← credentials (if provided)
+  customer-context.md  ← business rules, naming (if provided)
+  use-case-memory.md   ← create from helpers/use-case-memory.md, set Stage: feasibility, Status: active
 ```
+
+Create `use-case-memory.md` at handoff — populate the use-case name, one-sentence description, and `Stage: feasibility` / `Status: active`. The solution-arch-agent will add platform refs and adapter details during feasibility, and update `Stage` again at its own handoff; the builder will add asset IDs and decisions during build.
 
 No auth. No platform data. `/solution-arch-agent` owns everything from Feasibility onward.
 
@@ -157,3 +153,4 @@ No auth. No platform data. `/solution-arch-agent` owns everything from Feasibili
 | `customer-spec.md` | Approved HLD — the source of truth for this delivery |
 | `.env` | Credentials saved for later auth during Feasibility |
 | `customer-context.md` | Business rules and naming conventions (if provided) |
+| `use-case-memory.md` | Living context file — initialized here, updated throughout all stages |

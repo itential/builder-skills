@@ -64,6 +64,21 @@ Response: `{message, data: {_id, name, components: [...], members: [...]}}`
 
 Save the project ID and component list.
 
+### If the project is not returned
+
+Project list/get responses are RBAC-filtered. A 404 or empty `data` array does NOT prove the project doesn't exist — it may be invisible to the calling client.
+
+**Important:** see AGENTS.md's "Project Visibility" section for why a project might not appear in a list response despite existing (per-project ACLs, no platform-wide admin role).
+
+Before declaring the project missing, do all of:
+
+1. **Identify the calling client** — `GET /iam/clients/{client_id}` (the `client_id` from `.auth.json` or the env file). Note its group memberships — these (together with the client itself) determine which project ACLs it might be on.
+2. **Try a broader query** — `GET /automation-studio/projects?limit=500` and inspect the result for partial-name matches; the `contains` filter is case-sensitive in some Platform versions.
+3. **Surface visibility, not absence** — report: *"No project named `{name}` is visible to this client (`{client_id}`). It may not exist, or it may be access-restricted. To confirm, ask the project's owner (or someone with manage rights on that project) to add `{client_id}` to its ACL via the Automation Studio UI."*
+4. **Do not auto-grant access.** Adding the calling client to a project ACL is a privileged write to a shared resource — always ask the engineer to handle it via the UI, or via a different client that is already on that project's ACL with manage rights. If the engineer authorizes a DB-level read-only confirmation (e.g. local dev Mongo), that is acceptable, but the granting itself stays a human action.
+
+Stop and wait for engineer direction before proceeding to Step 2.
+
 ---
 
 ## Step 2: Pull All Components
@@ -97,40 +112,7 @@ Save to `{use-case}/project-components.json`.
 
 ## Step 3: Analyze the Components
 
-Work through the components to reconstruct intent and structure.
-
-### Identify the orchestrator
-
-Find the parent workflow — usually the one that:
-- Has no `childJob` references pointing to it from other workflows
-- References other workflows via `childJob` tasks
-- Has the most complex transition graph
-
-### Map the data flow
-
-For the orchestrator and each child:
-1. What are the **inputs**? (inputSchema properties)
-2. What adapters are called? (location: "Adapter" tasks)
-3. What utility tasks are used? (merge, query, evaluation, childJob, makeData)
-4. What are the **outputs**? (outputSchema properties, $var.job.x assignments)
-5. What external systems are touched? (adapter names → infer ServiceNow, Route53, etc.)
-
-### Infer the phases
-
-Each major section of the orchestrator maps to a phase:
-- A `childJob` to a child workflow = one phase
-- An `evaluation` branch = a decision point
-- An adapter call cluster = an integration phase
-- A `ViewData` = an approval gate
-- Error handling branches = rollback/recovery phases
-
-### Reconstruct acceptance criteria
-
-From the workflow structure, infer what "done" looks like:
-- What does the final outgoing variable represent?
-- What adapters were called? → "ServiceNow ticket created and updated"
-- What verifications exist? → `evaluation` tasks checking status
-- What is the `outputSchema`? → these are the observable outcomes
+Use the "Analyze the Components" methodology in the `/documentation` skill (Identify the orchestrator → Map the data flow → Infer the phases → Reconstruct acceptance criteria) — it's the same reverse-engineering approach for a single project as for a full-platform survey. Apply it to just this project's components.
 
 ---
 
@@ -220,7 +202,20 @@ etc.
 
 ---
 
-## Step 6: Present to Engineer
+## Step 6: Write Memory File
+
+Before presenting to the engineer, create `{use-case}/use-case-memory.md` from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` and populate it with what you just read — don't leave this for later:
+
+- **Platform References** — platform URL, project name, project `_id`, adapter instance names and type names, group memberships observed
+- **What Was Built** — every component from the inventory table: name, type, ID, status=`existing`
+- **Architecture Decisions** — any patterns you inferred (why childJob loop, why this adapter, why approval gate)
+- **Stage / Status** — `Stage: delivered`, `Status: active` if the project is fully in production and this is pure documentation; `Stage: requirements` (or wherever the engineer decides to re-enter) if this is a baseline for a rebuild or refinement
+
+This means any skill that picks up from here (spec-agent, solution-arch-agent, builder-agent, qa-agent) starts with the real IDs already recorded — no re-discovery.
+
+---
+
+## Step 7: Present to Engineer
 
 Show both documents and walk through:
 
@@ -235,15 +230,9 @@ Show both documents and walk through:
 
 ## What to Watch For
 
-**Orphaned tasks:** Tasks with no useful summary — check their adapter/app and incoming variables to infer purpose.
-
-**Non-hex task IDs:** If you encounter task IDs like `apush` or `myTask`, note them — these are a known bug pattern ($var references silently fail on these).
+See the `/documentation` skill's "What to Watch For" list (orphaned tasks, non-hex task IDs, static values as business-rule indicators, missing error transitions) — same heuristics apply to a single project. One addition specific to reverse-engineering a single project:
 
 **Deep nesting:** childJob → childJob → childJob patterns indicate a modular design — document each layer separately.
-
-**Static values as indicators:** Hard-coded strings in merge tasks or newVariable tasks often reveal business rules (e.g., `"value": "production"` → production-only path).
-
-**Missing error transitions:** Note any adapter tasks without error transitions — this is a quality gap in the existing implementation.
 
 ---
 
@@ -254,3 +243,4 @@ Show both documents and walk through:
 - Template `data` field is a JSON string, not an object — parse it before analyzing
 - childJob `workflow` field shows the child workflow name (with prefix) — this is the dependency graph
 - Task descriptions and summaries are the best source of intent — use them heavily
+- **Project not returned ≠ project doesn't exist** (see AGENTS.md Project Visibility). Follow the "If the project is not returned" path in Step 1 — never silently switch to a different project, never declare absence without surfacing the visibility caveat, and never grant the calling client access on its own initiative.

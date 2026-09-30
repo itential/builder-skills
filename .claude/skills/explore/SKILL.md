@@ -129,6 +129,16 @@ Show:
 - Devices: count and OS types (if available)
 - Existing workflows: count
 
+> **Visibility note:** see AGENTS.md's "Project Visibility" section — project-scoped assets are ACL-gated, global assets aren't. If the engineer expects a specific project and it doesn't appear, treat it as *possibly access-restricted*, not *missing*.
+
+---
+
+## Step 3b: Initialize Memory File
+
+After pulling platform data, check for `{use-case}/use-case-memory.md`:
+- **Exists** → read it. It has context from a previous session — platform URL, prior decisions, open items.
+- **Missing** → create it from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md`. Populate Platform URL, `Stage: requirements` (explore is freeform — set the real stage once the engineer commits to a delivery path), `Status: active`, and any adapter/app names discovered in Step 2.
+
 ---
 
 ## Step 4: Route to Skills
@@ -154,3 +164,5 @@ Point to the right skill for what the engineer wants to do:
 - OpenAPI spec is ~1.5MB — search locally with `jq`, never load into context
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list` for correct names
 - Devices endpoint is POST not GET — body required
+- **Project list responses are RBAC-filtered — absence does NOT mean the project doesn't exist.** See AGENTS.md's Project Visibility section. If the engineer names a specific project you can't find, say *"not visible to this client (`{client_id}`) — possibly access-restricted; ask the project owner to add `{client_id}` to its ACL"* rather than *"doesn't exist."*
+- `PATCH /automation-studio/projects/{id}` silently ignores an `accessControl` body — use the `members` array instead: `[{"type": "account"|"group", "reference": "<id>", "role": "owner"|"editor"|"operator"|"viewer"}]`. See [#62](https://github.com/itential/builder-skills/issues/62)

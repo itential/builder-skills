@@ -10,8 +10,6 @@ Configuration Manager is the Itential Platform application for managing devices,
 
 For Golden Configurations, compliance, and grading, use `/itential-golden-config`.
 
----
-
 ## Customization
 
 Before using this skill, check two layers, most specific wins:
