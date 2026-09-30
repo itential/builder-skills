@@ -45,6 +45,8 @@ Do not edit directly. Real copies, not symlinks.
 
 Edit `skills/` and push. `.github/workflows/generate-mirrors.yml` regenerates the three mirrors on every push to `main` — pushing directly, or opening a `chore: regenerate vendor mirrors` PR where `main` is branch-protected (as it is on `itential/builder-skills`). Nobody runs the conversion by hand. To preview locally: `scripts/check-generated.sh`.
 
+PR checks keep it that way: **Generated Copies Untouched** (`scripts/check-mirror-edits.sh`) fails a PR that edits `.claude/skills`, `.agents/skills` or `.github/skills` by hand instead of `skills/` — the pipeline would overwrite such edits after merge — and **Manifest Versions** (`scripts/bump_version.py --check`) fails if the plugin manifests disagree on version.
+
 ## Install & Invoke
 
 | Vendor | Install | Invoke |
