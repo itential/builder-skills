@@ -22,7 +22,10 @@ if [[ -z "$(git status --porcelain -- "${MIRRORS[@]}")" ]]; then
   exit 0
 fi
 
-git add -A -- "${MIRRORS[@]}"
+# Stage the copies and skills/ (in CI, the generator is the only thing that changes skills/, via
+# skills/*/assets). Not the :(glob)skills/*/assets/** pathspec: git add fails with "did not match
+# any files" when no skill has bundled assets.
+git add -A -- .claude/skills .agents/skills .github/skills skills
 git commit -m "${MESSAGE}"
 
 if git push origin "HEAD:${BRANCH}"; then

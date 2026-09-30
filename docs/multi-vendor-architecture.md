@@ -52,6 +52,15 @@ PR checks:
 - **Manifest Versions** (`scripts/bump_version.py --check`) — fails if any plugin manifest disagrees on version. The version bump updates all of them.
 - **Custom folders empty** (`scripts/check-custom-empty.sh`) — Itential's repo never ships customer content.
 
+## Repo settings the CI needs
+
+Proven on a real org repo with branch protection (the `itential/admin-skills` sandbox — see its `docs/ci-learnings.md`):
+
+- **Branch protection on `main`:** require a PR; make **Branch Naming**, **Commit Messages**, **Custom folders empty**, **Generated Copies Untouched** and **Manifest Versions** required checks. Turn on "enforce for admins" if the checks must bind admins too — otherwise `gh pr merge --admin` can bypass them.
+- **Actions → Workflow permissions:** read and write, and "Allow GitHub Actions to create and approve pull requests" — both bot workflows open PRs when `main` is protected.
+- **A bot token that triggers checks — the important one.** PRs opened with the default `GITHUB_TOKEN` get **no checks at all**, so with required checks they sit blocked forever. With protection on, every skill change produces two such PRs (the version bump and the regenerated copies). Set the `VERSION_BUMP_TOKEN` secret — both `version-bump.yml` and `generate-mirrors.yml` use it — to a fine-grained PAT or, better for an org, a GitHub App token with contents + pull-requests write. Until then, a maintainer can unblock a bot PR by closing and reopening it (that human event starts the checks).
+- If a second merge lands before the pending version-bump PR, the second bump is a no-op — the open PR already carries the next version.
+
 ## Install & invoke
 
 | Harness | Install | Invoke |

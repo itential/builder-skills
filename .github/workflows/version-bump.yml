@@ -47,6 +47,13 @@ jobs:
           new_version=$(python3 scripts/bump_version.py --bump patch)
           branch="chore/bump-version-to-${new_version//./-}"
 
+          # A bump PR for this version is already open (another merge landed before it was
+          # merged): it already carries the next version, so there's nothing new to bump.
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "Bump branch $branch already exists -- its PR already bumps to v${new_version}; nothing to do."
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
