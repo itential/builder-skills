@@ -1,0 +1,11 @@
+{
+  "name": "REPLACE_AUTOMATION_NAME",
+  "description": "REPLACE_DESCRIPTION",
+  "componentName": "@REPLACE_PROJECT_ID: REPLACE_WORKFLOW_NAME",
+  "componentType": "workflows",
+  "componentId": "REPLACE_WORKFLOW_UUID",
+  "gbac": {
+    "write": [],
+    "read": []
+  }
+}

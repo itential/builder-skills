@@ -16,18 +16,22 @@ argument-hint: "[project-name or project-id]"
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## What This Does
@@ -68,7 +72,7 @@ Save the project ID and component list.
 
 Project list/get responses are RBAC-filtered. A 404 or empty `data` array does NOT prove the project doesn't exist — it may be invisible to the calling client.
 
-**Important:** see AGENTS.md's "Project Visibility" section for why a project might not appear in a list response despite existing (per-project ACLs, no platform-wide admin role).
+**Important:** see `assets/AGENTS.md`'s "Project Visibility" section for why a project might not appear in a list response despite existing (per-project ACLs, no platform-wide admin role).
 
 Before declaring the project missing, do all of:
 
@@ -204,7 +208,7 @@ etc.
 
 ## Step 6: Write Memory File
 
-Before presenting to the engineer, create `{use-case}/use-case-memory.md` from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` and populate it with what you just read — don't leave this for later:
+Before presenting to the engineer, create `{use-case}/use-case-memory.md` from `assets/helpers/use-case-memory.md` and populate it with what you just read — don't leave this for later:
 
 - **Platform References** — platform URL, project name, project `_id`, adapter instance names and type names, group memberships observed
 - **What Was Built** — every component from the inventory table: name, type, ID, status=`existing`
@@ -243,4 +247,4 @@ See the `/documentation` skill's "What to Watch For" list (orphaned tasks, non-h
 - Template `data` field is a JSON string, not an object — parse it before analyzing
 - childJob `workflow` field shows the child workflow name (with prefix) — this is the dependency graph
 - Task descriptions and summaries are the best source of intent — use them heavily
-- **Project not returned ≠ project doesn't exist** (see AGENTS.md Project Visibility). Follow the "If the project is not returned" path in Step 1 — never silently switch to a different project, never declare absence without surfacing the visibility caveat, and never grant the calling client access on its own initiative.
+- **Project not returned ≠ project doesn't exist** (see `assets/AGENTS.md` Project Visibility). Follow the "If the project is not returned" path in Step 1 — never silently switch to a different project, never declare absence without surfacing the visibility caveat, and never grant the calling client access on its own initiative.

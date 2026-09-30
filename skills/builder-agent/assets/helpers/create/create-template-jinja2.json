@@ -1,0 +1,12 @@
+{
+  "template": {
+    "name": "REPLACE_NAME",
+    "type": "jinja2",
+    "group": "REPLACE_GROUP",
+    "command": "",
+    "description": "REPLACE_DESCRIPTION",
+    "tags": [],
+    "template": "<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <title>{{ report_title }}</title>\n</head>\n<body style=\"font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 40px;\">\n\n  <div style=\"background-color: #ffffff; padding: 24px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 6px rgba(0,0,0,0.1);\">\n\n    <h2 style=\"color: #2c3e50; margin-top: 0;\">{{ report_title }}</h2>\n    <p style=\"color: #555555; font-size: 14px; line-height: 1.5;\">\n      {{ report_description }}\n    </p>\n\n    <table style=\"width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;\">\n      <thead>\n        <tr style=\"background-color: #2c3e50; color: #ffffff; text-align: left;\">\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Device Name</th>\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Status</th>\n          <th style=\"padding: 10px; border: 1px solid #ddd;\">Last Checked</th>\n        </tr>\n      </thead>\n      <tbody>\n        {% for device in devices %}\n        <tr style=\"background-color: {{ '#f9f9f9' if loop.index % 2 == 1 else '#ffffff' }};\">\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">{{ device.deviceName }}</td>\n          <td style=\"padding: 10px; border: 1px solid #ddd; color: {{ '#27ae60' if device.status == 'Online' else '#c0392b' }};\">\n            {{ device.status }}\n          </td>\n          <td style=\"padding: 10px; border: 1px solid #ddd;\">{{ device.lastChecked }}</td>\n        </tr>\n        {% endfor %}\n      </tbody>\n    </table>\n\n  </div>\n\n</body>\n</html>",
+    "data": "{\n  \"report_title\": \"Device Status Report\",\n  \"report_description\": \"The following devices were checked as part of the automation job.\",\n  \"devices\": [\n    {\n      \"deviceName\": \"CSR1000V-EDGE-01\",\n      \"status\": \"Unreachable\",\n      \"lastChecked\": \"2026-06-30 09:15\"\n    },\n    {\n      \"deviceName\": \"ARISTA-CORE-03\",\n      \"status\": \"Online\",\n      \"lastChecked\": \"2026-06-30 09:15\"\n    }\n  ]\n}"
+  }
+}

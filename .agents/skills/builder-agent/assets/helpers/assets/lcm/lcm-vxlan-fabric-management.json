@@ -1,0 +1,657 @@
+{
+  "message": "Success",
+  "data": {
+    "_id": "680a72d4c409ee145fbc068a",
+    "name": "VXLAN Fabric Management",
+    "description": "",
+    "schema": {
+      "$id": "vxlan-fabric-management",
+      "description": "Schema defining the possible values within instances of resource model 'VXLAN Fabric Management'",
+      "type": "object",
+      "required": [],
+      "additionalProperties": true,
+      "properties": {
+        "datacenter": {
+          "type": "string",
+          "title": "Datacenter Name",
+          "examples": [
+            "Atlanta"
+          ]
+        },
+        "tenant": {
+          "type": "string",
+          "title": "Tenant Name",
+          "examples": [
+            "Application"
+          ]
+        },
+        "subnetSize": {
+          "type": "integer",
+          "title": "Subnet Size",
+          "examples": [
+            25
+          ]
+        },
+        "devices": {
+          "type": "array",
+          "title": "Device List",
+          "items": {
+            "type": "object",
+            "properties": {
+              "deviceName": {
+                "type": "string",
+                "examples": [
+                  "NX-ATL-LEAF-01"
+                ]
+              },
+              "interface": {
+                "type": "string",
+                "examples": [
+                  "Ethernet1/3"
+                ]
+              }
+            },
+            "required": []
+          }
+        },
+        "serviceProvisioningStatus": {
+          "type": "string",
+          "title": "Service Provisioning Status",
+          "examples": [
+            "not provisioned"
+          ]
+        },
+        "initiator": {
+          "type": "string",
+          "title": "Requester Username",
+          "examples": [
+            "admin@itential"
+          ]
+        },
+        "netboxSubnetPrefixId": {
+          "type": "integer",
+          "title": "Netbox Subnet Prefix Allocation ID",
+          "examples": [
+            112
+          ]
+        },
+        "netboxVLANId": {
+          "type": "integer",
+          "title": "Netbox VLAN Allocation ID",
+          "examples": [
+            44
+          ]
+        },
+        "deviceConfigContext": {
+          "type": "object",
+          "title": "Device Configuration Variables",
+          "properties": {
+            "anycastGWIP": {
+              "type": "string",
+              "title": "Anycast Gateway IP",
+              "examples": [
+                "10.1.8.1/25"
+              ]
+            },
+            "accessVlan": {
+              "type": "integer",
+              "title": "Access VLAN ID",
+              "examples": [
+                13
+              ]
+            },
+            "l3VNID": {
+              "type": "integer",
+              "title": "Layer 3 VNI ID",
+              "examples": [
+                90013
+              ]
+            },
+            "l2VNID": {
+              "type": "integer",
+              "title": "Layer 2 VNI ID",
+              "examples": [
+                2013
+              ]
+            },
+            "overlayVRFVlan": {
+              "type": "integer",
+              "title": "Overlay VRF VLAN ID",
+              "examples": [
+                1013
+              ]
+            },
+            "vrfName": {
+              "type": "string",
+              "title": "Overlay VRF Name",
+              "examples": [
+                "vxlan-90013"
+              ]
+            },
+            "vniSubnet": {
+              "type": "string",
+              "title": "VNI subnet",
+              "examples": [
+                "10.1.8.0/25"
+              ]
+            }
+          },
+          "required": []
+        }
+      }
+    },
+    "actions": [
+      {
+        "_id": "49f9",
+        "preWorkflowJst": null,
+        "postWorkflowJst": "64a7073ad89fbd0210eef8d5",
+        "workflow": "@66e2e4599b9c1e60b3e23639: VXLAN Fabric Services - Create",
+        "name": "Create Network",
+        "type": "create"
+      },
+      {
+        "_id": "ed8c",
+        "preWorkflowJst": "68139d336a6a5450784c1a25",
+        "postWorkflowJst": "64a30af4d89fbd0210eef8d3",
+        "workflow": "@66e2e4599b9c1e60b3e23639: VXLAN Fabric Services - Re-provision",
+        "name": "Re-Provision Network",
+        "type": "update",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "deviceConfigContext": {
+              "type": "object",
+              "properties": {
+                "anycastGWIP": {
+                  "type": "string",
+                  "examples": [
+                    "10.1.0.81/28"
+                  ]
+                },
+                "accessVlan": {
+                  "type": "integer",
+                  "examples": [
+                    3
+                  ]
+                },
+                "l3VNID": {
+                  "type": "integer",
+                  "examples": [
+                    90003
+                  ]
+                },
+                "l2VNID": {
+                  "type": "integer",
+                  "examples": [
+                    2003
+                  ]
+                },
+                "overlayVRFVlan": {
+                  "type": "integer",
+                  "examples": [
+                    1003
+                  ]
+                },
+                "vrfName": {
+                  "type": "string",
+                  "examples": [
+                    "vxlan-90003"
+                  ]
+                },
+                "vniSubnet": {
+                  "type": "string",
+                  "examples": [
+                    "10.1.0.80/28"
+                  ]
+                }
+              },
+              "required": []
+            },
+            "devices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "deviceName": {
+                    "type": "string",
+                    "examples": [
+                      "NX-ATL-LEAF-01"
+                    ]
+                  },
+                  "interface": {
+                    "type": "string",
+                    "examples": [
+                      "Eth1/3"
+                    ]
+                  }
+                },
+                "required": []
+              }
+            }
+          },
+          "required": [
+            "deviceConfigContext",
+            "devices"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "required": [
+            "instance"
+          ],
+          "properties": {
+            "instance": {
+              "description": "Schema defining the possible values within instances of resource model 'VXLAN Fabric Services'",
+              "type": "object",
+              "required": [],
+              "additionalProperties": true,
+              "properties": {
+                "datacenter": {
+                  "type": "string",
+                  "title": "Datacenter Name",
+                  "examples": [
+                    "Atlanta"
+                  ]
+                },
+                "tenant": {
+                  "type": "string",
+                  "title": "Tenant Name",
+                  "examples": [
+                    "Application"
+                  ]
+                },
+                "subnetSize": {
+                  "type": "integer",
+                  "title": "Subnet Size",
+                  "examples": [
+                    25
+                  ]
+                },
+                "devices": {
+                  "type": "array",
+                  "title": "Device List",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "deviceName": {
+                        "type": "string",
+                        "examples": [
+                          "NX-ATL-LEAF-01"
+                        ]
+                      },
+                      "interface": {
+                        "type": "string",
+                        "examples": [
+                          "Ethernet1/3"
+                        ]
+                      }
+                    },
+                    "required": []
+                  }
+                },
+                "serviceProvisioningStatus": {
+                  "type": "string",
+                  "title": "Service Provisioning Status",
+                  "examples": [
+                    "not provisioned"
+                  ]
+                },
+                "initiator": {
+                  "type": "string",
+                  "title": "Requester Username",
+                  "examples": [
+                    "admin@itential"
+                  ]
+                },
+                "netboxSubnetPrefixId": {
+                  "type": "integer",
+                  "title": "Netbox Subnet Prefix Allocation ID",
+                  "examples": [
+                    112
+                  ]
+                },
+                "deviceConfigContext": {
+                  "type": "object",
+                  "title": "Device Configuration Variables",
+                  "properties": {
+                    "anycastGWIP": {
+                      "type": "string",
+                      "title": "Anycast Gateway IP",
+                      "examples": [
+                        "10.1.8.1/25"
+                      ]
+                    },
+                    "accessVlan": {
+                      "type": "integer",
+                      "title": "Access VLAN ID",
+                      "examples": [
+                        13
+                      ]
+                    },
+                    "l3VNID": {
+                      "type": "integer",
+                      "title": "Layer 3 VNI ID",
+                      "examples": [
+                        90013
+                      ]
+                    },
+                    "l2VNID": {
+                      "type": "integer",
+                      "title": "Layer 2 VNI ID",
+                      "examples": [
+                        2013
+                      ]
+                    },
+                    "overlayVRFVlan": {
+                      "type": "integer",
+                      "title": "Overlay VRF VLAN ID",
+                      "examples": [
+                        1013
+                      ]
+                    },
+                    "vrfName": {
+                      "type": "string",
+                      "title": "Overlay VRF Name",
+                      "examples": [
+                        "vxlan-90013"
+                      ]
+                    },
+                    "vniSubnet": {
+                      "type": "string",
+                      "title": "VNI subnet",
+                      "examples": [
+                        "10.1.8.0/25"
+                      ]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "_id": "ae22",
+        "preWorkflowJst": "68139db06a6a5450784c1a26",
+        "postWorkflowJst": "64a70860d89fbd0210eef8d6",
+        "workflow": "@66e2e4599b9c1e60b3e23639: VXLAN Fabric Services - Delete Service",
+        "name": "Delete",
+        "type": "delete",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "deviceConfigContext": {
+              "type": "object",
+              "properties": {
+                "anycastGWIP": {
+                  "type": "string",
+                  "examples": [
+                    "10.1.0.81/28"
+                  ]
+                },
+                "accessVlan": {
+                  "type": "integer",
+                  "examples": [
+                    3
+                  ]
+                },
+                "l3VNID": {
+                  "type": "integer",
+                  "examples": [
+                    90003
+                  ]
+                },
+                "l2VNID": {
+                  "type": "integer",
+                  "examples": [
+                    2003
+                  ]
+                },
+                "overlayVRFVlan": {
+                  "type": "integer",
+                  "examples": [
+                    1003
+                  ]
+                },
+                "vrfName": {
+                  "type": "string",
+                  "examples": [
+                    "vxlan-90003"
+                  ]
+                },
+                "vniSubnet": {
+                  "type": "string",
+                  "examples": [
+                    "10.1.0.80/28"
+                  ]
+                }
+              },
+              "required": []
+            },
+            "serviceProvisioningStatus": {
+              "type": [
+                "array",
+                "boolean",
+                "null",
+                "number",
+                "object",
+                "string"
+              ]
+            },
+            "devices": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "deviceName": {
+                    "type": "string",
+                    "examples": [
+                      "NX-ATL-LEAF-01"
+                    ]
+                  },
+                  "interface": {
+                    "type": "string",
+                    "examples": [
+                      "Eth1/3"
+                    ]
+                  }
+                },
+                "required": []
+              }
+            },
+            "netboxVLANId": {
+              "title": "netboxVLANId",
+              "type": "number"
+            },
+            "netboxSubnetPrefixId": {
+              "title": "netboxSubnetPrefixId",
+              "type": "number"
+            }
+          },
+          "required": [
+            "deviceConfigContext",
+            "serviceProvisioningStatus",
+            "devices",
+            "netboxVLANId",
+            "netboxSubnetPrefixId"
+          ]
+        },
+        "outputSchema": {
+          "type": "object",
+          "required": [
+            "instance"
+          ],
+          "properties": {
+            "instance": {
+              "description": "Schema defining the possible values within instances of resource model 'VXLAN Fabric Services'",
+              "type": "object",
+              "required": [],
+              "additionalProperties": true,
+              "properties": {
+                "datacenter": {
+                  "type": "string",
+                  "title": "Datacenter Name",
+                  "examples": [
+                    "Atlanta"
+                  ]
+                },
+                "tenant": {
+                  "type": "string",
+                  "title": "Tenant Name",
+                  "examples": [
+                    "Application"
+                  ]
+                },
+                "subnetSize": {
+                  "type": "integer",
+                  "title": "Subnet Size",
+                  "examples": [
+                    25
+                  ]
+                },
+                "devices": {
+                  "type": "array",
+                  "title": "Device List",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "deviceName": {
+                        "type": "string",
+                        "examples": [
+                          "NX-ATL-LEAF-01"
+                        ]
+                      },
+                      "interface": {
+                        "type": "string",
+                        "examples": [
+                          "Ethernet1/3"
+                        ]
+                      }
+                    },
+                    "required": []
+                  }
+                },
+                "serviceProvisioningStatus": {
+                  "type": "string",
+                  "title": "Service Provisioning Status",
+                  "examples": [
+                    "not provisioned"
+                  ]
+                },
+                "initiator": {
+                  "type": "string",
+                  "title": "Requester Username",
+                  "examples": [
+                    "admin@itential"
+                  ]
+                },
+                "netboxSubnetPrefixId": {
+                  "type": "integer",
+                  "title": "Netbox Subnet Prefix Allocation ID",
+                  "examples": [
+                    112
+                  ]
+                },
+                "netboxVLANId": {
+                  "type": "integer",
+                  "title": "Netbox VLAN Allocation ID",
+                  "examples": [
+                    44
+                  ]
+                },
+                "deviceConfigContext": {
+                  "type": "object",
+                  "title": "Device Configuration Variables",
+                  "properties": {
+                    "anycastGWIP": {
+                      "type": "string",
+                      "title": "Anycast Gateway IP",
+                      "examples": [
+                        "10.1.8.1/25"
+                      ]
+                    },
+                    "accessVlan": {
+                      "type": "integer",
+                      "title": "Access VLAN ID",
+                      "examples": [
+                        13
+                      ]
+                    },
+                    "l3VNID": {
+                      "type": "integer",
+                      "title": "Layer 3 VNI ID",
+                      "examples": [
+                        90013
+                      ]
+                    },
+                    "l2VNID": {
+                      "type": "integer",
+                      "title": "Layer 2 VNI ID",
+                      "examples": [
+                        2013
+                      ]
+                    },
+                    "overlayVRFVlan": {
+                      "type": "integer",
+                      "title": "Overlay VRF VLAN ID",
+                      "examples": [
+                        1013
+                      ]
+                    },
+                    "vrfName": {
+                      "type": "string",
+                      "title": "Overlay VRF Name",
+                      "examples": [
+                        "vxlan-90013"
+                      ]
+                    },
+                    "vniSubnet": {
+                      "type": "string",
+                      "title": "VNI subnet",
+                      "examples": [
+                        "10.1.8.0/25"
+                      ]
+                    }
+                  },
+                  "required": []
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "_id": "bd67",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": null,
+        "name": "Force Delete",
+        "type": "delete"
+      },
+      {
+        "_id": "ae75",
+        "preWorkflowJst": "681396dd6a6a5450784c1a23",
+        "postWorkflowJst": "649ddbe8bdc47102184f609f",
+        "workflow": "@66e2e4599b9c1e60b3e23639: VXLAN Fabric Services - Decommission",
+        "name": "Decommission Network",
+        "type": "update"
+      }
+    ],
+    "created": "2025-04-24T17:20:20.075Z",
+    "createdBy": {
+      "username": "joksan.flores@itential.com",
+      "firstname": "Joksan",
+      "provenance": "Okta SAML",
+      "_id": "67c856baabe686cf9cb78b2d"
+    },
+    "lastUpdated": "2025-05-01T16:09:49.293Z",
+    "lastUpdatedBy": {
+      "username": "joksan.flores@itential.com",
+      "firstname": "Joksan",
+      "provenance": "Okta SAML",
+      "_id": "67c856baabe686cf9cb78b2d"
+    }
+  },
+  "metadata": {}
+}

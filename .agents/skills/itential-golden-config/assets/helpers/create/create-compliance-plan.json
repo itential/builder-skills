@@ -1,0 +1,32 @@
+{
+  "name": "REPLACE_PLAN_NAME",
+  "options": {
+    "description": "REPLACE_DESCRIPTION",
+    "nodes": [
+      {
+        "treeId": "REPLACE_TREE_ID_1",
+        "version": "initial",
+        "nodeId": "REPLACE_NODE_CONFIG_ID_1",
+        "devices": ["IOS-CAT8KV-1"],
+        "deviceGroups": [],
+        "variables": {}
+      },
+      {
+        "treeId": "REPLACE_TREE_ID_2",
+        "version": "initial",
+        "nodeId": "REPLACE_NODE_CONFIG_ID_2",
+        "devices": ["XRV9K-ATL-1"],
+        "deviceGroups": [],
+        "variables": {}
+      },
+      {
+        "treeId": "REPLACE_TREE_ID_3",
+        "version": "initial",
+        "nodeId": "REPLACE_NODE_CONFIG_ID_3",
+        "devices": ["NX-ATL-LEAF-01"],
+        "deviceGroups": [],
+        "variables": {}
+      }
+    ]
+  }
+}

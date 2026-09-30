@@ -1,0 +1,12 @@
+{
+  "template": {
+    "name": "REPLACE_NAME",
+    "type": "textfsm",
+    "group": "REPLACE_GROUP",
+    "command": "show ip interface brief",
+    "description": "REPLACE_DESCRIPTION",
+    "tags": [],
+    "template": "Value INTERFACE (\\S+)\nValue IP_ADDRESS (\\S+)\nValue STATUS (up|down|administratively down)\nValue PROTOCOL (up|down)\n\nStart\n  ^Interface\\s+IP-Address\\s+OK\\?\\s+Method\\s+Status\\s+Protocol\\s*$$\n  ^${INTERFACE}\\s+${IP_ADDRESS}\\s+\\S+\\s+\\S+\\s+${STATUS}\\s+${PROTOCOL}\\s*$$ -> Record\n  ^\\s*$$\n  ^. -> Error",
+    "data": "Interface              IP-Address      OK? Method Status                Protocol\nGigabitEthernet0/0      10.0.0.1        YES NVRAM  up                    up\nGigabitEthernet0/1      unassigned      YES NVRAM  administratively down down\nLoopback0               192.168.1.1     YES NVRAM  up                    up"
+  }
+}

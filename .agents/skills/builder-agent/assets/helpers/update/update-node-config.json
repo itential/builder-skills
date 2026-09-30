@@ -1,0 +1,17 @@
+{
+  "treeId": "",
+  "treeVersion": "initial",
+  "nodePath": "base",
+  "data": {
+    "template": "service password-encryption\naaa new-model\n<e/>ntp server {{ ntp_server }}\n<i/>version {/ {{ version_regex }} /}\n{i/}hostname {/\\S+/}\n{d/}service internal\n{d/}<e/>ip domain-lookup\nip access-list extended ACL-VLAN100-IN\n 10 permit tcp 10.100.1.0 0.0.0.255 any eq www\n {/ {{ acl_line_regex }} /} permit tcp 10.100.1.0 0.0.0.255 any eq 443\n 30 deny ip any any log\n{% for intf in interfaces %}\n{i/}interface {{ intf['name'] }}\n  {i/}description {{ intf['description'] }}\n  {i/}no shutdown\n{% endfor %}",
+    "variables": {
+      "ntp_server": "ntp1.east.itential.com",
+      "version_regex": "\\d+\\.\\d+",
+      "acl_line_regex": "^(10000|[1-9][0-9]{0,3})",
+      "interfaces": [
+        { "name": "Loopback10", "description": "Management" }
+      ]
+    }
+  },
+  "updateVariables": true
+}

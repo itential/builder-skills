@@ -1,0 +1,30 @@
+{
+  "_comment": "Full replacement — GET the form first, copy its created/createdBy/lastUpdated/lastUpdatedBy into options, modify fields, then PUT back. PUT /json-forms/forms/{formId}. Body MUST be wrapped in 'options' key. schema.title must match name.",
+  "options": {
+    "name": "REPLACE_FORM_NAME",
+    "description": "REPLACE_DESCRIPTION",
+    "created": "REPLACE_CREATED_TIMESTAMP",
+    "createdBy": "REPLACE_CREATED_BY",
+    "lastUpdated": "REPLACE_LAST_UPDATED_TIMESTAMP",
+    "lastUpdatedBy": "REPLACE_LAST_UPDATED_BY",
+    "schema": {
+      "type": "object",
+      "title": "REPLACE_FORM_NAME",
+      "properties": {},
+      "required": []
+    },
+    "uiSchema": {},
+    "struct": {
+      "type": "array",
+      "items": []
+    },
+    "bindingSchema": {
+      "properties": {}
+    },
+    "validationSchema": {
+      "properties": {}
+    },
+    "tags": [],
+    "version": "2020.1"
+  }
+}

@@ -16,18 +16,22 @@ Several endpoints (notably Agent Project Service and Tools Service) declare an u
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Verifying This Skill Against Your Platform
@@ -38,8 +42,8 @@ This skill is a map, not a substitute for checking the live API. Don't hardcode 
 - **Get a tool's live schema instead of assuming it.** `GET /tools/{referenceId}` always returns that tool's current `inputSchema` exactly as the LLM sees it — adapters and app methods change independently of this skill, so this call is the one source that's always current.
 - **When the OpenAPI spec itself is untyped, call the endpoint and read the real response** rather than trusting a shape in this skill as final — every response shape documented below was built that way, and your platform version may have moved on.
 - **Prefer real exported structures over hand-authored JSON.** `GET /agent-project-service/project-bundles/{projId}/export` on any existing project returns a complete, valid Agent + Project payload straight from the platform — exporting something that already works and reading it is faster and more reliable than composing a bundle from memory. Two ready-made local references follow the same idea:
-  - `helpers/create/create-flowagent-project-bundle.json` — a structurally-correct starting template with `REPLACE_*` placeholders. Edit and import it rather than typing a bundle out from scratch.
-  - `helpers/assets/flowagent-sample-agent-project.json` — a real project bundle, exported after building and running it against a live platform: one project with three agents, including a multi-tool agent that calls a device command, opens a ServiceNow incident through a decorated tool, and presents a WorkCenter approval step. It's exact platform data, not a hand-written example — but it's still one specific environment's snapshot: its `referenceId`s, `decoratorId`, and `provider` names won't exist on your platform verbatim. Read it to see the real shape (in particular, how `{{ deviceName }}` in `instructions` lines up with `inputSchema`, and how `tools[].decoratorId` attaches), then re-resolve every ID against your own `GET /tools` and `GET /model-registry-service/profiles` before reusing it.
+  - `assets/helpers/create/create-flowagent-project-bundle.json` — a structurally-correct starting template with `REPLACE_*` placeholders. Edit and import it rather than typing a bundle out from scratch.
+  - `assets/helpers/assets/flowagent-sample-agent-project.json` — a real project bundle, exported after building and running it against a live platform: one project with three agents, including a multi-tool agent that calls a device command, opens a ServiceNow incident through a decorated tool, and presents a WorkCenter approval step. It's exact platform data, not a hand-written example — but it's still one specific environment's snapshot: its `referenceId`s, `decoratorId`, and `provider` names won't exist on your platform verbatim. Read it to see the real shape (in particular, how `{{ deviceName }}` in `instructions` lines up with `inputSchema`, and how `tools[].decoratorId` attaches), then re-resolve every ID against your own `GET /tools` and `GET /model-registry-service/profiles` before reusing it.
 
 ## Concepts
 
@@ -453,7 +457,7 @@ There is **no create/update/delete for individual tools** — the registry is po
 | POST | `/tools/decorators/bulk/import` | Bulk-import decorators |
 | GET | `/tools/{referenceId}/decorators` | List all decorators for one tool — a tool can have many |
 
-`helpers/create/create-flowagent-decorator.json` is a ready-to-edit starting template for the body below.
+`assets/helpers/create/create-flowagent-decorator.json` is a ready-to-edit starting template for the body below.
 
 **Create — required shape:**
 ```json

@@ -15,18 +15,22 @@ description: Use this skill to start any new automation delivery — when someon
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Stage Expectations
@@ -61,7 +65,7 @@ If the engineer wants to explore the platform freely (browse adapters, try tasks
 
 ## Step 1: Pick a Spec
 
-Present available specs from `${CLAUDE_PLUGIN_ROOT}/spec-files/`, grouped by category:
+Present available specs from `assets/spec-files/`, grouped by category:
 
 | Category | Specs |
 |----------|-------|
@@ -79,7 +83,7 @@ Or the engineer describes what they need and you recommend a spec.
 ```bash
 mkdir -p {use-case-name}
 # Only fork if it doesn't already exist — engineer may have customized from a previous session
-[ ! -f {use-case}/customer-spec.md ] && cp ${CLAUDE_PLUGIN_ROOT}/spec-files/spec-port-turn-up.md {use-case}/customer-spec.md
+[ ! -f {use-case}/customer-spec.md ] && cp assets/spec-files/spec-port-turn-up.md {use-case}/customer-spec.md
 ```
 
 If `{use-case}/customer-spec.md` already exists, **reuse it** — do not overwrite.
@@ -128,7 +132,7 @@ Ask: *"Here's your spec. Review it — add, remove, or change anything. When you
 
 Tell the engineer what happens next:
 
-> "Requirements are locked. Next: Feasibility → Design → Build → Test → As-Built — full detail on each stage is in AGENTS.md's Developer Flow. You approve at Feasibility, Design, and the Test Plan; nothing gets built or tested live without your sign-off."
+> "Requirements are locked. Next: Feasibility → Design → Build → Test → As-Built — full detail on each stage is in `assets/AGENTS.md`'s Developer Flow. You approve at Feasibility, Design, and the Test Plan; nothing gets built or tested live without your sign-off."
 
 **Artifact-based handoff.** The workspace the Solution Architecture Agent receives:
 
@@ -137,7 +141,7 @@ Tell the engineer what happens next:
   customer-spec.md     ← approved HLD (Requirements complete)
   .env                 ← credentials (if provided)
   customer-context.md  ← business rules, naming (if provided)
-  use-case-memory.md   ← create from helpers/use-case-memory.md, set Stage: feasibility, Status: active
+  use-case-memory.md   ← create from assets/helpers/use-case-memory.md, set Stage: feasibility, Status: active
 ```
 
 Create `use-case-memory.md` at handoff — populate the use-case name, one-sentence description, and `Stage: feasibility` / `Status: active`. The solution-arch-agent will add platform refs and adapter details during feasibility, and update `Stage` again at its own handoff; the builder will add asset IDs and decisions during build.

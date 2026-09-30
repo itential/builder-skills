@@ -18,18 +18,22 @@ Write YAML → iagctl db import → Services available → Workflows call them
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Gotchas
@@ -41,7 +45,7 @@ the combined precedence.
 - **`runService` result is JSON-RPC wrapped** — see "Result Shape — JSON-RPC Wrapper" below for the full unwrapping pattern
 - **`stdout` is always a string** — even when a Python script prints valid JSON, `result.stdout` is a string (e.g., `"{\"hostname\":\"Router1\"}"`). You must parse it before referencing fields inside it. Use a `parse` task (WorkFlowEngine) or `transformation` to convert the JSON string to an object.
 - **`req-file` path is relative to `working-directory`** — if `working-directory: scripts`, then `req-file: requirements.txt` looks for `scripts/requirements.txt` inside the cloned repo, not the repo root
-- **`$var` doesn't resolve inside `newVariable` objects when wiring `runService` outputs** — see AGENTS.md Rule 8; use a `query` task instead
+- **`$var` doesn't resolve inside `newVariable` objects when wiring `runService` outputs** — see `assets/AGENTS.md` Rule 8; use a `query` task instead
 - **`--force` skips existing same-name resources unless forced, and overwrites secrets too** — see "Adding Secrets" below for the full warning and the fix (keep `secrets:` out of the top-level YAML entirely).
 - **Decorators reject unknown params** — every `--set` key must exist in the decorator schema
 - **Decorator property names become argparse flags verbatim, including underscores** — a property named `inventory_name` becomes `--inventory_name`, not `--inventory-name`. If your script's argparse flag uses a hyphen, IAG's `--inventory_name value` call fails with "unrecognized arguments". Name every argparse flag exactly like its decorator property.
@@ -61,11 +65,11 @@ the combined precedence.
 4. **`GatewayManager.runService`** — call from Itential workflows
 
 **Always start from a helper template — do not build YAML from scratch.** Read the matching example first:
-- Python service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-python-service.yaml`
-- Ansible service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-ansible-service.yaml`
-- OpenTofu service → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-opentofu-service.yaml`
-- Multi-service chain → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/example-multi-service-chain.yaml`
-- Full schema reference → `${CLAUDE_PLUGIN_ROOT}/helpers/iag/service-file-schema.md`
+- Python service → `assets/helpers/iag/example-python-service.yaml`
+- Ansible service → `assets/helpers/iag/example-ansible-service.yaml`
+- OpenTofu service → `assets/helpers/iag/example-opentofu-service.yaml`
+- Multi-service chain → `assets/helpers/iag/example-multi-service-chain.yaml`
+- Full schema reference → `assets/helpers/iag/service-file-schema.md`
 
 ---
 

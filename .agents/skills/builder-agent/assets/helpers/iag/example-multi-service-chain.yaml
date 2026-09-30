@@ -1,0 +1,97 @@
+# Three services from one repo, designed to chain in an Itential workflow:
+#   device-info → config-generator → config-validator
+#
+# Data flow:
+#   runService(device-info) → stdout JSON → runService(config-generator) → stdout JSON → runService(config-validator)
+
+decorators:
+  - name: device-info-decorator
+    schema:
+      $id: root
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      required:
+        - device_ip
+        - device_type
+      properties:
+        device_ip:
+          type: string
+          description: Target device IP address
+        device_type:
+          type: string
+          description: Device OS type
+          enum:
+            - ios
+            - nxos
+            - eos
+
+  - name: config-generator-decorator
+    schema:
+      $id: root
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      required:
+        - device_info
+        - vlan_id
+        - vlan_name
+        - interface
+      properties:
+        device_info:
+          type: string
+          description: JSON string from device-info service stdout
+        vlan_id:
+          type: string
+          description: VLAN ID to configure
+        vlan_name:
+          type: string
+          description: VLAN name
+        interface:
+          type: string
+          description: Interface name
+
+  - name: config-validator-decorator
+    schema:
+      $id: root
+      $schema: https://json-schema.org/draft/2020-12/schema
+      type: object
+      required:
+        - config_result
+      properties:
+        config_result:
+          type: string
+          description: JSON string from config-generator service stdout
+        require_description:
+          type: string
+          default: "true"
+          description: Require interface description (true/false)
+
+repositories:
+  - name: iag-demo-services
+    url: https://github.com/keepithuman/iag-demo-services.git
+    reference: main
+    description: Three chained services for IAG workflow demo
+
+services:
+  - name: device-info
+    type: python-script
+    description: Gathers device facts (hostname, OS, interfaces, uptime)
+    filename: main.py
+    working-directory: device-info
+    repository: iag-demo-services
+    decorator: device-info-decorator
+
+  - name: config-generator
+    type: python-script
+    description: Generates vendor-specific config from device info and VLAN params
+    filename: main.py
+    working-directory: config-generator
+    repository: iag-demo-services
+    decorator: config-generator-decorator
+
+  - name: config-validator
+    type: python-script
+    description: Validates generated config against best-practice checks
+    filename: main.py
+    working-directory: config-validator
+    repository: iag-demo-services
+    decorator: config-validator-decorator

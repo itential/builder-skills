@@ -1,0 +1,40 @@
+{
+  "_comment": "Virtual integration (adapter instance) — connects the platform to an external system via REST. POST /integrations. Body must be wrapped in 'properties' key. The model field must match an adapter model from the catalog (pattern: @itential/adapter_<Name>:<version>). properties.id must equal name. properties.type is the adapter version type string. Authentication shape is model-specific — replace the authentication block with the one from GET /integration-models.",
+  "properties": {
+    "name": "REPLACE_integration_name",
+    "model": "REPLACE_@itential/adapter_ModelName:version",
+    "type": "Adapter",
+    "virtual": true,
+    "isEncrypted": false,
+    "loggerProps": {
+      "log_max_files": 100,
+      "log_max_file_size": 1048576,
+      "log_level": "info",
+      "log_directory": "/var/log/itential/platform",
+      "log_filename": "platform.log",
+      "console_level": "warn"
+    },
+    "properties": {
+      "id": "REPLACE_integration_name",
+      "type": "REPLACE_AdapterModelVersionType",
+      "brokers": [],
+      "groups": [],
+      "properties": {
+        "authentication": {
+          "bearerAuth": "REPLACE_bearer_token"
+        },
+        "server": {
+          "protocol": "https",
+          "host": "REPLACE_host",
+          "base_path": "REPLACE_base_path"
+        },
+        "tls": {
+          "enabled": false,
+          "rejectUnauthorized": true
+        },
+        "variables": {},
+        "version": "REPLACE_version"
+      }
+    }
+  }
+}

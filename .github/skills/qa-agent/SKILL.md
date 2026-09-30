@@ -16,23 +16,27 @@ description: Use this skill when a build is complete and needs to be verified be
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Stage Expectations
 
-*(See AGENTS.md's Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
+*(See `assets/AGENTS.md`'s Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
 
 ### Test
 
@@ -79,7 +83,7 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
   openapi.json, tasks.json, apps.json, adapters.json, applications.json
 ```
 
-**If `solution-design.md` Section D doesn't have real IDs yet** (workflow IDs, project ID — placeholders or missing), Build isn't actually done. Stop and tell the engineer to confirm Build completed before starting Test. `use-case-memory.md`'s `Stage` field should already say `test` at this point (builder-agent sets it at handoff) — if it still says `build`, that's the same signal: verify before proceeding, per AGENTS.md's "Resuming a Use-Case" table.
+**If `solution-design.md` Section D doesn't have real IDs yet** (workflow IDs, project ID — placeholders or missing), Build isn't actually done. Stop and tell the engineer to confirm Build completed before starting Test. `use-case-memory.md`'s `Stage` field should already say `test` at this point (builder-agent sets it at handoff) — if it still says `build`, that's the same signal: verify before proceeding, per `assets/AGENTS.md`'s "Resuming a Use-Case" table.
 
 **The only API calls the QA agent makes are:**
 - **Static checks** — `POST /workflow_engine/workflows/validate` (6.5.2+ deep validation), `GET` the built workflow/template JSON to run local `jq` checks

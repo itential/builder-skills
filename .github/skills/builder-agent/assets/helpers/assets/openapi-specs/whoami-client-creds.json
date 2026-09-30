@@ -1,0 +1,53 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "IAP",
+    "version": "1.0.0",
+    "description": "A simple OpenAPI example"
+  },
+  "paths": {
+    "/whoami": {
+      "get": {
+        "summary": "Gets the authorization data for the logged in user",
+        "description": "Gets the authorization data for the logged in user",
+        "tags": ["authentication"],
+        "operationId": "WhoAmI",
+        "responses": {
+          "200": {
+            "description": "Authorization data for a user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "result",
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error response from API"
+          }
+        },
+        "security": [
+          {
+            "ServiceAccount": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ServiceAccount": {
+        "type": "oauth2",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://platform/oauth/token",
+            "scopes": {}
+          }
+        }
+      }
+    }
+  }
+}

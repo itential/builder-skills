@@ -12,18 +12,22 @@ Golden Configurations define the "desired state" for device configurations. They
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Gotchas
@@ -743,21 +747,20 @@ There is **no exception** — not even when a spec asks for fully automatic reme
    - **`netmikoSendConfig` / `netmikoSendConfigSet`** (AG) — netmiko-based config push
    - whatever vendor/SSH adapter the environment uses for config push
 
-   See `/builder-agent`'s config-push pattern and the Arista EOS "Push Configuration to Device - IAG" workflow in `helpers/assets/vendor-arista-eos.json`.
+   See `/builder-agent`'s config-push pattern and the Arista EOS "Push Configuration to Device - IAG" workflow in `assets/helpers/assets/vendor-arista-eos.json`.
 3. Re-run compliance (this skill) afterward to confirm the device is back in standard.
 
 ## Helper JSON Templates
 
 | File | API Call | Description |
 |------|----------|-------------|
-| `create-golden-config-tree.json` | `POST /configuration_manager/configs` | Create a golden config tree |
-| `reference-golden-config-tree.json` | `POST /configuration_manager/import/goldenconfigs` | Full multi-region tree reference (Global → EMEA/NA/APAC with node templates and variables) |
-| `update-node-config.json` | `PUT /configuration_manager/node/config` | Update node template with all syntax features |
-| `create-golden-config-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{parentPath}` | Create a child node |
-| `add-devices-to-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{nodePath}/devices` | Assign devices |
-| `run-compliance.json` | `POST /configuration_manager/compliance_reports` | Run compliance directly (async) |
-| `create-compliance-plan.json` | `POST /configuration_manager/compliance_plans` | Create a compliance plan with nodes, devices, variables |
-| `run-compliance-plan.json` | `POST /configuration_manager/compliance_plans/run` | Run a compliance plan |
+| `assets/helpers/create/create-golden-config-tree.json` | `POST /configuration_manager/configs` | Create a golden config tree |
+| `assets/helpers/update/update-node-config.json` | `PUT /configuration_manager/node/config` | Update node template with all syntax features |
+| `assets/helpers/create/create-golden-config-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{parentPath}` | Create a child node |
+| `assets/helpers/operations/add-devices-to-node.json` | `POST /configuration_manager/configs/{treeId}/{version}/{nodePath}/devices` | Assign devices |
+| `assets/helpers/operations/run-compliance.json` | `POST /configuration_manager/compliance_reports` | Run compliance directly (async) |
+| `assets/helpers/create/create-compliance-plan.json` | `POST /configuration_manager/compliance_plans` | Create a compliance plan with nodes, devices, variables |
+| `assets/helpers/operations/run-compliance-plan.json` | `POST /configuration_manager/compliance_plans/run` | Run a compliance plan |
 
 ## Developer Scenarios
 

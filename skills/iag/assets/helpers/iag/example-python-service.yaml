@@ -1,0 +1,55 @@
+decorators:
+  - name: device-info
+    schema:
+      $id: device-info
+      $schema: https://json-schema.org/draft/202012/schema
+      type: object
+      required:
+        - device_ip
+      properties:
+        device_ip:
+          type: string
+          description: "Target device IP address"
+          examples: ["10.0.0.1", "172.20.100.63"]
+        device_type:
+          type: string
+          description: "Netmiko device type"
+          enum:
+            - cisco_ios
+            - cisco_nxos
+            - cisco_xr
+          default: "cisco_ios"
+        format:
+          type: string
+          description: "Output format"
+          enum: ["json", "table"]
+          default: "json"
+      additionalProperties: false
+
+repositories:
+  - name: my-automation-repo
+    url: https://github.com/org/automation-scripts.git
+    reference: main
+
+services:
+  - name: device-info
+    type: python-script
+    description: Gathers device facts (hostname, OS, interfaces)
+    filename: main.py
+    working-directory: device-info
+    repository: my-automation-repo
+    decorator: device-info
+    tags:
+      - network
+      - discovery
+    secrets:
+      - name: device-username
+        type: env
+        target: DEVICE_USERNAME
+      - name: device-password
+        type: env
+        target: DEVICE_PASSWORD
+    runtime:
+      req-file: requirements.txt
+      env:
+        NETMIKO_TIMEOUT: "30"

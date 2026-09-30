@@ -1,0 +1,134 @@
+{
+  "_id": "a48c6243-70a8-4555-8871-3f7f5d0b0b26",
+  "name": "Sample Agent Test",
+  "description": "Skill validation sample agent — created by Claude to test the flowagent skill end to end",
+  "agentProjectBundleVersion": 1,
+  "created": "2026-07-02T12:06:07.076Z",
+  "createdBy": {
+    "provenance": "CloudAAA",
+    "username": "ankit.bhansali@itential.com"
+  },
+  "agents": [
+    {
+      "_id": "019435b1-8bb5-4bdd-99fd-077f5ad7015d",
+      "name": "device-lister-agent",
+      "description": "Sample agent that lists a small number of devices to validate the flowagent skill end to end",
+      "instructions": "You are a simple diagnostic agent. Use the getDevicesFiltered tool to list exactly {{ count }} devices (pass options.limit={{ count }}). Report back the device names and addresses you found in a short summary.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "count"
+        ],
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        }
+      },
+      "created": "2026-07-02T12:06:32.501Z",
+      "createdBy": {
+        "username": "ankit.bhansali@itential.com",
+        "provenance": "CloudAAA"
+      },
+      "provider": {
+        "profileName": "anthropic",
+        "modelName": "claude-sonnet-4-6"
+      },
+      "tools": [
+        {
+          "referenceId": "application:ConfigurationManager:getDevicesFiltered",
+          "lastKnownName": "getDevicesFiltered"
+        }
+      ]
+    },
+    {
+      "_id": "d14ee456-708a-4a33-8e44-23a86cc5226f",
+      "name": "show-version-hitl-agent",
+      "description": "Runs show version on a device, opens a ServiceNow incident, and presents a WorkCenter QuickForm summary for human acknowledgement",
+      "instructions": "You are a network diagnostics and ticketing agent. Follow these steps in order for the target device {{ deviceName }}:\n\n1. Run the sendCommand tool with clusterId=\"selab-iag5-standalone\", commands=[\"show version\"], and inventory=[{\"inventory\": \"se-lab\n\", \"nodeNames\": [\"{{ deviceName }}\"]}] to get the show version output for {{ deviceName }}.\n\n2. Summarize the show version output in 2-3 sentences (platform/OS, software version, uptime if present).\n3. Create a ServiceNow incident with createIncident. In body, set short_description to \"Show version diagnostic - {{ deviceName }}\" and description to the full summary from step 2.\n4. Present a WorkCenter QuickForm task summarizing what was done: call the QuickForm tool with quickFormData containing exactly one row with fields device, summary, and incidentNumber (the incident number returned in step 3). Set columnDisplay to \"all\", actionColumnHeader to \"Acknowledge\", actionColumnKey to \"acknowledged\", actionColumnType to \"dropdown\", actionColumnRequired to true, and actionColumnLabels to [\"Acknowledged\", \"Needs Follow-up\"].\n5. Report info with ViewHTML task with inline styling and !important\n6.Report back a short summary including the device name, the incident number, and confirmation that the QuickForm task was created.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceName"
+        ],
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          }
+        }
+      },
+      "created": "2026-07-02T12:19:40.354Z",
+      "createdBy": {
+        "username": "ankit.bhansali@itential.com",
+        "provenance": "CloudAAA"
+      },
+      "provider": {
+        "profileName": "anthropic",
+        "modelName": "claude-sonnet-4-6"
+      },
+      "tools": [
+        {
+          "referenceId": "application:GatewayManager:sendCommand",
+          "lastKnownName": "sendCommand"
+        },
+        {
+          "referenceId": "adapter:Servicenow:ServiceNow:createIncident",
+          "lastKnownName": "createIncident",
+          "decoratorId": "6a465ed52d79d885c63eb250"
+        },
+        {
+          "referenceId": "view:WorkCenter:QuickForm",
+          "lastKnownName": "QuickForm"
+        },
+        {
+          "referenceId": "view:WorkFlowEngine:ViewHTML",
+          "lastKnownName": "ViewHTML"
+        }
+      ]
+    },
+    {
+      "_id": "c131f8ed-6d41-4cd6-a6b7-619d2afb8856",
+      "name": "show-version-hitl-agent-decorated",
+      "description": "Same as show-version-hitl-agent, but with the createIncident decorator attached from creation time (not via a later PATCH) to test the create-time decorator path",
+      "instructions": "You are a network diagnostics and ticketing agent. Follow these steps in order for the target device {{ deviceName }}:\n\n1. Run the sendCommand tool with clusterId=\"selab-iag5-standalone\", commands=[\"show version\"], and inventory=[{\"inventory\": \"clab-net\", \"nodeNames\": [\"{{ deviceName }}\"]}] to get the show version output for {{ deviceName }}.\n2. Summarize the show version output in 2-3 sentences (platform/OS, software version, uptime if present).\n3. Create a ServiceNow incident with createIncident. In body, set summary and short_description to \"Show version diagnostic - {{ deviceName }}\" and description to the full summary from step 2.\n4. Present a WorkCenter QuickForm task summarizing what was done: call the QuickForm tool with quickFormData containing exactly one row with fields device, summary, and incidentNumber (the incident number returned in step 3). Set columnDisplay to \"all\", actionColumnHeader to \"Acknowledge\", actionColumnKey to \"acknowledged\", actionColumnType to \"dropdown\", actionColumnRequired to true, and actionColumnLabels to [\"Acknowledged\", \"Needs Follow-up\"].\n5. Report back a short summary including the device name, the incident number, and confirmation that the QuickForm task was created.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "deviceName"
+        ],
+        "properties": {
+          "deviceName": {
+            "type": "string"
+          }
+        }
+      },
+      "created": "2026-07-02T12:52:53.086Z",
+      "createdBy": {
+        "username": "ankit.bhansali@itential.com",
+        "provenance": "CloudAAA"
+      },
+      "provider": {
+        "profileName": "anthropic",
+        "modelName": "claude-sonnet-4-6"
+      },
+      "tools": [
+        {
+          "referenceId": "application:GatewayManager:sendCommand",
+          "lastKnownName": "sendCommand"
+        },
+        {
+          "referenceId": "adapter:Servicenow:ServiceNow:createIncident",
+          "lastKnownName": "createIncident",
+          "decoratorId": "6a465ed52d79d885c63eb250"
+        },
+        {
+          "referenceId": "view:WorkCenter:QuickForm",
+          "lastKnownName": "QuickForm"
+        }
+      ]
+    }
+  ]
+}

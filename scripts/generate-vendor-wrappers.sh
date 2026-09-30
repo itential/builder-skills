@@ -9,6 +9,11 @@ if [[ ! -d "${SKILLS_DIR}" ]]; then
   exit 1
 fi
 
+# 1. Bundle shared-library files (helpers/, spec-files/, environments/, AGENTS.md)
+#    into each skill's assets/ so every skill folder is self-contained.
+python3 "${ROOT_DIR}/scripts/bundle_skill_assets.py"
+
+# 2. Copy each complete skill folder into every harness's folder.
 sync_mirror() {
   local mirror_dir="$1"
   rm -rf "${mirror_dir}"
@@ -26,4 +31,4 @@ sync_mirror "${ROOT_DIR}/.claude/skills"
 sync_mirror "${ROOT_DIR}/.agents/skills"
 sync_mirror "${ROOT_DIR}/.github/skills"
 
-echo "Synced .claude/skills, .agents/skills, .github/skills from ${SKILLS_DIR}"
+echo "Bundled skills/*/assets and synced .claude/skills, .agents/skills, .github/skills from ${SKILLS_DIR}"

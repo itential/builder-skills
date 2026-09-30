@@ -12,18 +12,22 @@ Lifecycle Manager (LCM) provides a declarative framework for managing the lifecy
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Concepts
@@ -48,7 +52,7 @@ the combined precedence.
 - `DELETE /resources/{id}` does NOT delete instances by default — pass `?delete-associated-instances=true` to cascade
 - Bulk actions and instance groups require `LCM_GROUPS_ENABLED=true` environment variable
 - **Action workflows MUST output a job variable named `instance`** containing the instance data. Without it, the action fails validation with "workflow does not output a value for 'instance'". Use a `merge` task to build the instance object and wire outgoing to `$var.job.instance`.
-- **Create action — instance merge must cover every `schema.required` field.** If the merge task's `data_to_merge` omits even one field listed in the model's `schema.required` array, the platform writes all provisioned cloud/network resources first and THEN fails the instance write — leaving those resources orphaned from LCM with no tracked state. Before building the merge task, read the model's required fields: `jq '.schema.required' helpers/assets/lcm/<model>.json`. Every required field must have a corresponding key in `data_to_merge`.
+- **Create action — instance merge must cover every `schema.required` field.** If the merge task's `data_to_merge` omits even one field listed in the model's `schema.required` array, the platform writes all provisioned cloud/network resources first and THEN fails the instance write — leaving those resources orphaned from LCM with no tracked state. Before building the merge task, read the model's required fields: `jq '.schema.required' assets/helpers/assets/lcm/<model>.json`. Every required field must have a corresponding key in `data_to_merge`.
 - Action job type is `'resource:action'`, not `'automation'`
 - Transformations are Jinja2 templates referenced by template ID (`preWorkflowJst` / `postWorkflowJst`)
 
@@ -335,22 +339,22 @@ Errors at any phase stop execution. Each phase has its own status tracked in the
 ```bash
 # List available LCM action workflows
 jq '[.data.project.components[] | select(.type=="workflow")] | .[].document.name' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
+  assets/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
 
 # Read a specific action workflow (e.g., Create)
 jq '[.data.project.components[] | select(.type=="workflow") | select(.document.name | test("Create"; "i"))] | first | .document | {name:.name, tasks:.tasks, transitions:.transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
+  assets/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
 ```
 
-The resource model exports (in `${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/`) show how actions are wired to workflows — import via `POST /lifecycle-manager/resources/import`:
+The resource model exports (in `assets/helpers/assets/lcm/`) show how actions are wired to workflows — import via `POST /lifecycle-manager/resources/import`:
 
 | File | Actions |
 |------|---------|
-| `lcm-vxlan-fabric-management.json` | Create Network, Re-Provision, Delete, Decommission (4/5 wired) |
-| `lcm-fan-device-lifecycle-management.json` | Device Onboarding, SW Compliance, Upgrade, Decommission, and more (9/10 wired) |
-| `lcm-ip-blocking-service.json` | Create, Update, Delete, Retry (fully wired) |
-| `lcm-interface-service-provisioning.json` | Create, Modify, Delete (fully wired) |
-| `lcm-port-turn-up.json` | Create, Delete, Service Verification, Update Service Policy (4/6 wired) |
+| `assets/helpers/assets/lcm/lcm-vxlan-fabric-management.json` | Create Network, Re-Provision, Delete, Decommission (4/5 wired) |
+| `assets/helpers/assets/lcm/lcm-fan-device-lifecycle-management.json` | Device Onboarding, SW Compliance, Upgrade, Decommission, and more (9/10 wired) |
+| `assets/helpers/assets/lcm/lcm-ip-blocking-service.json` | Create, Update, Delete, Retry (fully wired) |
+| `assets/helpers/assets/lcm/lcm-interface-service-provisioning.json` | Create, Modify, Delete (fully wired) |
+| `assets/helpers/assets/lcm/lcm-port-turn-up.json` | Create, Delete, Service Verification, Update Service Policy (4/6 wired) |
 
 ## Developer Scenarios
 
@@ -358,8 +362,8 @@ The resource model exports (in `${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/`) show
 ```
 1. POST /lifecycle-manager/resources                    → create model with schema + actions
 2. Read model's schema.required BEFORE building Create workflow
-   jq '.schema.required' helpers/assets/lcm/<model>.json  -- every field here must be in the instance merge task
-3. Create workflows for each action in /itential-studio
+   jq '.schema.required' assets/helpers/assets/lcm/<model>.json  -- every field here must be in the instance merge task
+3. Create workflows for each action with /builder-agent
    Create action: instance-write merge task must cover every schema.required field (see Gotchas above)
 4. PUT /lifecycle-manager/resources/{id}                → update actions with workflow IDs
 5. POST /lifecycle-manager/resources/{id}/actions/validate → verify actions are valid

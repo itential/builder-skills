@@ -14,18 +14,22 @@ A form is a single document with four cooperating schemas — `struct` (UI rende
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Concepts
@@ -58,9 +62,9 @@ Choose the helper that matches your form's dropdown needs:
 
 | Use case | Annotated scaffold (fill in the blanks) | Real export (read to see the actual shape) |
 |---|---|---|
-| Static-enum dropdowns only (hardcoded option lists) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` | `${CLAUDE_PLUGIN_ROOT}/helpers/assets/json-form-example-static-enum.json` — real Cisco IOS "Port Turn Up" form, 8 fields incl. static dropdown, number `updown` widgets, `ipv4` format validation |
-| REST-bound dropdowns (live data from IAP endpoints) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` | `${CLAUDE_PLUGIN_ROOT}/helpers/assets/json-form-example-rest-bound.json` — real Cisco IOS "Compliance" form, one REST-bound dropdown pulling tree names live from `GET /configuration_manager/configs` |
-| Cascading dropdowns (field dependency) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` (Inventory Manager Site/Device cascade worked example) | *(no real cascading export on hand yet — the scaffold is hand-built but follows the same field shapes as the two real exports above)* |
+| Static-enum dropdowns only (hardcoded option lists) | `assets/helpers/create/create-json-form.json` | `assets/helpers/assets/json-form-example-static-enum.json` — real Cisco IOS "Port Turn Up" form, 8 fields incl. static dropdown, number `updown` widgets, `ipv4` format validation |
+| REST-bound dropdowns (live data from IAP endpoints) | `assets/helpers/create/create-json-form-rest-bound.json` | `assets/helpers/assets/json-form-example-rest-bound.json` — real Cisco IOS "Compliance" form, one REST-bound dropdown pulling tree names live from `GET /configuration_manager/configs` |
+| Cascading dropdowns (field dependency) | `assets/helpers/create/create-json-form-rest-bound.json` (Inventory Manager Site/Device cascade worked example) | *(no real cascading export on hand yet — the scaffold is hand-built but follows the same field shapes as the two real exports above)* |
 
 The scaffolds are annotated with `_comment_*` fields to fill in; the real exports are genuine `POST /json-forms/forms` payloads pulled from a live platform (IDs/timestamps/`createdBy` stripped since the server assigns those on create) — read one when you want to see exactly what a working form looks like end-to-end, not just the shape.
 
@@ -143,7 +147,7 @@ A JSON Form is consumed by an Operations Manager **manual trigger** that hands t
 
 Required trigger fields: `name`, `type` (`"manual"`), `enabled`, `actionType` (`"automations"`), `actionId`, `formId`, `legacyWrapper`.
 
-Helper for the wired-up trigger: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-manual.json`.
+Helper for the wired-up trigger: `assets/helpers/create/create-ops-manager-trigger-manual.json`.
 
 ## Common Gotchas
 
@@ -158,9 +162,9 @@ Helper for the wired-up trigger: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-op
 ## See Also
 
 - `builder-agent` for workflows that consume form output, manual-trigger wiring, and project-level component management.
-- Helper files in `${CLAUDE_PLUGIN_ROOT}/helpers/`:
-  - `create/create-json-form.json` — static-enum scaffold
-  - `create/create-json-form-rest-bound.json` — REST-bound + cascading scaffold (Inventory Manager Site/Device cascade worked example)
-  - `create/create-ops-manager-trigger-manual.json` — manual trigger that consumes a form
-  - `assets/json-form-example-static-enum.json` — real export, static-enum (Cisco IOS Port Turn Up)
-  - `assets/json-form-example-rest-bound.json` — real export, REST-bound (Cisco IOS Compliance)
+- Helper files in `assets/helpers/`:
+  - `assets/helpers/create/create-json-form.json` — static-enum scaffold
+  - `assets/helpers/create/create-json-form-rest-bound.json` — REST-bound + cascading scaffold (Inventory Manager Site/Device cascade worked example)
+  - `assets/helpers/create/create-ops-manager-trigger-manual.json` — manual trigger that consumes a form
+  - `assets/helpers/assets/json-form-example-static-enum.json` — real export, static-enum (Cisco IOS Port Turn Up)
+  - `assets/helpers/assets/json-form-example-rest-bound.json` — real export, REST-bound (Cisco IOS Compliance)

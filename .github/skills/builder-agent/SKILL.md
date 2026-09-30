@@ -7,7 +7,7 @@ description: Use this skill when someone has an approved solution design and is 
 
 **Stage:** Build
 **Owns:** Implementing the approved design.
-**Receives from:** `/solution-architecture` (approved `solution-design.md` + complete workspace)
+**Receives from:** `/solution-arch-agent` (approved `solution-design.md` + complete workspace)
 **Produces:** Deployed assets (workflows, templates, projects)
 **Hands off to:** `/qa-agent` (acceptance testing + as-built record)
 
@@ -17,18 +17,22 @@ description: Use this skill when someone has an approved solution design and is 
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Stage Expectations
@@ -113,8 +117,6 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 - The `/login` endpoint does NOT support OAuth client credentials on SaaS instances — always use `/oauth/token`.
 - On success, write `.auth.json` with the token so all subsequent API calls just work.
 
-**Helper script:** `${CLAUDE_PLUGIN_ROOT}/scripts/oauth_bootstrap.py` — reads `.env`, POSTs to `/oauth/token`, writes `.auth.json`. The builder should run this automatically when `.auth.json` is missing and `.env` has `AUTH_METHOD=oauth`.
-
 ---
 
 ## Build Lifecycle
@@ -142,7 +144,7 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 
 At the start of every session, check for `use-cases/{use-case}/use-case-memory.md`:
 - **Exists** → read it before doing anything else. It tells you the platform, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented.
-- **Missing** → create it now from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md` template. Fill in Platform URL, `Stage: build`, `Status: active` immediately.
+- **Missing** → create it now from `assets/helpers/use-case-memory.md` template. Fill in Platform URL, `Stage: build`, `Status: active` immediately.
 
 **Step 13 — update memory file after every session:**
 
@@ -158,7 +160,7 @@ The memory file is what makes it possible to pick up a use-case after weeks with
 
 **Step 14 — how to update this skill:**
 - New platform behavior (error shape, field constraint, task gotcha) → add detail to the relevant body section (`### query`, `### childJob`, `### Projects`, etc.), then add a one-liner to the Gotchas pre-flight list under the right category.
-- New pattern or workflow recipe → add to `## Workflow Patterns` and, if the pattern is reusable, export the project from the platform and save it to `${CLAUDE_PLUGIN_ROOT}/helpers/assets/`. Add a row to the Helper Templates table in this file pointing to it.
+- New pattern or workflow recipe → add to `## Workflow Patterns` and, if the pattern is reusable, export the project from the platform and, in a clone of the builder-skills repo, save it to the shared library at `assets/helpers/assets/` (CI bundles it into this skill as `assets/helpers/assets/`). Add a row to the Helper Templates table in this file pointing to it.
 - Do NOT create a new top-level section for a single finding — put it where a builder would look when working on that topic.
 
 **Step 15 — hand off to `/qa-agent`:** Once every component has been individually tested and `solution-design.md` Section D has real IDs (project ID, workflow IDs) instead of placeholders, the build is complete. Update `use-case-memory.md` to `Stage: test` before ending the session. Tell the engineer the build is done and route to `/qa-agent` for acceptance testing and the as-built record — don't write `as-built.md` here.
@@ -241,32 +243,32 @@ Follow these steps in order. Do not skip any step.
 
 ---
 
-> **Before writing task JSON, extract a real example from `helpers/assets/` — do not invent task structure from memory.** (`helpers/create/` is for API wrappers only — project/workflow creation endpoints, not task bodies.)
+> **Before writing task JSON, extract a real example from `assets/helpers/assets/` — do not invent task structure from memory.** (`assets/helpers/create/` is for API wrappers only — project/workflow creation endpoints, not task bodies.)
 >
 > ```bash
 > # 1. Find which asset project matches your use case
-> ls ${CLAUDE_PLUGIN_ROOT}/helpers/assets/
+> ls assets/helpers/assets/
 >
 > # 2. Extract the workflow most similar to what you're building
 > jq '[.components[] | select(.type=="workflow")] | .[].document.name' \
->   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+>   assets/helpers/assets/vendor-servicenow.json
 >
 > # 3. Read its full task map — this is your reference
 > jq '[.components[] | select(.type=="workflow") | select(.document.name | test("WORKFLOW_NAME"; "i"))] | first | .document | {tasks, transitions}' \
->   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+>   assets/helpers/assets/vendor-servicenow.json
 >
 > # 4. Extract the specific task type you need
 > jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
->   ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+>   assets/helpers/assets/vendor-servicenow.json
 > ```
 >
-> Replace `vendor-servicenow.json` with whichever asset file best matches your use case:
-> - Adapter tasks (ServiceNow, Infoblox) → `vendor-servicenow.json`, `vendor-infoblox-nios-ddi.json`
-> - Network device tasks (CLI, MOP) → `vendor-cisco-ios.json`, `vendor-arista-eos.json`, `vendor-juniper-junos.json`
-> - IPAM/inventory → `vendor-netbox.json`
-> - Data transformations → `itential-platform-data-manipulation.json`
-> - Config management (RunCommandTemplate, itential_cli) → `itential-platform-configuration-management.json`
-> - LCM action workflows → `helpers/assets/lcm/lcm-vxlan-fabric-services-project.json`
+> Replace `assets/helpers/assets/vendor-servicenow.json` with whichever asset file best matches your use case:
+> - Adapter tasks (ServiceNow, Infoblox) → `assets/helpers/assets/vendor-servicenow.json`, `assets/helpers/assets/vendor-infoblox-nios-ddi.json`
+> - Network device tasks (CLI, MOP) → `assets/helpers/assets/vendor-cisco-ios.json`, `assets/helpers/assets/vendor-arista-eos.json`, `assets/helpers/assets/vendor-juniper-junos.json`
+> - IPAM/inventory → `assets/helpers/assets/vendor-netbox.json`
+> - Data transformations → `assets/helpers/assets/itential-platform-data-manipulation.json`
+> - Config management (RunCommandTemplate, itential_cli) → `assets/helpers/assets/itential-platform-configuration-management.json`
+> - LCM action workflows → `assets/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json`
 
 ---
 
@@ -296,11 +298,11 @@ See the `### runCode` section under Utility Tasks below for the collapse story, 
 ```bash
 # Parent → childJob → evaluation pattern
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Upgrade|Runner"))] | first | .document | {name,tasks,transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 
 # childJob loop with data_array
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Chunk|Loop"))] | first | .document | {name,tasks,transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/itential-platform-configuration-management.json
+  assets/helpers/assets/itential-platform-configuration-management.json
 ```
 
 **Step 1: Find tasks.** Search `tasks.json` for the tasks you need:
@@ -349,7 +351,7 @@ Schema response:
 }
 ```
 
-Becomes this workflow task (extract a real adapter task from an asset project first — e.g. `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.location == "Adapter")] | first | .value' ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json`):
+Becomes this workflow task (extract a real adapter task from an asset project first — e.g. `jq '[.components[].document.tasks // {} | to_entries[] | select(.value.location == "Adapter")] | first | .value' assets/helpers/assets/vendor-servicenow.json`):
 ```json
 {
   "a1b2": {
@@ -459,7 +461,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] Canvas layout follows the vertical spacing convention — non-forked sequences on a constant-x spine, fork branches offset to `spine±264` and stay in their own column until convergence
 - [ ] No transition lines cross task nodes (the spine column is empty between a fork and its convergence point)
 - [ ] Sequential y-delta ~108px (tight grid)
-- [ ] **LCM Create actions only:** the instance-write merge task's `data_to_merge` covers every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's `schema.required` before building the merge task: `jq '.schema.required' helpers/assets/lcm/<model>.json`
+- [ ] **LCM Create actions only:** the instance-write merge task's `data_to_merge` covers every field in the resource model's `schema.required` array — missing even one field causes an instance write failure after provisioning (resources are orphaned from LCM). Read the model's `schema.required` before building the merge task: `jq '.schema.required' assets/helpers/assets/lcm/<model>.json`
 - [ ] **ViewData manual tasks:** `type` MUST be `"manual"` — `view` is a top-level field; `incoming.variables` is present (even if `{}`); `displayName: "Tools"`, no `actor` field (manual tasks never take one). A wrong `type` on a manual-view task can crash `POST /workflow_engine/workflows/validate` (HTTP 500) or produce a contradictory `actor`-required error on a task that never needs one — fix `type` first, don't chase either symptom.
 - [ ] **restCall downstream query:** path targets body field directly (e.g., `"access_token"`) — NOT `"response.access_token"` (restCall has no wrapper, unlike adapter tasks)
 - [ ] **childJob loop:** if child workflow has `inputSchema.required` fields beyond what each `data_array` element contains, use the forEach enrichment pattern (forEach → merge → arrayPush) to add shared fields into each element before the childJob loop; set `variables: {}` on the childJob
@@ -470,7 +472,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 **Complete working example:** Read the ServiceNow "Create Change Request" workflow before building — it demonstrates merge → adapter create → query → adapter update with error transitions:
 ```bash
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Create Change"))] | first | .document' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+  assets/helpers/assets/vendor-servicenow.json
 ```
 
 **How the example works — what each task does and why:**
@@ -560,15 +562,15 @@ Always check `task-schemas.json` for the exact type of each incoming field befor
 ```bash
 # Adapter task (e.g., ServiceNow)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.location == "Adapter")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+  assets/helpers/assets/vendor-servicenow.json
 
 # Application task (WorkFlowEngine)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.app == "WorkFlowEngine" and .value.name != "childJob")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/itential-platform-configuration-management.json
+  assets/helpers/assets/itential-platform-configuration-management.json
 
 # childJob
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "childJob")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 ```
 
 **Step 2:** Fill in the fields using the mapping rules from Guide 1 Step 4.
@@ -818,13 +820,13 @@ The parent can then check `taskStatus` from `job_details` to decide what to do.
 
 ### Preferred: Import a project (atomic — all assets in one call)
 
-**Before writing the first line of a project/workflow import payload, open `helpers/create/import-project.json` and start from that scaffold.** Do not build the `{project: {components: [...]}}` shape from scratch in memory, even if you're confident in it — the wrapper shape (project-level vs. component-level metadata, which fields need `_id` vs. which don't, the exact `created_by` shape difference between project and workflow) is easy to get subtly wrong in ways that produce contradictory-looking "additional properties" / "required property" errors that seem like they're about unrelated fields (e.g., `groups`).
+**Before writing the first line of a project/workflow import payload, open `assets/helpers/create/import-project.json` and start from that scaffold.** Do not build the `{project: {components: [...]}}` shape from scratch in memory, even if you're confident in it — the wrapper shape (project-level vs. component-level metadata, which fields need `_id` vs. which don't, the exact `created_by` shape difference between project and workflow) is easy to get subtly wrong in ways that produce contradictory-looking "additional properties" / "required property" errors that seem like they're about unrelated fields (e.g., `groups`).
 
 **If the platform's import mechanism you're using is a file-upload UI dialog (not a REST call you make directly), the payload shape may differ from the `POST /automation-studio/projects/import` API documented below.** Always call the documented API endpoint yourself via `curl`/HTTP client rather than asking a human to paste/upload a file through a UI — you have the credentials and the ability to make the call directly; routing through a human as a manual courier for a schema you haven't verified multiplies the round-trip cost of every guess. If a UI-only import path is genuinely the only option available, treat its error messages with the same Repeat-Failure Circuit Breaker discipline as any other validation error — don't iterate blindly.
 
 **Always use import instead of create + add components.** Import creates the project with all workflows, templates, and MOP templates inside it in a single atomic call. No intermediate state, no broken childJob refs, no project-locking issues.
 
-**⚠️ Data-loss warning: importing against an EXISTING project `_id` replaces that project's entire components array — it does not merge or add to it.** If you're reusing a helper asset (e.g., cloning `helpers/assets/itential-platform-email.json`) to add a NEW capability to a project that already has other components in it, and you set the payload's `_id` to that existing project's ID, every component not listed in your payload will be silently deleted — including workflows built and verified in a prior session. **Before every import against an existing project `_id`: run `GET /automation-studio/projects/{id}` first, and merge its current `components` array into your import payload** alongside whatever you're adding — do not assume the call is additive just because you're only trying to add one new thing.
+**⚠️ Data-loss warning: importing against an EXISTING project `_id` replaces that project's entire components array — it does not merge or add to it.** If you're reusing a helper asset (e.g., cloning `assets/helpers/assets/itential-platform-email.json`) to add a NEW capability to a project that already has other components in it, and you set the payload's `_id` to that existing project's ID, every component not listed in your payload will be silently deleted — including workflows built and verified in a prior session. **Before every import against an existing project `_id`: run `GET /automation-studio/projects/{id}` first, and merge its current `components` array into your import payload** alongside whatever you're adding — do not assume the call is additive just because you're only trying to add one new thing.
 
 ```
 POST /automation-studio/projects/import
@@ -943,7 +945,7 @@ Do not auto-discover or assume groups. Wait for the answer, resolve each name to
 PATCH /automation-studio/projects/{projectId}
 ```
 
-Use the helper: `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-project-members.json`
+Use the helper: `assets/helpers/update/update-project-members.json`
 
 Include ALL members in every PATCH — this is a full replacement. Omitting an existing member removes them.
 
@@ -1044,9 +1046,9 @@ data_uri = f"data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}"
 
 JSON Forms have their own dedicated skill — `itential-json-forms`. See that skill for the form structure (`struct` / `schema` / `uiSchema` / `bindingSchema`), the static-enum vs. REST-bound vs. cascading dropdown (aka field dependency) patterns, the full API reference (including the bulk-only DELETE), and the manual-trigger wiring (`legacyWrapper: false`).
 
-Helper templates for forms still live under `${CLAUDE_PLUGIN_ROOT}/helpers/`:
-- `create-json-form.json` — static-enum dropdowns
-- `create-json-form-rest-bound.json` — REST-bound or cascading dropdowns
+Helper templates for forms still live under `assets/helpers/`:
+- `assets/helpers/create/create-json-form.json` — static-enum dropdowns
+- `assets/helpers/create/create-json-form-rest-bound.json` — REST-bound or cascading dropdowns
 
 ---
 
@@ -1064,7 +1066,7 @@ Helper templates for forms still live under `${CLAUDE_PLUGIN_ROOT}/helpers/`:
 
 This is a two-step process: create the automation, then create a manual trigger that binds to it.
 
-Use the helper template: `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-automation.json`
+Use the helper template: `assets/helpers/create/create-ops-manager-automation.json`
 
 **Critical: `legacyWrapper` must be `false`.** When creating a manual trigger with a JSON form, set `legacyWrapper: false`. The default is `true`, which wraps form field values under `formData`, breaking the mapping to workflow job variables. With `legacyWrapper: false`, form field values map directly to workflow input variables by name.
 
@@ -1095,27 +1097,27 @@ Before fetching schemas from the API, check if an asset project already has the 
 
 ```bash
 # Does any asset project use this task? Find it by task name:
-grep -rl '"name": "TASK_NAME"' ${CLAUDE_PLUGIN_ROOT}/helpers/assets/
+grep -rl '"name": "TASK_NAME"' assets/helpers/assets/
 
 # Extract the wired task from the matching project:
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/MATCHING_FILE.json
+  assets/helpers/assets/MATCHING_FILE.json
 
 # See which tasks a specific workflow uses:
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("WORKFLOW"; "i"))] | first | .document.tasks | to_entries[] | {id:.key, name:.value.name, app:.value.app}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/MATCHING_FILE.json
+  assets/helpers/assets/MATCHING_FILE.json
 ```
 
 Asset project → best match by task type:
 | Task | Best asset to check |
 |------|-------------------|
-| ServiceNow adapter tasks | `vendor-servicenow.json` |
-| Infoblox / DNS / IPAM tasks | `vendor-infoblox-nios-ddi.json` |
-| NetBox tasks | `vendor-netbox.json` |
-| itential_cli, RunCommandTemplate, MOP tasks | `itential-platform-configuration-management.json`, `vendor-cisco-ios.json` |
-| transformation (JST) | `vendor-netbox.json`, `itential-platform-data-manipulation.json` |
+| ServiceNow adapter tasks | `assets/helpers/assets/vendor-servicenow.json` |
+| Infoblox / DNS / IPAM tasks | `assets/helpers/assets/vendor-infoblox-nios-ddi.json` |
+| NetBox tasks | `assets/helpers/assets/vendor-netbox.json` |
+| itential_cli, RunCommandTemplate, MOP tasks | `assets/helpers/assets/itential-platform-configuration-management.json`, `assets/helpers/assets/vendor-cisco-ios.json` |
+| transformation (JST) | `assets/helpers/assets/vendor-netbox.json`, `assets/helpers/assets/itential-platform-data-manipulation.json` |
 | childJob, evaluation, query, newVariable | any vendor project |
-| LCM action workflow tasks | `helpers/assets/lcm/lcm-vxlan-fabric-services-project.json` |
+| LCM action workflow tasks | `assets/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json` |
 
 ### Get Full Task Schemas (only if not found in assets)
 
@@ -1173,7 +1175,7 @@ Workflows are laid out **top-to-bottom (vertical)** by default — this is the I
 - **Tight y-spacing** — the canvas grid is dense; ~108px between sequential rows reads well. Don't pad to +250 or +360.
 - **Preserve Studio-arranged positions** — if an engineer has arranged a workflow in Automation Studio, treat its `nodeLocation` values as authoritative. Always read from the live export before reimporting. Never recalculate positions from scratch on a workflow that has already been arranged.
 
-Example — fork with a shared error handler (same pattern as ServiceNow "Create Change Request" in `helpers/assets/vendor-servicenow.json`):
+Example — fork with a shared error handler (same pattern as ServiceNow "Create Change Request" in `assets/helpers/assets/vendor-servicenow.json`):
 ```
 workflow_start                        (x=600, y=200)
 e1a1 merge                            (x=600, y=312)
@@ -1517,7 +1519,7 @@ These are built-in tasks that require no adapter. They handle data manipulation 
 
 ### runCode (GatewayManager) — real Python instead of chaining WorkFlowEngine utility tasks
 
-**Before wiring a `runCode` task, read this section and `helpers/assets/runcode-taskquery-reference.json` in full.** Do not construct the task shape from a live job's error trace or from memory — `runCode` is a `GatewayManager` **automatic** task (not a `WorkFlowEngine` operation task, an easy but costly mix-up), and its exact field names (`clusterId`, `language`, `code`, `data`, `safety.timeout`, `packages`) are documented in the table below. Getting this wrong produces confusing "additional properties"/"required property" validation errors that look like a project-import problem when the real cause is simply the wrong `app`/`type` on this one task.
+**Before wiring a `runCode` task, read this section and `assets/helpers/assets/runcode-taskquery-reference.json` in full.** Do not construct the task shape from a live job's error trace or from memory — `runCode` is a `GatewayManager` **automatic** task (not a `WorkFlowEngine` operation task, an easy but costly mix-up), and its exact field names (`clusterId`, `language`, `code`, `data`, `safety.timeout`, `packages`) are documented in the table below. Getting this wrong produces confusing "additional properties"/"required property" validation errors that look like a project-import problem when the real cause is simply the wrong `app`/`type` on this one task.
 
 `runCode` ships arbitrary Python to a Gateway5 cluster for execution — no pre-configured IAG service needed, unlike `runService`. It is the single biggest lever for collapsing a `forEach` + `query`×N + `evaluation` + `merge`×N + `push`/`objectToString`/`join` chain (the kind of per-item transform loop that's the source of most WorkFlowEngine utility-task gotchas in this file) into 1-2 tasks.
 
@@ -1529,22 +1531,22 @@ These are built-in tasks that require no adapter. They handle data manipulation 
 
 **When to reach for it:** any per-item data transform/lookup/branching loop over a list — the exact shape that otherwise needs `forEach` (with its `job_id`-omission and empty-last-transition rules), `query` per field, `evaluation` for branching, `merge` for reassembly, and (for arrays of objects) the `objectToString`/`push`/`join` dance. One `runCode` task does the whole loop in real Python in a single execution, then one `query` pulls the result back into a job variable.
 
-**Real-world example:** a NetBox-devices-to-inventory-nodes mapping (per-device manufacturer lookup, per-vendor secret-path branching, record reshaping) that originally took `forEach` + 5 `query` + 1 `evaluation` + 4 `newVariable` + 2 `merge` + `push`/`objectToString`/`join`/`makeData` (17 tasks) collapsed to 2 tasks (`runCode` + `query`), then to 1 task once the trailing `query` was replaced by an Enable Query decorator too (see below) — with identical, verified output at every stage. Full before/after: `helpers/assets/netbox-inventory-sync-runcode-enablequery.json`.
+**Real-world example:** a NetBox-devices-to-inventory-nodes mapping (per-device manufacturer lookup, per-vendor secret-path branching, record reshaping) that originally took `forEach` + 5 `query` + 1 `evaluation` + 4 `newVariable` + 2 `merge` + `push`/`objectToString`/`join`/`makeData` (17 tasks) collapsed to 2 tasks (`runCode` + `query`), then to 1 task once the trailing `query` was replaced by an Enable Query decorator too (see below) — with identical, verified output at every stage. Full before/after: `assets/helpers/assets/netbox-inventory-sync-runcode-enablequery.json`.
 
 **Read the real, verified example before building any transform loop:**
 ```bash
 # See the whole pattern: NetBox devices -> per-vendor secret mapping -> reshaped records,
 # via one runCode task + Enable Query, both the "reuse a script" and "native tasks" versions
 jq '[.components[] | select(.type=="workflow")] | .[].document.name' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+  assets/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
 
 # Extract the runCode task itself (clusterId, language, code, data, safety, packages)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "runCode")] | .[0].value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+  assets/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
 
 # See an Enable Query decorator in place on a real task (top-level AND nested-field examples)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.variables.decorators // [] | length > 0)] | .[] | {task: .value.name, incoming: .value.variables.incoming, decorators: .value.variables.decorators}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
+  assets/helpers/assets/netbox-inventory-sync-runcode-enablequery.json
 ```
 
 **Fields (confirmed via live `multipleTaskDetails?dereferenceSchemas=true` — `{"location":"Application","pckg":"GatewayManager","method":"runCode"}`):**
@@ -1562,7 +1564,7 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.variables
 
 **Package caching (per official docs):** the first time you run a task with a new set of packages, the runner installs them into a virtual environment. Subsequent runs reuse the cached environment, so there's no install overhead. Any change to the `packages` list triggers a fresh install.
 
-**Script contract (the "IAG runCode standard" — see real examples in `helpers/assets/vendor-cisco-ios.json` and `vendor-juniper-junos.json`):**
+**Script contract (the "IAG runCode standard" — see real examples in `assets/helpers/assets/vendor-cisco-ios.json` and `assets/helpers/assets/vendor-juniper-junos.json`):**
 ```python
 import sys, json
 data = json.load(sys.stdin)          # read the `data` object
@@ -1577,7 +1579,7 @@ Anything printed to `stderr` is captured separately and does NOT pollute the par
 
 **Errors and timeout (per official docs):** the task catches unhandled Python exceptions and captures the traceback in `result.stderr` — the task still completes and the workflow does NOT follow the error transition for an in-script exception. `safety.timeout` stops execution if exceeded; when exceeded, `result.status` becomes `"error"` and `result.error` contains the platform-specific failure reason. The timeout applies to your code only, not to package installation. If the task cannot run on the gateway at all (not enabled, lost connectivity), the task itself fails and no `result` output is produced — that error is visible in the task's Error tab in Operations Manager instead, as a distinct `{state, domain, code, message}` shape (e.g. `"message": "Gateway with id test-code-task is not enabled"`).
 
-**This is exactly why a job showing `workflow_end: complete` is not proof the workflow worked (see AGENTS.md Rule 28) — an in-script exception in `runCode` does NOT trigger the task's error transition,** so the workflow sails through to a "successful" completion while `result.status` is `"error"` and `result.stderr` holds a traceback. Always check `result.status`/`result.stderr` on every `runCode` task in a job before reporting the run as successful.
+**This is exactly why a job showing `workflow_end: complete` is not proof the workflow worked (see `assets/AGENTS.md` Rule 28) — an in-script exception in `runCode` does NOT trigger the task's error transition,** so the workflow sails through to a "successful" completion while `result.status` is `"error"` and `result.stderr` holds a traceback. Always check `result.status`/`result.stderr` on every `runCode` task in a job before reporting the run as successful.
 
 **Execution status vs. exit code (per official docs) — three genuinely different failure modes, don't conflate them:**
 - `status: "completed"` + `return_code: 0` — the script ran and exited cleanly.
@@ -1618,7 +1620,7 @@ A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/
 
 ### Worked example: wiring `runCode` + task query together
 
-A complete walkthrough of bringing multiple upstream tasks' data into a `runCode` script, using task query to unwrap each one, and reading the result back out — confirmed live end-to-end. Real example (two NetBox list calls combined into one summary): `helpers/assets/runcode-taskquery-reference.json`.
+A complete walkthrough of bringing multiple upstream tasks' data into a `runCode` script, using task query to unwrap each one, and reading the result back out — confirmed live end-to-end. Real example (two NetBox list calls combined into one summary): `assets/helpers/assets/runcode-taskquery-reference.json`.
 
 **1. Bring variables into `runCode` via its `data` field.** Each key in `incoming.data` becomes one entry your script receives on stdin. The value is a reference expression, same syntax as any other task field:
 
@@ -1845,7 +1847,7 @@ This replaces the older pattern of a `query` task extracting the field into a jo
 Run another workflow as a sub-job. **Read a live childJob example first:**
 ```bash
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "childJob")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 ```
 
 **Critical differences from normal tasks:**
@@ -2133,7 +2135,7 @@ Pre-Check (RunCommandTemplate child)
 Read the Arista EOS "Push Configuration to Device - IAG" and "Command Template Runner" workflows before building any config push delivery:
 ```bash
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("Push Config|Command Template"))] | .[].document | {name:.name, tasks:.tasks, transitions:.transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-arista-eos.json
+  assets/helpers/assets/vendor-arista-eos.json
 ```
 
 ### Create a Command Template
@@ -2452,7 +2454,7 @@ childJob -> query (extract taskStatus from job_details) -> evaluation (== "succe
 **Read a live ViewData example** from the Cisco IOS upgrade workflow — it shows makeData → ViewData → success/failure branches in production:
 ```bash
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "ViewData")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 ```
 
 Three rules that cause draft validation errors if missed:
@@ -2493,7 +2495,7 @@ Use `ViewHTML` when you need to display formatted HTML to an operator during a w
 **Read a live ViewHTML example:**
 ```bash
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "ViewHTML")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 ```
 
 Key differences from ViewData:
@@ -2688,15 +2690,15 @@ The `revert` transition moves execution back to a previous task, allowing the us
 58. **Prefer server-side filtering over client-side when available** — fetching the full collection and filtering in a forEach adds unnecessary iterations. Check for a filtered-fetch task first.
 59. **Propose decomposition when a workflow exceeds ~20 tasks** — extract inner iteration bodies into reusable child workflows.
 60. **DRY check on sibling workflows** — if building multiple similarly-named workflows, compare task graphs. Identical graphs → propose one generic workflow, not N clones.
-61. **NEVER wire a Configuration Manager remediation task** — see AGENTS.md Rule 25 for the full prohibited-task list and the config-push alternative.
+61. **NEVER wire a Configuration Manager remediation task** — see `assets/AGENTS.md` Rule 25 for the full prohibited-task list and the config-push alternative.
 
 ---
 
 ## Helper Templates
 
 **Two separate concerns — don't mix them:**
-- **API wrappers** (project, workflow, template, form creation) → use `helpers/create/` scaffolds below. These are POST body wrappers — correct structure, required fields.
-- **Task JSON inside a workflow** → extract from `helpers/assets/` using jq (see Guide 1 STOP block). Do NOT use `helpers/create/` files for task bodies — they are scaffold stubs, not task examples.
+- **API wrappers** (project, workflow, template, form creation) → use `assets/helpers/create/` scaffolds below. These are POST body wrappers — correct structure, required fields.
+- **Task JSON inside a workflow** → extract from `assets/helpers/assets/` using jq (see Guide 1 STOP block). Do NOT use `assets/helpers/create/` files for task bodies — they are scaffold stubs, not task examples.
 
 ### Scaffolds — start from these
 
@@ -2704,57 +2706,57 @@ Read these first. They have the correct wrapper, required fields, and structure.
 
 | When you need to... | Read this helper | Then POST to |
 |---------------------|------------------|--------------|
-| Create a project | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-project.json` | `POST /automation-studio/projects` |
-| Create a workflow | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-workflow.json` | `POST /automation-studio/automations` |
-| Create a Jinja2 template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-template-jinja2.json` | `POST /automation-studio/templates` |
-| Create a TextFSM template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-template-textfsm.json` | `POST /automation-studio/templates` |
-| Create a MOP command template | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` | `POST /mop/createTemplate` |
-| Update a MOP template | `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
-| Create a JSON form (static dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
-| Create a JSON form (REST-bound or cascading dropdowns) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
-| Create an Ops Manager automation | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
-| Create a manual trigger (with form) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
-| Create a scheduled trigger | `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
-| Import a project (atomic) | `${CLAUDE_PLUGIN_ROOT}/helpers/create/import-project.json` | `POST /automation-studio/projects/import` |
-| Add assets to a project | `${CLAUDE_PLUGIN_ROOT}/helpers/operations/add-components-to-project.json` | `POST /projects/{id}/components/add` |
-| Update project membership | `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-project-members.json` | `PATCH /projects/{id}` |
+| Create a project | `assets/helpers/create/create-project.json` | `POST /automation-studio/projects` |
+| Create a workflow | `assets/helpers/create/create-workflow.json` | `POST /automation-studio/automations` |
+| Create a Jinja2 template | `assets/helpers/create/create-template-jinja2.json` | `POST /automation-studio/templates` |
+| Create a TextFSM template | `assets/helpers/create/create-template-textfsm.json` | `POST /automation-studio/templates` |
+| Create a MOP command template | `assets/helpers/create/create-command-template.json` | `POST /mop/createTemplate` |
+| Update a MOP template | `assets/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
+| Create a JSON form (static dropdowns) | `assets/helpers/create/create-json-form.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
+| Create a JSON form (REST-bound or cascading dropdowns) | `assets/helpers/create/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
+| Create an Ops Manager automation | `assets/helpers/create/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
+| Create a manual trigger (with form) | `assets/helpers/create/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
+| Create a scheduled trigger | `assets/helpers/create/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |
+| Import a project (atomic) | `assets/helpers/create/import-project.json` | `POST /automation-studio/projects/import` |
+| Add assets to a project | `assets/helpers/operations/add-components-to-project.json` | `POST /projects/{id}/components/add` |
+| Update project membership | `assets/helpers/update/update-project-members.json` | `PATCH /projects/{id}` |
 
 ### Task templates — extract from asset projects
 
-Do not write task JSON from scratch. For every task type, extract a real example from an asset project and adapt it. Use the jq commands below — they work against the project files in `${CLAUDE_PLUGIN_ROOT}/helpers/assets/`.
+Do not write task JSON from scratch. For every task type, extract a real example from an asset project and adapt it. Use the jq commands below — they work against the project files in `assets/helpers/assets/`.
 
 ```bash
 # Adapter task (ServiceNow, Infoblox, etc.)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.location == "Adapter")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-servicenow.json
+  assets/helpers/assets/vendor-servicenow.json
 
 # Application task (WorkFlowEngine — getTime, newVariable, query, evaluation, transformation, merge, makeData)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.app == "WorkFlowEngine" and .value.name == "TASK_NAME")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/itential-platform-configuration-management.json
+  assets/helpers/assets/itential-platform-configuration-management.json
 
 # childJob
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "childJob")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 
 # evaluation / branching
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "evaluation")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 
 # transformation (JST)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "transformation")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-netbox.json
+  assets/helpers/assets/vendor-netbox.json
 
 # RunCommandTemplate / viewTemplateResults / reattempt / runTemplatesDiff (MOP tasks)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/itential-platform-configuration-management.json
+  assets/helpers/assets/itential-platform-configuration-management.json
 
 # itential_cli (config push via IAG)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "itential_cli")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-arista-eos.json
+  assets/helpers/assets/vendor-arista-eos.json
 
 # ViewData / ViewHTML (manual tasks)
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "ViewData")] | first | .value' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/vendor-cisco-ios.json
+  assets/helpers/assets/vendor-cisco-ios.json
 ```
 
 Key fields to verify after extracting (see body sections above for full rules per task type):
@@ -2774,23 +2776,23 @@ Real, production-tested workflows. Use the jq commands to extract and study them
 
 | Pattern | Asset file | jq filter |
 |---------|-----------|-----------|
-| Adapter workflow: merge → create → query → update + error handling | `vendor-servicenow.json` | `select(.document.name \| test("Create Change"))` |
-| childJob orchestrator + evaluation branching | `vendor-cisco-ios.json` | `select(.document.name \| test("IOS Upgrade"))` |
-| childJob loop with data_array (parallel/sequential) | `vendor-cisco-ios.json` | `select(.document.name \| test("Upgrade\|Runner"))` |
-| Config push: renderJinja → dry-run ViewData → itential_cli → commit | `vendor-arista-eos.json` | `select(.document.name \| test("Push Config"))` |
-| Pre/post MOP check: RunCommandTemplate → viewTemplateResults → evaluation → reattempt | `itential-platform-configuration-management.json` | `select(.document.name \| test("Command Template Runner"))` |
-| IPAM CRUD (adapter + transformation + error) | `vendor-infoblox-nios-ddi.json` | `select(.document.name \| test("Create Network\|Assign Next"))` |
-| ITSM ticket + update (ServiceNow) | `vendor-servicenow.json` | `select(.document.name \| test("Create Incident"))` |
+| Adapter workflow: merge → create → query → update + error handling | `assets/helpers/assets/vendor-servicenow.json` | `select(.document.name \| test("Create Change"))` |
+| childJob orchestrator + evaluation branching | `assets/helpers/assets/vendor-cisco-ios.json` | `select(.document.name \| test("IOS Upgrade"))` |
+| childJob loop with data_array (parallel/sequential) | `assets/helpers/assets/vendor-cisco-ios.json` | `select(.document.name \| test("Upgrade\|Runner"))` |
+| Config push: renderJinja → dry-run ViewData → itential_cli → commit | `assets/helpers/assets/vendor-arista-eos.json` | `select(.document.name \| test("Push Config"))` |
+| Pre/post MOP check: RunCommandTemplate → viewTemplateResults → evaluation → reattempt | `assets/helpers/assets/itential-platform-configuration-management.json` | `select(.document.name \| test("Command Template Runner"))` |
+| IPAM CRUD (adapter + transformation + error) | `assets/helpers/assets/vendor-infoblox-nios-ddi.json` | `select(.document.name \| test("Create Network\|Assign Next"))` |
+| ITSM ticket + update (ServiceNow) | `assets/helpers/assets/vendor-servicenow.json` | `select(.document.name \| test("Create Incident"))` |
 | LCM action workflow (must output `instance`) | `lcm/lcm-vxlan-fabric-services-project.json` | `select(.document.name \| test("Create\|Delete"))` — note: this file uses `.data.project.components[]` |
-| Email/notification | `itential-platform-email.json` | `select(.document.name \| test("Email"))` |
-| Per-item transform loop replaced by `runCode` + Enable Query (zero/near-zero WorkFlowEngine utility tasks) | `netbox-inventory-sync-runcode-enablequery.json` | `select(.document.name \| test("runCode"))` — 2 real workflows: one calling an external script, one using only native app tasks, both with the same `runCode` device-mapping pattern |
+| Email/notification | `assets/helpers/assets/itential-platform-email.json` | `select(.document.name \| test("Email"))` |
+| Per-item transform loop replaced by `runCode` + Enable Query (zero/near-zero WorkFlowEngine utility tasks) | `assets/helpers/assets/netbox-inventory-sync-runcode-enablequery.json` | `select(.document.name \| test("runCode"))` — 2 real workflows: one calling an external script, one using only native app tasks, both with the same `runCode` device-mapping pattern |
 
 ```bash
 # General pattern to read any workflow by name from an asset project:
 jq '[.components[] | select(.type=="workflow") | select(.document.name | test("PATTERN"; "i"))] | first | .document | {name:.name, tasks:.tasks, transitions:.transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/ASSET_FILE.json
+  assets/helpers/assets/ASSET_FILE.json
 
 # For the LCM project (different wrapper):
 jq '[.data.project.components[] | select(.type=="workflow") | select(.document.name | test("PATTERN"; "i"))] | first | .document | {name:.name, tasks:.tasks, transitions:.transitions}' \
-  ${CLAUDE_PLUGIN_ROOT}/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
+  assets/helpers/assets/lcm/lcm-vxlan-fabric-services-project.json
 ```

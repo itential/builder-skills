@@ -1,0 +1,8 @@
+{
+  "builder-agent": [
+    "helpers/"
+  ],
+  "spec-agent": [
+    "spec-files/"
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "_comment": "Real JSON Form export (Cisco IOS Port Turn Up form) -- static-enum dropdowns only, no REST binding. Source: helpers/assets/vendor-cisco-ios.json. IDs/timestamps/createdBy stripped since the server assigns those on create.",
+  "_usage": "POST /json-forms/forms",
+  "name": "Port Turn Up Form",
+  "description": "",
+  "struct": {
+    "type": "array",
+    "items": [
+      {
+        "nodeId": "cb06b02f-e05d-40fd-9274-4d9d6e54f4f2",
+        "type": "string",
+        "title": "Device",
+        "description": "",
+        "placeholder": "Enter text",
+        "required": true,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "customKey": "device",
+        "default": "Itential Lab Main::aws-lab-iosxe"
+      },
+      {
+        "nodeId": "0651cf6c-8225-4110-b3d0-9a178b84a275",
+        "type": "string",
+        "title": "Type",
+        "description": "",
+        "placeholder": "Select an item",
+        "required": true,
+        "enum": [
+          {
+            "id": "5570e66c-3e91-46a2-9d65-b196e6a08199",
+            "label": "GigabitEthernet",
+            "value": "GigabitEthernet"
+          }
+        ],
+        "enumNames": [
+          {
+            "id": "195c6ab1-aac1-4b2f-809c-36e7ed23d889",
+            "label": "",
+            "value": ""
+          }
+        ],
+        "binding": false,
+        "rel": "collection",
+        "targetPointer": "/enum",
+        "default": "GigabitEthernet"
+      },
+      {
+        "nodeId": "9273e8e2-f405-40d6-84b2-c6f1bbc03460",
+        "type": "number",
+        "widget": "updown",
+        "title": "Interface",
+        "description": "",
+        "placeholder": "Enter a number",
+        "required": true,
+        "minimum": 1,
+        "maximum": 1,
+        "default": 1
+      },
+      {
+        "nodeId": "8f1702b6-cc4b-4c8c-83b5-9ba0fd2ac248",
+        "type": "number",
+        "widget": "updown",
+        "title": "Sub Interface",
+        "description": "",
+        "placeholder": "Enter a number",
+        "required": true,
+        "customKey": false,
+        "minimum": 100,
+        "maximum": 300,
+        "default": 100
+      },
+      {
+        "nodeId": "84d89275-8fb2-49eb-a105-a77a509c7a98",
+        "type": "string",
+        "title": "Description",
+        "description": "",
+        "placeholder": "Enter text",
+        "required": true,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "default": "test"
+      },
+      {
+        "nodeId": "481540c4-815e-42f9-a899-506c3d446059",
+        "type": "string",
+        "title": "IP Address",
+        "description": "",
+        "placeholder": "Enter text",
+        "required": false,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "format": "ipv4",
+        "default": "10.0.0.2"
+      },
+      {
+        "nodeId": "32fafb5d-a7ec-4124-8d10-c6cf61f2ff31",
+        "type": "string",
+        "title": "Subnet Mask",
+        "description": "",
+        "placeholder": "Enter text",
+        "required": true,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "format": "ipv4",
+        "default": "255.255.255.0"
+      },
+      {
+        "nodeId": "c2d5ef38-9906-4512-a124-8e1aff1d019a",
+        "type": "number",
+        "widget": "updown",
+        "title": "VLAN",
+        "description": "",
+        "placeholder": "Enter a number",
+        "required": true,
+        "minimum": 100,
+        "maximum": 300,
+        "default": 100
+      }
+    ]
+  },
+  "schema": {
+    "title": "Port Turn Up Form",
+    "description": "",
+    "type": "object",
+    "required": [
+      "device",
+      "type",
+      "interface",
+      "subInterface",
+      "description",
+      "subnetMask",
+      "vlan"
+    ],
+    "properties": {
+      "device": {
+        "type": "string",
+        "title": "Device",
+        "_id": "/properties/device",
+        "description": "",
+        "default": "Itential Lab Main::aws-lab-iosxe"
+      },
+      "type": {
+        "type": "string",
+        "title": "Type",
+        "_id": "/properties/type",
+        "description": "",
+        "default": "GigabitEthernet",
+        "enum": [
+          "GigabitEthernet"
+        ],
+        "enumNames": [
+          ""
+        ]
+      },
+      "interface": {
+        "type": "number",
+        "title": "Interface",
+        "_id": "/properties/interface",
+        "description": "",
+        "default": 1,
+        "minimum": 1,
+        "maximum": 1
+      },
+      "subInterface": {
+        "type": "number",
+        "title": "Sub Interface",
+        "_id": "/properties/subInterface",
+        "description": "",
+        "default": 100,
+        "minimum": 100,
+        "maximum": 300
+      },
+      "description": {
+        "type": "string",
+        "title": "Description",
+        "_id": "/properties/description",
+        "description": "",
+        "default": "test"
+      },
+      "ipAddress": {
+        "type": "string",
+        "title": "IP Address",
+        "_id": "/properties/ipAddress",
+        "description": "",
+        "default": "10.0.0.2",
+        "format": "ipv4"
+      },
+      "subnetMask": {
+        "type": "string",
+        "title": "Subnet Mask",
+        "_id": "/properties/subnetMask",
+        "description": "",
+        "default": "255.255.255.0",
+        "format": "ipv4"
+      },
+      "vlan": {
+        "type": "number",
+        "title": "VLAN",
+        "_id": "/properties/vlan",
+        "description": "",
+        "default": 100,
+        "minimum": 100,
+        "maximum": 300
+      }
+    }
+  },
+  "uiSchema": {
+    "device": {
+      "ui:placeholder": "Enter text"
+    },
+    "type": {
+      "ui:placeholder": "Select an item"
+    },
+    "interface": {
+      "ui:placeholder": "Enter a number",
+      "ui:widget": "updown"
+    },
+    "subInterface": {
+      "ui:placeholder": "Enter a number",
+      "ui:widget": "updown"
+    },
+    "description": {
+      "ui:placeholder": "Enter text"
+    },
+    "ipAddress": {
+      "ui:placeholder": "Enter text"
+    },
+    "subnetMask": {
+      "ui:placeholder": "Enter text"
+    },
+    "vlan": {
+      "ui:placeholder": "Enter a number",
+      "ui:widget": "updown"
+    },
+    "ui:order": [
+      "device",
+      "type",
+      "interface",
+      "subInterface",
+      "description",
+      "ipAddress",
+      "subnetMask",
+      "vlan",
+      "*"
+    ]
+  },
+  "bindingSchema": {},
+  "validationSchema": {},
+  "version": "2020.1"
+}

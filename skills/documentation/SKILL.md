@@ -13,18 +13,22 @@ description: Use this skill to survey and catalog an Itential platform — when 
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## CRITICAL: Output Requirements
@@ -135,7 +139,7 @@ If a `projects/` subfolder exists, scan it too. Project manifest files (containi
 
 ### Mode B — Platform API
 
-Authenticate using `.auth.json` (see AGENTS.md auth reuse pattern). Fetch global assets (ensure you fetch pagination if there are a lot of assets):
+Authenticate using `.auth.json` (see `assets/AGENTS.md` auth reuse pattern). Fetch global assets (ensure you fetch pagination if there are a lot of assets):
 
 ```
 GET /automation-studio/workflows?exclude-project-members=true&limit=500
@@ -149,7 +153,7 @@ GET /lifecycle-manager/model
 GET /automation-studio/projects?limit=500
 ```
 
-> **Visibility caveat:** see AGENTS.md's "Project Visibility" section. Global assets (this skill's focus) aren't ACL-restricted, so the global catalog isn't undercounted by RBAC — but `GET /automation-studio/projects?limit=500` is per-project-ACL-filtered. Since this skill targets globals, projects are out of scope by default; if the engineer names a specific project they expect, route to `/project-to-spec` instead.
+> **Visibility caveat:** see `assets/AGENTS.md`'s "Project Visibility" section. Global assets (this skill's focus) aren't ACL-restricted, so the global catalog isn't undercounted by RBAC — but `GET /automation-studio/projects?limit=500` is per-project-ACL-filtered. Since this skill targets globals, projects are out of scope by default; if the engineer names a specific project they expect, route to `/project-to-spec` instead.
 
 ### Classification Signatures
 
@@ -282,7 +286,7 @@ For each approved use case group, create a directory (or write directly to repor
 
 Write professional, narrative documentation — not mechanical spec sheets. The HLD should read like a business-facing document with rich prose, detailed tables, and domain-specific context.
 
-→ See template in `helpers/documentation-output-templates.md` — **"customer-spec.md Template"**
+→ See template in `assets/helpers/documentation-output-templates.md` — **"customer-spec.md Template"**
 
 **For test/standalone use cases**, use a simplified catalog format — asset table with Purpose and Adapters columns only. No full HLD needed.
 
@@ -290,11 +294,11 @@ Write professional, narrative documentation — not mechanical spec sheets. The 
 
 Write the as-built LLD — this is factual, not inferred. Each component should have at least a sentence description, so an engineer could understand the full system without reading the source JSON.
 
-→ See template in `helpers/documentation-output-templates.md` — **"solution-design.md Template"**
+→ See template in `assets/helpers/documentation-output-templates.md` — **"solution-design.md Template"**
 
 #### Generating Section D: Execution Flow
 
-The guidance and example are in the Section D placeholder in `helpers/documentation-output-templates.md`.
+The guidance and example are in the Section D placeholder in `assets/helpers/documentation-output-templates.md`.
 
 Do not add a sequence diagram to the HLD (`customer-spec.md`). Section 2 of the HLD is a narrative paragraph only.
 
@@ -306,7 +310,7 @@ Do not add a sequence diagram to the HLD (`customer-spec.md`). Section 2 of the 
 
 Create `README.md` at the root of the reports directory.
 
-→ See template in `helpers/documentation-output-templates.md` — **"README.md Template"**
+→ See template in `assets/helpers/documentation-output-templates.md` — **"README.md Template"**
 
 ---
 
@@ -358,7 +362,7 @@ POST /automation-studio/projects/{projectId}/components/add
 }
 ```
 
-Component type values: see AGENTS.md Rule 13.
+Component type values: see `assets/AGENTS.md` Rule 13.
 
 **3. Build a reference impact report before moving anything:**
 
@@ -419,7 +423,7 @@ Flag anything that couldn't be moved (already in a project, API error) for manua
 
 ## Gotchas
 
-- **Global assets are not access-restricted; projects are** (see AGENTS.md Project Visibility). If the engineer names a specific project they expect, route to `/project-to-spec` rather than declaring it absent.
+- **Global assets are not access-restricted; projects are** (see `assets/AGENTS.md` Project Visibility). If the engineer names a specific project they expect, route to `/project-to-spec` rather than declaring it absent.
 - **NEVER produce JSON files as output.** Only markdown reports.
 - **childJob `workflow` is the primary relationship link.** Don't trace `$var` references across workflows.
 - **Naming prefix is a heuristic, not a rule.** Prioritize childJob graph over naming when they conflict.

@@ -1,0 +1,55 @@
+decorators:
+  - name: deploy-infrastructure
+    schema:
+      $id: deploy-infrastructure
+      $schema: https://json-schema.org/draft/202012/schema
+      type: object
+      required:
+        - environment
+        - region
+      properties:
+        environment:
+          type: string
+          description: Target environment
+          enum:
+            - dev
+            - staging
+            - production
+        region:
+          type: string
+          description: Cloud region
+          examples: ["us-east-1", "us-west-2", "eu-west-1"]
+        instance_count:
+          type: integer
+          default: 1
+          description: Number of instances to deploy
+          minimum: 1
+          maximum: 100
+
+repositories:
+  - name: terraform-infra
+    url: git@github.com:org/terraform-modules.git
+    reference: main
+    private-key-name: git-ssh-key
+
+services:
+  - name: deploy-infrastructure
+    type: opentofu-plan
+    description: Deploy cloud infrastructure with OpenTofu
+    working-directory: environments/aws
+    repository: terraform-infra
+    decorator: deploy-infrastructure
+    action: apply                          # required: apply, plan, or destroy
+    vars: []                               # optional: ["-var flags"] e.g. ["instance_type=t2.micro"]
+    var-files: []                          # optional: ["-var-file flags"] e.g. ["prod.tfvars"]
+    state-file: null                       # optional: custom state file path
+    tags:
+      - cloud
+      - infrastructure
+    secrets:
+      - name: aws-access-key
+        type: env
+        target: TF_VAR_aws_access_key
+      - name: aws-secret-key
+        type: env
+        target: TF_VAR_aws_secret_key

@@ -16,23 +16,27 @@ description: Use this skill when someone has approved requirements (a customer-s
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Stage Expectations
 
-*(See AGENTS.md's Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
+*(See `assets/AGENTS.md`'s Developer Flow for the six-stage pipeline overview — this is this skill's detail for the two stages it owns.)*
 
 ### Feasibility
 
@@ -60,14 +64,14 @@ Design defines how it will be delivered. Nothing is built until this is approved
 
 ### Design-Only Mode
 
-If requirements are unchanged but the implementation plan needs to change, invoke `/solution-architecture design-only`. Skips Feasibility. Reads existing `feasibility.md` as context and produces an updated `solution-design.md`.
+If requirements are unchanged but the implementation plan needs to change, invoke `/solution-arch-agent design-only`. Skips Feasibility. Reads existing `feasibility.md` as context and produces an updated `solution-design.md`.
 
 ---
 
 ## Artifact Lifecycle
 
 ```
-${CLAUDE_PLUGIN_ROOT}/spec-files/spec-*.md          ← Generic library spec (never modified)
+assets/spec-files/spec-*.md          ← Generic library spec (never modified)
         │
         │  forked by /spec-agent
         ▼
@@ -141,14 +145,14 @@ Go through the spec's Discovery Questions. Skip anything already answered by the
 
 ### Authenticate
 
-See AGENTS.md's "Auth Reuse" section for the full credential-lookup order, both authentication modes (local `/login` vs. cloud OAuth), and how to save the result to `{use-case}/.auth.json` — this is the canonical procedure, used identically by every skill. One environment-specific addition for this skill: pre-configured environment files at `${CLAUDE_PLUGIN_ROOT}/environments/*.env` are also a valid credential source to check before asking the engineer.
+See `assets/AGENTS.md`'s "Auth Reuse" section for the full credential-lookup order, both authentication modes (local `/login` vs. cloud OAuth), and how to save the result to `{use-case}/.auth.json` — this is the canonical procedure, used identically by every skill. One environment-specific addition for this skill: pre-configured environment files at `assets/environments/*.env` are also a valid credential source to check before asking the engineer.
 
 ### Pull Platform Data
 
 Run the bootstrap script — it pulls all platform data in parallel and writes a compact `platform-summary.json` with only what's needed for feasibility:
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/.claude/skills/solution-arch-agent/pull-platform-data.py {use-case}
+python3 scripts/pull-platform-data.py {use-case}
 ```
 
 **What gets written:**
@@ -370,7 +374,7 @@ Hand off to `/builder-agent`. The workspace is complete.
 
 The builder builds from the locked plan and tests each component individually. Once the build is complete, `/builder-agent` hands off to `/qa-agent`, which runs acceptance testing against Section F's criteria-to-tests mapping and produces the `as-built.md` record.
 
-**Before handing off — update `use-case-memory.md`** (create from `helpers/use-case-memory.md` if `/spec-agent` didn't already):
+**Before handing off — update `use-case-memory.md`** (create from `assets/helpers/use-case-memory.md` if `/spec-agent` didn't already):
 - Platform URL and project name (if a project already exists)
 - `Stage: build`, `Status: active`
 - Any adapter instance names and type names resolved during feasibility
@@ -393,19 +397,19 @@ Entered from `/spec-agent` after the engineer approves `customer-spec.md`. At th
 ```
 
 ```
-/solution-architecture flow:
+/solution-arch-agent flow:
     Feasibility: authenticate → pull platform data → assess capabilities → write feasibility.md → engineer approves
     Design:      produce solution-design.md from approved feasibility → engineer approves
     Handoff:     pass complete workspace to /builder
 ```
 
-To revise requirements: update `customer-spec.md` via `/spec-agent` → re-run `/solution-architecture` from Feasibility.
-To revise design only: invoke `/solution-architecture design-only` → reads existing `feasibility.md` → produces updated `solution-design.md`.
+To revise requirements: update `customer-spec.md` via `/spec-agent` → re-run `/solution-arch-agent` from Feasibility.
+To revise design only: invoke `/solution-arch-agent design-only` → reads existing `feasibility.md` → produces updated `solution-design.md`.
 
 ---
 
 ## Gotchas
 
-- Tokens expire mid-session — on auth errors, re-authenticate silently from `.env` (see AGENTS.md Auth Reuse)
+- Tokens expire mid-session — on auth errors, re-authenticate silently from `.env` (see `assets/AGENTS.md` Auth Reuse)
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list`
 - OpenAPI spec is ~1.5MB — search it locally with `jq`, never load into context

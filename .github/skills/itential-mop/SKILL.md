@@ -8,24 +8,28 @@ argument-hint: "[action or template-name]"
 
 MOP manages command templates and analytic templates for running CLI commands against network devices with validation rules. Command templates execute show commands and evaluate the output against rules. Analytic templates compare command output before and after a change.
 
-**MOP is for read-only validation only -- never use it to push configuration to devices.** Use Jinja2 templates and workflow tasks for config changes — see `/itential-devices` (Template Designer) or the environment's native config-push task (AGENTS.md Rule 25).
+**MOP is for read-only validation only -- never use it to push configuration to devices.** Use Jinja2 templates and workflow tasks for config changes — see `/itential-devices` (Template Designer) or the environment's native config-push task (`assets/AGENTS.md` Rule 25).
 
 ## Customization
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## Concepts
@@ -239,7 +243,7 @@ POST /mop/RunCommandTemplate
 
 ### In a Workflow
 
-Use the `MOP.RunCommandTemplate` task. See `/itential-studio` for full workflow task wiring patterns.
+Use the `MOP.RunCommandTemplate` task. See `/builder-agent` for full workflow task wiring patterns.
 
 ```json
 {
@@ -258,7 +262,7 @@ Use the `MOP.RunCommandTemplate` task. See `/itential-studio` for full workflow 
 - **`variables`** -- object with values for `<!variable!>` substitutions
 - **`devices`** -- array of device names to run against
 
-See `/itential-builder` for running the workflow via `POST /operations-manager/jobs/start`.
+See `/builder-agent` for running the workflow via `POST /operations-manager/jobs/start`.
 
 ### Ad-Hoc Commands (without a template)
 
@@ -451,15 +455,15 @@ Always start from a helper template when creating assets. Read the helper file f
 
 | File | API Call | Purpose |
 |------|----------|---------|
-| `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` | `POST /mop/createTemplate` | Command template with rules |
-| `${CLAUDE_PLUGIN_ROOT}/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{mopID}` | Update template (full replacement) |
+| `assets/helpers/create/create-command-template.json` | `POST /mop/createTemplate` | Command template with rules |
+| `assets/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{mopID}` | Update template (full replacement) |
 
 ## Developer Scenarios
 
 ### 1. Build a pre-check command template
 
 1. Identify the show commands needed (e.g., `show interface`, `show vlan brief`)
-2. Read `${CLAUDE_PLUGIN_ROOT}/helpers/create/create-command-template.json` as a starting template
+2. Read `assets/helpers/create/create-command-template.json` as a starting template
 3. Fill in `name`, `description`, add commands with `<!variable!>` placeholders
 4. Add rules for each command -- use `contains` for simple checks, `RegEx` for pattern matching
 5. Set `passRule` at template and command level (AND vs OR logic)
@@ -471,12 +475,12 @@ Always start from a helper template when creating assets. Read the helper file f
 
 After standalone testing passes:
 
-1. Use `/itential-studio` to build a workflow
+1. Use `/builder-agent` to build a workflow
 2. Add a `MOP.RunCommandTemplate` task to the workflow
 3. Wire incoming variables: `template`, `variables`, `devices` using `$var.job.*` references
 4. Wire outgoing: capture results in a variable like `mop_template_results`
 5. Add downstream logic to branch on `$var.taskName.result` (true/false)
-6. Use `/itential-builder` to run via `POST /operations-manager/jobs/start`
+6. Use `/builder-agent` to run via `POST /operations-manager/jobs/start`
 
 ### 3. Build an analytic template for pre/post comparison
 

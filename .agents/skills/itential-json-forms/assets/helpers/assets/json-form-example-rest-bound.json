@@ -1,0 +1,119 @@
+{
+  "_comment": "Real JSON Form export (Cisco IOS Compliance form) -- one REST-bound dropdown (tree_name, pulled live from GET /configuration_manager/configs) plus one plain text field. Source: helpers/assets/vendor-cisco-ios.json. IDs/timestamps/createdBy stripped since the server assigns those on create.",
+  "_usage": "POST /json-forms/forms",
+  "name": "Compliance Form",
+  "description": "",
+  "struct": {
+    "type": "array",
+    "items": [
+      {
+        "nodeId": "9b87dfbf-4dca-4a5b-b521-48d45db4fe19",
+        "type": "string",
+        "title": "Tree Name",
+        "description": "",
+        "placeholder": "Select an item",
+        "required": true,
+        "enum": [],
+        "enumNames": [],
+        "binding": true,
+        "rel": "collection",
+        "targetPointer": "/enum",
+        "method": "GET",
+        "uniqueItems": false,
+        "base": "/configuration_manager",
+        "href": "/configs",
+        "sourcePointer": "/",
+        "sourceKeyPointer": "/name",
+        "customKey": "tree_name"
+      },
+      {
+        "nodeId": "c255ed38-8022-4f08-b277-30fbf0fd0a86",
+        "type": "string",
+        "title": "Tree Version",
+        "description": "",
+        "placeholder": "Enter text",
+        "required": true,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "customKey": "version",
+        "default": "initial"
+      }
+    ]
+  },
+  "schema": {
+    "title": "Compliance Form",
+    "description": "",
+    "type": "object",
+    "required": [
+      "tree_name",
+      "version"
+    ],
+    "properties": {
+      "tree_name": {
+        "type": "string",
+        "title": "Tree Name",
+        "_id": "/properties/tree_name",
+        "description": "",
+        "enum": [],
+        "enumNames": []
+      },
+      "version": {
+        "type": "string",
+        "title": "Tree Version",
+        "_id": "/properties/version",
+        "description": "",
+        "default": "initial"
+      }
+    }
+  },
+  "uiSchema": {
+    "tree_name": {
+      "ui:placeholder": "Select an item"
+    },
+    "version": {
+      "ui:placeholder": "Enter text"
+    },
+    "ui:order": [
+      "tree_name",
+      "version",
+      "*"
+    ]
+  },
+  "bindingSchema": {
+    "properties": {
+      "tree_name": {
+        "binding:method": "GET",
+        "binding:link": {
+          "$ref": "/links",
+          "rel": "collection"
+        },
+        "binding:target": {
+          "propertyPointer": "/enum"
+        },
+        "binding:hyperSchema": {
+          "type": "object",
+          "base": "/configuration_manager",
+          "links": [
+            {
+              "rel": "collection",
+              "href": "/configs",
+              "targetMediaType": "application/json",
+              "targetSchema": {
+                "$ref": "#"
+              },
+              "variables": []
+            }
+          ]
+        },
+        "binding:source": {
+          "propertyPointer": "/",
+          "keyPointer": "/name"
+        }
+      }
+    }
+  },
+  "validationSchema": {},
+  "version": "2020.1"
+}

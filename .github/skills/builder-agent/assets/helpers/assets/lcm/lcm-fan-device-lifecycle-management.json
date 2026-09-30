@@ -1,0 +1,305 @@
+{
+  "message": "Success",
+  "data": {
+    "_id": "69669fd226175af332f1ded8",
+    "name": "FAN Device Lifecycle Management",
+    "description": "",
+    "schema": {
+      "$id": "fan-device-lifecycle-management",
+      "description": "Schema defining the possible values within instances of resource model 'FAN Device Lifecycle Management'",
+      "type": "object",
+      "required": [
+        "becentralId",
+        "mac",
+        "serialNumber",
+        "customerId"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "becentralId": {
+          "type": "string",
+          "title": "BECentral Device ID",
+          "description": "Unique identifier in BECentral platform (from enriched data)"
+        },
+        "mac": {
+          "type": "string",
+          "title": "MAC Address",
+          "description": "Device MAC address (from enriched data)"
+        },
+        "ipAddress": {
+          "type": "string",
+          "title": "IP Address",
+          "description": "Device IP address (from enriched data)"
+        },
+        "serialNumber": {
+          "type": "string",
+          "title": "Serial Number",
+          "description": "Device serial number (from enriched data)"
+        },
+        "deviceName": {
+          "type": "string",
+          "title": "Device Name",
+          "description": "Human-readable device name (from enriched data)"
+        },
+        "customerId": {
+          "type": "string",
+          "title": "Customer ID",
+          "description": "Customer or tenant identifier (from enriched data)"
+        },
+        "netbox": {
+          "type": "object",
+          "title": "NetBox Integration",
+          "properties": {
+            "netboxId": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "title": "NetBox Device ID"
+            },
+            "netboxUrl": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "NetBox URL",
+              "format": "uri"
+            },
+            "netboxSyncStatus": {
+              "type": "string",
+              "title": "NetBox Sync Status",
+              "enum": [
+                "not_synced",
+                "synced",
+                "sync_failed"
+              ],
+              "default": "not_synced"
+            }
+          }
+        },
+        "serviceNowCMDB": {
+          "type": "object",
+          "title": "ServiceNow CMDB Integration",
+          "properties": {
+            "cmdbSysId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "CMDB Sys ID"
+            },
+            "cmdbUrl": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "CMDB URL",
+              "format": "uri"
+            },
+            "cmdbSyncStatus": {
+              "type": "string",
+              "title": "CMDB Sync Status",
+              "enum": [
+                "not_synced",
+                "synced",
+                "sync_failed"
+              ],
+              "default": "not_synced"
+            }
+          }
+        },
+        "softwareCompliance": {
+          "type": "object",
+          "title": "Software/Firmware Compliance",
+          "properties": {
+            "currentFirmwareVersion": {
+              "type": "string",
+              "title": "Current Firmware Version",
+              "default": "unknown"
+            },
+            "targetFirmwareVersion": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "Target Firmware Version",
+              "default": "unknown"
+            },
+            "complianceState": {
+              "type": "string",
+              "title": "Compliance State",
+              "enum": [
+                "compliant",
+                "non_compliant",
+                "upgrade_required",
+                "upgrade_staged",
+                "upgrade_in_progress",
+                "upgrade_failed",
+                "unknown"
+              ],
+              "default": "unknown"
+            },
+            "lastComplianceCheck": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "Last Compliance Check",
+              "format": "date-time"
+            }
+          },
+          "required": []
+        },
+        "configurationCompliance": {
+          "type": "object",
+          "title": "Configuration Compliance",
+          "properties": {
+            "complianceState": {
+              "type": "string",
+              "title": "Compliance State",
+              "enum": [
+                "compliant",
+                "non_compliant",
+                "drift_detected",
+                "remediation_required",
+                "remediation_in_progress",
+                "remediation_failed",
+                "unknown"
+              ],
+              "default": "unknown"
+            },
+            "complianceScore": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "title": "Compliance Score",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "lastComplianceCheck": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "title": "Last Compliance Check"
+            }
+          },
+          "required": []
+        },
+        "zabbixId": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "title": "Zabbix Host ID"
+        },
+        "tags": {
+          "type": "array",
+          "title": "Tags",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      }
+    },
+    "actions": [
+      {
+        "_id": "5dfb",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: FAN Device Onboarding",
+        "name": "Device Onboarding",
+        "type": "create"
+      },
+      {
+        "_id": "0a57",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Update Target SW Version",
+        "name": "Update Target SW Version",
+        "type": "update"
+      },
+      {
+        "_id": "c51a",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Verify SW Compliance",
+        "name": "Verify Software Compliance",
+        "type": "update"
+      },
+      {
+        "_id": "d801",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": null,
+        "name": "Delete",
+        "type": "delete"
+      },
+      {
+        "_id": "d57a",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Run Node Config Compliance",
+        "name": "Evaluate Config Compliance",
+        "type": "update"
+      },
+      {
+        "_id": "267c",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Block Endpoint",
+        "name": "Block Endpoint",
+        "type": "update"
+      },
+      {
+        "_id": "75ee",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Validate Services",
+        "name": "Validate Services",
+        "type": "update"
+      },
+      {
+        "_id": "159d",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Apply Hardened Configuration",
+        "name": "Apply Hardened Config",
+        "type": "update"
+      },
+      {
+        "_id": "5b2c",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Run Node Config Compliance - Interactive",
+        "name": "Send Config Compliance Report",
+        "type": "update"
+      },
+      {
+        "_id": "0be5",
+        "preWorkflowJst": null,
+        "postWorkflowJst": null,
+        "workflow": "@696a3bf6f61164c6013d710b: Remove Hardened Configuration",
+        "name": "Remove Hardened Config",
+        "type": "update"
+      }
+    ],
+    "created": "2026-01-13T19:41:06.370Z",
+    "createdBy": {
+      "username": "joksan.flores@itential.com",
+      "firstname": "Joksan",
+      "provenance": "Okta SAML",
+      "_id": "67c856baabe686cf9cb78b2d"
+    },
+    "lastUpdated": "2026-02-18T12:26:27.749Z",
+    "lastUpdatedBy": {
+      "username": "joksan.flores@itential.com",
+      "firstname": "Joksan",
+      "provenance": "Okta SAML",
+      "_id": "67c856baabe686cf9cb78b2d"
+    }
+  },
+  "metadata": {}
+}

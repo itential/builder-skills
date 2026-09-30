@@ -15,18 +15,22 @@ description: Use this skill whenever someone wants to connect to an Itential pla
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## What This Does
@@ -48,7 +52,7 @@ Connects you to a platform, pulls everything needed to work freely, and routes y
 
 Check for credentials in this order:
 1. `{use-case}/.env` — use-case-specific
-2. `${CLAUDE_PLUGIN_ROOT}/environments/*.env` — pre-configured environments at repo root
+2. `assets/environments/*.env` — pre-configured environments at repo root
 
 If found, authenticate automatically. If not, ask:
 1. Platform URL
@@ -129,7 +133,7 @@ Show:
 - Devices: count and OS types (if available)
 - Existing workflows: count
 
-> **Visibility note:** see AGENTS.md's "Project Visibility" section — project-scoped assets are ACL-gated, global assets aren't. If the engineer expects a specific project and it doesn't appear, treat it as *possibly access-restricted*, not *missing*.
+> **Visibility note:** see `assets/AGENTS.md`'s "Project Visibility" section — project-scoped assets are ACL-gated, global assets aren't. If the engineer expects a specific project and it doesn't appear, treat it as *possibly access-restricted*, not *missing*.
 
 ---
 
@@ -137,7 +141,7 @@ Show:
 
 After pulling platform data, check for `{use-case}/use-case-memory.md`:
 - **Exists** → read it. It has context from a previous session — platform URL, prior decisions, open items.
-- **Missing** → create it from `${CLAUDE_PLUGIN_ROOT}/helpers/use-case-memory.md`. Populate Platform URL, `Stage: requirements` (explore is freeform — set the real stage once the engineer commits to a delivery path), `Status: active`, and any adapter/app names discovered in Step 2.
+- **Missing** → create it from `assets/helpers/use-case-memory.md`. Populate Platform URL, `Stage: requirements` (explore is freeform — set the real stage once the engineer commits to a delivery path), `Status: active`, and any adapter/app names discovered in Step 2.
 
 ---
 
@@ -164,5 +168,5 @@ Point to the right skill for what the engineer wants to do:
 - OpenAPI spec is ~1.5MB — search locally with `jq`, never load into context
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list` for correct names
 - Devices endpoint is POST not GET — body required
-- **Project list responses are RBAC-filtered — absence does NOT mean the project doesn't exist.** See AGENTS.md's Project Visibility section. If the engineer names a specific project you can't find, say *"not visible to this client (`{client_id}`) — possibly access-restricted; ask the project owner to add `{client_id}` to its ACL"* rather than *"doesn't exist."*
+- **Project list responses are RBAC-filtered — absence does NOT mean the project doesn't exist.** See `assets/AGENTS.md`'s Project Visibility section. If the engineer names a specific project you can't find, say *"not visible to this client (`{client_id}`) — possibly access-restricted; ask the project owner to add `{client_id}` to its ACL"* rather than *"doesn't exist."*
 - `PATCH /automation-studio/projects/{id}` silently ignores an `accessControl` body — use the `members` array instead: `[{"type": "account"|"group", "reference": "<id>", "role": "owner"|"editor"|"operator"|"viewer"}]`. See [#62](https://github.com/itential/builder-skills/issues/62)

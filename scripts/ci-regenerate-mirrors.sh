@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Regenerates .claude/skills, .agents/skills, .github/skills from skills/ and publishes
+# Bundles skills/*/assets from the shared library and regenerates .claude/skills,
+# .agents/skills, .github/skills from skills/, then publishes
 # the result. Run by .github/workflows/generate-mirrors.yml -- nobody needs to run this
 # by hand. Pushes straight to the branch; if that's rejected (e.g. branch protection),
 # opens a PR with the regenerated mirrors instead.
@@ -10,14 +11,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT_DIR}"
 
 BRANCH="${MIRRORS_BRANCH:-$(git rev-parse --abbrev-ref HEAD)}"
-MIRRORS=(.claude/skills .agents/skills .github/skills)
+MIRRORS=(.claude/skills .agents/skills .github/skills ':(glob)skills/*/assets')
 MESSAGE="chore: regenerate vendor mirrors"
 
 "${ROOT_DIR}/scripts/generate-vendor-wrappers.sh"
 "${ROOT_DIR}/scripts/check-vendor-skills.sh"
 
 if [[ -z "$(git status --porcelain -- "${MIRRORS[@]}")" ]]; then
-  echo "Vendor mirrors already up to date."
+  echo "Generated files already up to date."
   exit 0
 fi
 

@@ -16,18 +16,22 @@ working-dir root. Only the report lives in the root.
 
 Before using this skill, check two layers, most specific wins:
 
-1. Repo-wide: `customizations/org/`, `customizations/team/`, `customizations/developer/`
-   at the repo root (applies to every skill).
-2. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   directory (applies only to this skill, overrides the repo-wide layer above).
+1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
+   folder (applies only to this skill).
+2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
+   `customizations/team/`, `customizations/developer/` at the repo root
+   (applies to every skill).
 
-Read every `.md` file found, any folder may be empty or absent. Apply them in
-addition to everything below — where a file overrides a specific rule from
-this document, prefer the override; more specific wins (per-skill dev > team >
-org > repo-wide developer > team > org). See `docs/customization.md` for the
-full per-skill framework and `AGENTS.md`'s Customization Layers section for
-the combined precedence.
+Read every `.md` file found — any folder may be empty or absent. Apply them on
+top of everything below; where a file overrides a specific rule here, follow the
+override. More specific wins: per-skill dev > team > org > repo-wide developer >
+team > org > this document. No customization may weaken this skill's safety
+rules or put credentials in committed files.
 
+**Bundled files:** paths in this skill that start with `assets/` or `scripts/` are
+relative to this skill's own folder. When you read one, or pass one to a shell
+command (which runs from the user's working folder), use this skill's folder +
+that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-workflow.json`.
 ---
 
 ## NON-NEGOTIABLE RULES (never break these)
@@ -112,8 +116,8 @@ authoritative reference for building the IAG5 service, the `--property_name` nam
 ## Determinism contract
 
 Same inputs ⇒ identical report. Enforce:
-- Fixed section set/order — from `${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/readiness-report-template.md`. Never drop a section; empty sections render `No Gateway4 references found.`
-- **The workflow + JSON-form findings are produced by `analyze_gateway4.py`** (Step 2), not by the
+- Fixed section set/order — from `assets/helpers/gateway-migration/readiness-report-template.md`. Never drop a section; empty sections render `No Gateway4 references found.`
+- **The workflow + JSON-form findings are produced by `assets/helpers/gateway-migration/analyze_gateway4.py`** (Step 2), not by the
   model — that script owns their determinism (detection, classification, sorting, aggregation).
   Its recommendation strings MUST stay byte-identical to the template. Render those sections
   verbatim from `tmp/analysis.json`; only the scripts + inventory sections are model-authored.
@@ -174,7 +178,7 @@ Prefer local files in the working dir. Otherwise pull live, reusing the `/explor
 (`mkdir -p <working-dir>/tmp`). Never write these to the working-dir root.
 
 **Auth.** Read `PLATFORM_URL`, `AUTH_METHOD`, and credentials from `<working-dir>/.env`. Reuse
-`tmp/.auth.json` if present; silent re-auth from `.env` on 401/403 (AGENTS.md auth-reuse
+`tmp/.auth.json` if present; silent re-auth from `.env` on 401/403 (`assets/AGENTS.md` auth-reuse
 procedure). Never ask for credentials if `.env` exists. **The token transport depends on the
 auth method — do not mix them up (this is the #1 cause of "malformed token" failures):**
 
@@ -293,7 +297,7 @@ resolve children only from the local files; whatever is missing stays a warning.
 IAG4 is matched two ways (confirmed):
 1. **`automation_gateway` adapter** — resolve the adapter **type** name (e.g. `AutomationGateway*`)
    from `apps.json` / `adapters.json`, NOT the instance name. A task's `app` field carries the
-   adapter *type* (AGENTS.md rules 3 & 23). Note both the type and any instance names so you can
+   adapter *type* (`assets/AGENTS.md` rules 3 & 23). Note both the type and any instance names so you can
    recognize either.
 2. **`AGManager` application** (the `agmanager` app) — workflow tasks with `task.app == "AGManager"`
    (e.g. `itential_cli`, `itential_set_config`, and IAG4 device/group management operations).
@@ -318,11 +322,11 @@ chosen in Step 0:
 
 ```bash
 # live scoped run:
-python3 -B ${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/analyze_gateway4.py \
+python3 -B assets/helpers/gateway-migration/analyze_gateway4.py \
   --tmp <working-dir>/tmp \
   { --projects <id,id>  |  --workflows "Name A;Name B"  |  --all }
 # local-files-only run (no API): add --local (and --local-dir if the JSON isn't in tmp/):
-python3 -B ${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/analyze_gateway4.py \
+python3 -B assets/helpers/gateway-migration/analyze_gateway4.py \
   --tmp <working-dir>/tmp --local --local-dir <dir-of-workflow-json> \
   { --projects <id,id>  |  --workflows "Name A;Name B"  |  --all }
 # writes <working-dir>/tmp/analysis.json
@@ -421,7 +425,7 @@ IAG4-bound field — flagging it is a false positive (Config Manager is not IAG4
 check in Step 5 is what covers IAG4-sourced devices). Each real hit lands in `forms[]` as
 `{form_name, field_key, bound_endpoint, matched_on}`; the report prints the fixed line "rebind to
 the IAG5/replacement endpoint — returns no data once IAG4 is removed." (Reference shape:
-`${CLAUDE_PLUGIN_ROOT}/../../../helpers/assets/json-form-example-rest-bound.json` and `itential-json-forms`.)
+`assets/helpers/assets/json-form-example-rest-bound.json` and `itential-json-forms`.)
 
 ## Step 3 — (folded into Step 2)
 
@@ -472,7 +476,7 @@ Manager mapping guidance comes later.)
 
 ## Step 6 — Write the report
 
-Fill `${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/readiness-report-template.md` and write
+Fill `assets/helpers/gateway-migration/readiness-report-template.md` and write
 `<working-dir>/gateway4-to-gateway5-readiness.md` (the report is the **only** file in the working-dir
 root — all pulled JSON and scratch stay in `tmp/`).
 
@@ -639,12 +643,12 @@ they will say so and start a new, separate request (e.g. `/iag`); this skill nev
 - **`--all` paginates; scoped pulls don't.** The `workflows` list caps at 100/page — only the
   `--all` bulk pull loops on `total`. Scoped runs pull via project export / by-name instead.
 - **Static dropdowns are not a concern.** Only `binding: true` REST-bound dropdowns can point at Gateway4.
-- **The script owns workflow + form classification — never hand-classify.** `analyze_gateway4.py`
+- **The script owns workflow + form classification — never hand-classify.** `assets/helpers/gateway-migration/analyze_gateway4.py`
   emits `python-script` as the default and computes interface/refs/closure. Only *unresolved
   identifiers* (empty `identifiers` block — Step 1b), an *unclear `.env` purpose*, or the *Step 0
   working-dir/scope/source questions* warrant a question — never the per-task approach or the source.
 - **Keep the recommendation strings in sync.** They live once as constants in
-  `helpers/gateway-migration/analyze_gateway4.py` and must match `readiness-report-template.md`
+  `assets/helpers/gateway-migration/analyze_gateway4.py` and must match `assets/helpers/gateway-migration/readiness-report-template.md`
   verbatim. Change them in both places or determinism breaks.
 - **Ask working dir + scope + data source first.** If not supplied, ask up front (Step 0). Warn that
   `--all` can overflow a small model's context on large platforms.
@@ -659,5 +663,5 @@ they will say so and start a new, separate request (e.g. `/iag`); this skill nev
 - `/itential-inventory` — Inventory Manager, the IAG5 replacement for gateway inventory.
 - `/itential-json-forms` — REST-bound dropdown structure and `bindingSchema`.
 - `/explore` — auth + IAP pull mechanics reused in Step 1.
-- Analysis script: `${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/analyze_gateway4.py` (Step 2, deterministic).
-- Template: `${CLAUDE_PLUGIN_ROOT}/../../../helpers/gateway-migration/readiness-report-template.md`.
+- Analysis script: `assets/helpers/gateway-migration/analyze_gateway4.py` (Step 2, deterministic).
+- Template: `assets/helpers/gateway-migration/readiness-report-template.md`.
