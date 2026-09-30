@@ -19,6 +19,8 @@ Not sure yet? Start with Itential's. Moving to your own copy later is just a rei
 /plugin marketplace add itential/builder-skills
 /plugin install itential-builder@itential-builder
 ```
+Or from a terminal: `claude plugin marketplace add itential/builder-skills && claude plugin install itential-builder@itential-builder`.
+
 Restart Claude Code once it finishes.
 
 **Check it worked:** run `/plugin` and look for `itential-builder` under installed plugins, or type `/itential-builder:` — the skills appear as suggestions.
@@ -67,7 +69,33 @@ Both steps are needed — the first fetches the new version, the second installs
 
 ---
 
-## GitHub Copilot
+## GitHub Copilot in VS Code
+
+**Install — option A, as a plugin** (no clone needed): open the Command Palette (⇧⌘P / Ctrl+Shift+P), run **Chat: Install Plugin From Source**, and enter:
+```text
+itential/builder-skills
+```
+VS Code reads the repo's `plugin.json`. Agent plugins are on by default (setting `chat.plugins.enabled`).
+
+**Install — option B, clone and open:**
+```bash
+git clone https://github.com/itential/builder-skills.git && code builder-skills
+```
+Copilot Chat reads skills straight from `.github/skills/` — no install step.
+
+**Check it worked:** in Copilot Chat, type `/` — `spec-agent` and the other skills appear. Plugin installs also show under **Configure Skills**.
+
+**Run a skill:** `/spec-agent`, or describe the task and Copilot picks the skill.
+
+**Update:** option A → VS Code checks for plugin updates every 24 hours (when `extensions.autoUpdate` is on); to update now, run **Extensions: Check for Extension Updates**. Option B → `git pull`.
+
+**Remove:** right-click the plugin in the **Agent Plugins - Installed** view → **Uninstall**.
+
+> Using VS Code with the **Claude Code** or **Codex** extension instead of Copilot? Follow the [Claude Code](#claude-code) or [Codex CLI](#codex-cli) section — the extension uses the same install and commands.
+
+---
+
+## GitHub Copilot CLI
 
 **Install** — in a terminal (needs a recent GitHub CLI; `gh skill --help` should work):
 ```bash
@@ -139,7 +167,8 @@ Once your org has a customized copy (see [`customization.md`](customization.md))
 |---|---|
 | Claude Code | `/plugin uninstall itential-builder@itential-builder`, `/plugin marketplace remove itential-builder`, then the install steps above with `acme/builder-skills` |
 | Codex CLI | `codex plugin marketplace remove itential-builder`, then the install steps above with `acme/builder-skills` |
-| Copilot / Cursor (`gh skill`) | Re-run the install command with `acme/builder-skills` and `--force` |
+| Copilot in VS Code (plugin) | Uninstall it from **Agent Plugins - Installed**, then **Chat: Install Plugin From Source** with `acme/builder-skills` |
+| Copilot CLI / Cursor (`gh skill`) | Re-run the install command with `acme/builder-skills` and `--force` |
 | Any clone | `git remote set-url origin https://github.com/acme/builder-skills.git && git pull` |
 
 Nothing to migrate — your org's rules live in the copy, not on your machine.
@@ -152,7 +181,8 @@ Nothing to migrate — your org's rules live in the copy, not on your machine.
 |---|---|---|---|
 | Claude Code | `/plugin install itential-builder@itential-builder` | `/itential-builder:spec-agent` | automatic, or `/plugin update itential-builder@itential-builder` |
 | Codex CLI | `codex plugin add itential-builder@itential-builder` | `$spec-agent` | `codex plugin marketplace upgrade itential-builder` + `plugin add` |
-| GitHub Copilot | `gh skill install itential/builder-skills --agent github-copilot --all` | `/spec-agent` | same command + `--force` |
+| Copilot in VS Code | **Chat: Install Plugin From Source** → `itential/builder-skills` | `/spec-agent` | automatic, or **Extensions: Check for Extension Updates** |
+| Copilot CLI | `gh skill install itential/builder-skills --agent github-copilot --all` | `/spec-agent` | same command + `--force` |
 | Cursor | clone, or `gh skill install ... --agent cursor --all` | `/spec-agent` | `git pull`, or `--force` |
 
 For maintainers: `.claude/skills/`, `.agents/skills/`, `.github/skills/` are generated from `skills/` by CI (`.github/workflows/generate-mirrors.yml`) — edit `skills/` only. See [`multi-vendor-architecture.md`](multi-vendor-architecture.md).

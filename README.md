@@ -49,7 +49,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 |-------------|---------|-------|
 | Itential Platform | 6.x | Target platform for every skill |
 | IAG | 5.x | Only for the `/iag` skill |
-| AI coding tool | — | Claude Code, Codex CLI, GitHub Copilot, or Cursor |
+| AI coding tool | — | Claude Code, Codex CLI, GitHub Copilot, or Cursor — in the terminal or in VS Code |
 
 ---
 
@@ -59,9 +59,10 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 
 | Tool | Install |
 |------|---------|
-| **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder` |
-| **Codex CLI** | `codex plugin marketplace add itential/builder-skills` then `codex plugin add itential-builder@itential-builder` |
-| **GitHub Copilot** | `gh skill install itential/builder-skills --agent github-copilot --all` |
+| **Claude Code** | `/plugin marketplace add itential/builder-skills` then `/plugin install itential-builder@itential-builder` (same install covers the VS Code extension) |
+| **Codex CLI** | `codex plugin marketplace add itential/builder-skills` then `codex plugin add itential-builder@itential-builder` (same install covers the VS Code extension) |
+| **GitHub Copilot in VS Code** | Command Palette → **Chat: Install Plugin From Source** → `itential/builder-skills` |
+| **GitHub Copilot CLI** | `gh skill install itential/builder-skills --agent github-copilot --all` |
 | **Cursor** | `git clone https://github.com/itential/builder-skills.git` and open the folder |
 
 How to check it worked, run skills, and update — per tool: [`docs/vendor-install.md`](docs/vendor-install.md).
