@@ -49,7 +49,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 |-------------|---------|-------|
 | Itential Platform | 6.x | Target platform for every skill |
 | IAG | 5.x | Only for the `/iag` skill |
-| AI coding tool | — | Claude Code, Codex CLI, GitHub Copilot, or Cursor — in the terminal or in VS Code |
+| AI coding harness | — | Claude Code, Codex CLI, GitHub Copilot, or Cursor — in the terminal or in VS Code |
 
 ---
 
