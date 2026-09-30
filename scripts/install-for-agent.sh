@@ -11,7 +11,7 @@ Usage: $(basename "$0") [agent] [scope] [--update] [--version <ref>] [--repo <ow
   agent      github-copilot | claude-code | cursor | codex (prompts if omitted)
   scope      project (default) | user
   --update   force re-fetch even if already installed (same as re-running install)
-  --version  pin to a tag/ref instead of latest (e.g. v1.6.7)
+  --version  pin to a tag or commit SHA instead of latest (e.g. v1.6.7)
   --repo     install from your own copy instead (e.g. acme/builder-skills)
 EOF
   exit 1
@@ -52,8 +52,9 @@ fi
 
 scope="${positional[1]:-project}"
 
-target="${REPO}"
-[[ -n "${version}" ]] && target="${REPO}@${version}"
+# gh skill takes a version via --pin (a tag or commit SHA), not owner/repo@version.
+pin=()
+[[ -n "${version}" ]] && pin=(--pin "${version}")
 
 action="Installing"
 $update && action="Updating"
@@ -61,9 +62,9 @@ echo "${action} all ${REPO} skills for --agent ${agent} --scope ${scope}..."
 
 start=$(date +%s.%N)
 if $update; then
-  gh skill install "${target}" --agent "${agent}" --scope "${scope}" --all --force
+  gh skill install "${REPO}" --agent "${agent}" --scope "${scope}" --all --force ${pin[@]+"${pin[@]}"}
 else
-  gh skill install "${target}" --agent "${agent}" --scope "${scope}" --all
+  gh skill install "${REPO}" --agent "${agent}" --scope "${scope}" --all ${pin[@]+"${pin[@]}"}
 fi
 end=$(date +%s.%N)
 
