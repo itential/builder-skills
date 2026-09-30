@@ -11,10 +11,7 @@
   "plugins": [
     {
       "name": "itential-builder",
-      "source": {
-        "source": "github",
-        "repo": "itential/builder-skills"
-      },
+      "source": "./",
       "description": "AI agent skills for the Itential Platform \u2014 deliver infrastructure automation from spec through acceptance testing and as-built documentation. Covers requirements, feasibility, design, build, QA/acceptance testing, FlowAgent, IAG, and MOP.",
       "version": "1.6.7",
       "author": {
