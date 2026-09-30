@@ -73,3 +73,23 @@ jobs:
           fi
 
           echo "All $count commit(s) conform to conventional commits."
+
+  mirror-edits:
+    name: Generated Copies Untouched
+    if: github.repository == 'itential/builder-skills'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fail if .claude/.agents/.github skills were edited instead of skills/
+        run: scripts/check-mirror-edits.sh "origin/${{ github.base_ref }}"
+
+  manifest-versions:
+    name: Manifest Versions
+    if: github.repository == 'itential/builder-skills'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check every plugin manifest carries the same version
+        run: python3 scripts/bump_version.py --check
