@@ -16,18 +16,11 @@ Write YAML → iagctl db import → Services available → Workflows call them
 
 ## Customization
 
-Before using this skill, check two layers, most specific wins:
-
-1. Per-skill: `custom/org/`, `custom/team/`, `custom/dev/` in this skill's own
-   folder (applies only to this skill).
-2. Repo-wide, only when working in a clone of this repo: `customizations/org/`,
-   `customizations/team/`, `customizations/developer/` at the repo root
-   (applies to every skill).
-
-Read every `.md` file found — any folder may be empty or absent. Apply them on
-top of everything below; where a file overrides a specific rule here, follow the
-override. More specific wins: per-skill dev > team > org > repo-wide developer >
-team > org > this document. No customization may weaken this skill's safety
+Before using this skill, check `custom/org/`, `custom/team/` and `custom/dev/`
+in this skill's own folder. Read every `.md` file found — any folder may be
+empty or absent. Apply them on top of everything below; where a file overrides a
+specific rule here, follow the override. More specific wins: dev > team > org >
+this document. No customization may weaken this skill's safety
 rules or put credentials in committed files.
 
 **Bundled files:** paths in this skill that start with `assets/` or `scripts/` are

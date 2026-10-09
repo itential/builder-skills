@@ -8,21 +8,13 @@ This project contains skills for assisting developers on the Itential Platform. 
 
 > ## Customization Layers
 >
-> Two mechanisms, different scope and audience — both checked before acting. Numbered below in true precedence order, highest first — most specific wins:
->
-> **Per-skill** (`skills/<name>/custom/` — `org`/`team` committed in a customer's own copy of this repo, `dev` personal and gitignored; always empty upstream — see `docs/customization.md`) — applies only to that one skill, and outranks the repo-wide layer below for it:
+> Each skill's `skills/<name>/custom/` folder — `org`/`team` committed in a customer's own copy of this repo, `dev` personal and gitignored; always empty upstream (see `docs/customization.md`). Checked before acting, in precedence order, highest first — most specific wins:
 > 1. `skills/<name>/custom/dev/`
 > 2. `skills/<name>/custom/team/`
 > 3. `skills/<name>/custom/org/`
+> 4. Core repository guidance — `AGENTS.md`, `skills/` — lowest priority. Everything above may narrow or override it, but must not weaken a skill's safety rules (e.g. the ban on remediation tasks) or put credentials in committed files.
 >
-> **Repo-wide** (`customizations/` — Itential-internal team customizing their own copy of this repo; `org`/`team` tracked in git, `developer` gitignored except examples) — applies to every skill:
-> 4. `customizations/developer/`
-> 5. `customizations/team/`
-> 6. `customizations/org/`
->
-> 7. Core repository guidance — `AGENTS.md`, `skills/` — lowest priority. Everything above may narrow or override it, but must not weaken a skill's safety rules (e.g. the ban on remediation tasks) or put credentials in committed files.
->
-> Non-conflicting rules from every layer present still apply — this is layering, not replacement. See `docs/customization.md` for the full per-skill framework (decision guide, override format, fork-maintenance workflow).
+> Non-conflicting rules from every layer present still apply — this is layering, not replacement. See `docs/customization.md` for the full framework (decision guide, override format, fork-maintenance workflow).
 
 ## Skill Router
 

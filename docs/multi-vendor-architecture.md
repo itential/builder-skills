@@ -30,7 +30,6 @@ One folder of skills, read directly by every harness's installer — no per-tool
 | `skills/<name>/custom/{org,team,dev}/` | Customer customizations — empty in Itential's repo (see `docs/customization.md`) |
 | `helpers/`, `spec-files/`, `environments/`, `AGENTS.md` | **Shared library** — templates, the spec library, `.env` templates, platform rules. Edited once, bundled into every skill that uses them |
 | `scripts/bundle-map.json` | Whole-directory bundles a skill needs beyond the files it names (builder-agent → all of `helpers/`, spec-agent → all of `spec-files/`) |
-| `customizations/{org,team,developer}/` | Repo-wide layer for an Itential-internal team's own clone |
 | Manifests | `.claude-plugin/` (Claude Code), root `plugin.json` (Agent Plugins v1.0.0 — Codex, Copilot, VS Code; Codex display fields under `extensions["com.openai"]`), `.cursor-plugin/` (Cursor Team Marketplace), `.agents/plugins/marketplace.json` (Codex marketplace). Every marketplace entry points at `"./"` / `"."`, so installing from an org's own copy installs that copy. |
 
 `skills/<name>/assets/` is generated — never edit it by hand. After changing the library or a skill's references, run `scripts/check-generated.sh` and commit what it changes.
@@ -72,4 +71,4 @@ Exact commands, including working from a clone: `docs/vendor-install.md`.
 
 ## Customization
 
-Each skill's `custom/{org,team,dev}/` is read by the skill before it acts; in `itential/builder-skills` those folders hold only `.gitkeep` placeholders (`guard-custom.yml`), and `custom/dev/` is gitignored. A customer's committed `custom/org` and `custom/team` files travel with the skill into every install. The repo-wide `customizations/` layer and the combined precedence are in `AGENTS.md` → Customization Layers. Full guide: **`docs/customization.md`**.
+Each skill's `custom/{org,team,dev}/` is read by the skill before it acts; in `itential/builder-skills` those folders hold only `.gitkeep` placeholders (`guard-custom.yml`), and `custom/dev/` is gitignored. A customer's committed `custom/org` and `custom/team` files travel with the skill into every install. Precedence is in `AGENTS.md` → Customization Layers. Full guide: **`docs/customization.md`**.

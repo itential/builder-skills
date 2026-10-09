@@ -132,8 +132,6 @@ Always edit under `skills/<name>/custom/`. Each skill's `assets/` folder is gene
 
 More specific wins: `dev` over `team` over `org` over the skill's own defaults. Rules that don't conflict all apply together. Two files in the same layer shouldn't contradict each other — if they do, fix the files.
 
-The repo also has a repo-wide `customizations/` folder, used by Itential's internal team; see `AGENTS.md` → Customization Layers for how it combines with the per-skill folders.
-
 ### Troubleshooting
 
 | Symptom | Likely cause | Fix |

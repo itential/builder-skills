@@ -42,9 +42,6 @@ desktop.ini
 credentials.json
 secrets.yaml
 secrets.yml
-customizations/developer/*
-!customizations/developer/README.md
-!customizations/developer/*.example.md
 
 # =============================================================================
 # Logs and Databases

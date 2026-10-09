@@ -5,6 +5,9 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Removed the repo-wide `customizations/` folder: each skill's own `custom/org`, `custom/team` and `custom/dev` folders are the one place for an organization's rules, and they travel with every install. Move any rules from `customizations/` into the matching skills' `custom/` folders
+- Removed `scripts/use-skill`; install the plugin or load a clone with `claude --plugin-dir .` instead
+
 ## 2.0.0
 
 - Added native installs for Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor alongside Claude Code, each reading the same `skills/` folder — no per-tool copies in the repo. Working from a clone, load it as a plugin (e.g. `claude --plugin-dir .`); skills are invoked with the plugin prefix (`/itential-builder:spec-agent`)
