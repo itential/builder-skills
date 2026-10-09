@@ -855,11 +855,11 @@
             },
             {
               "text": "displayPath is '.body.name'",
-              "type": "important"
+              "type": "structural"
             },
             {
               "text": "Does not use a `$var.` prefix inside the merge item reference",
-              "type": "important"
+              "type": "structural"
             }
           ]
         },
@@ -878,11 +878,11 @@
             },
             {
               "text": "Does not add a `query` key beside `task`/`value`",
-              "type": "important"
+              "type": "structural"
             },
             {
               "text": "displayPath is '.body.name'",
-              "type": "important"
+              "type": "structural"
             }
           ]
         },
@@ -901,11 +901,11 @@
             },
             {
               "text": "Does not add a decorators entry for the evaluation",
-              "type": "important"
+              "type": "structural"
             },
             {
               "text": "Leaves operand_1 as a plain {task, variable} reference",
-              "type": "important"
+              "type": "structural"
             }
           ]
         },
@@ -928,7 +928,7 @@
             },
             {
               "text": "Mentions the enable_query.py check/fix helper or verifying decorators before create/update",
-              "type": "important"
+              "type": "structural"
             }
           ]
         },
@@ -947,7 +947,7 @@
             },
             {
               "text": "Does not claim that using `variable` makes workflow create or update fail",
-              "type": "important"
+              "type": "structural"
             }
           ]
         },
@@ -966,7 +966,7 @@
             },
             {
               "text": "Does not put the query under `variables` or omit the decorator",
-              "type": "important"
+              "type": "structural"
             }
           ]
         }

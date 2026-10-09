@@ -11,11 +11,13 @@
 |-------|-------|------------|----------|------------|----------|
 | spec-agent | 5 | 18 | 6 | 11 | 1 |
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
-| builder-agent | 29 | 90 | 44 | 42 | 4 |
+| builder-agent | 35 | 112 | 57 | 51 | 4 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
 | flowagent | 1 | 1 | 0 | 0 | 1 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **57** | **185** | **79** | **96** | **11** |
+| **Total** | **63** | **207** | **92** | **105** | **11** |
+
+**2026-10-09 update:** Added builder-agent evals 30–35 for the Enable Query fixes (`builder-agent/SKILL.md` Enable Query section, "Where `pointer` goes"): 30 `merge` item with an inline query, 31 `childJob` variable with an inline query, 32 query inside an `evaluation` operand (move it to the evaluation item), 33 a `#/path` with no decorator is not safe to open and save in Studio, 34 `merge` reading a `childJob` output uses `variable`, 35 `childJob` loop `data_array` with an inline query. Ran the skill-creator executor→grader pipeline (`evals/workspace/enable-query/iteration-1/`), one run per configuration, old skill (upstream `507b92c`) vs new skill: **new skill 100% pass rate, old skill 65.3%**. Per eval (new / old): 30 4/4 vs 1/4, 31 4/4 vs 2/4, 32 4/4 vs 3/4, 33 4/4 vs 3/4, 34 3/3 vs 2/3, 35 3/3 vs 3/3. Eval 35 does not discriminate (the old generic `/incoming/<field>` rule already answers it). The graders flagged three assertions as loosely worded — eval 32 "operand_1 stays a plain reference", eval 33 "mentions the helper or verifying decorators", eval 34 "silently null" — candidates for tightening; tightening would only lower the old skill's score. The skill changes themselves were verified separately with live jobs and Automation Studio saves on Itential Platform 6.5.2 (see the PR).
 
 **2026-09-09 update:** Added builder-agent evals 28–29 for the `POST /workflow_engine/workflows/validate` adoption (see `AGENTS.md` Rule 7, `builder-agent/SKILL.md` pre-flight validation section). Eval 28 asserts the new endpoint is used over the older `/automation-studio/workflows/validate`, and that the agent still runs a live forced-error-transition test rather than trusting `isValid:true` alone. Eval 29 is a trap scenario (clean `isValid:true` response hiding a missing error transition and an invalid `evaluation.operator` value) asserting the agent still catches both. Verified with real (not simulated) sub-agent runs before and after the skill change, on the actual live `se-lab-poc` platform: against the pre-change skill content, two independent build sessions both defaulted to the old `/automation-studio/workflows/validate` endpoint exclusively; against the updated skill content, both switched to the new endpoint and both independently ran a live forced-failure job to verify the error transition, citing Rule 19 as the reason `isValid:true` alone wasn't sufficient. The trap scenario (run against the updated skill content only) correctly identified both defects. No regressions observed on other builder-agent behaviors during these runs.
 
