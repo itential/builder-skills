@@ -210,6 +210,20 @@ Ready-to-run specs in [`spec-files/demo/`](spec-files/demo/) for walkthroughs an
 
 ---
 
+## Related skill packs
+
+Itential publishes three skill packs. They install side by side, and each works on its own:
+
+| Pack | Repo | Plugin | For |
+|---|---|---|---|
+| **Builder** (this repo) | [`itential/builder-skills`](https://github.com/itential/builder-skills) | `itential-builder` | Design, build and test automations — spec, feasibility, design, build, QA and as-built |
+| **Admin** | [`itential/admin-skills`](https://github.com/itential/admin-skills) | `itential-admin-skills` | Platform health, adapters and applications, users, groups, roles, service accounts, SSO, integrations |
+| **Operator** | [`itential/operator-skills`](https://github.com/itential/operator-skills) | `itential-operator-skills` | Run automations, monitor jobs, diagnose and retry failures, approve manual tasks, manage triggers |
+
+Install any of them the same way — the commands in [`docs/vendor-install.md`](docs/vendor-install.md), with that pack's repo and plugin name.
+
+---
+
 ## Docs
 
 - [`docs/quickstart.md`](docs/quickstart.md) — install, setup, and first delivery walkthrough
