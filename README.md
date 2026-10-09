@@ -2,7 +2,15 @@
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
 
-Spec-driven infrastructure automation and orchestration — delivered by AI agents on Itential.
+AI agent skills for **building automations on the Itential Platform**, spec-driven from requirements to as-built: refine the use case, assess feasibility, design, build, test, and record what was delivered — plus skills for workflows, templates, MOP, golden config, Lifecycle Manager, IAG, FlowAgent and JSON forms. Works in Claude Code, Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor.
+
+| Start with | Use it for |
+|---|---|
+| `spec-agent` | A new automation: turn the use case into an approved spec, then hand off through feasibility, design, build, test and as-built |
+| `explore` | Connect to a platform and see what's there — adapters, tasks, workflows — before committing to a delivery |
+| `project-to-spec` / `documentation` | Document automation that already exists: one project, or everything on the platform |
+
+All 17 skills are listed under [Skills](#skills).
 
 ---
 
