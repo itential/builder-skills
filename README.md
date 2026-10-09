@@ -176,11 +176,12 @@ skills/<skill-name>/
 
 How it works, in four steps:
 1. **Once:** an admin makes a private copy of this repo for your org.
-2. **Add a rule:** commit a markdown file under the right skill's `custom/` folder and push. A pipeline in the repo delivers it to every AI tool — no scripts.
+2. **Add a rule:** commit a markdown file under the right skill's `custom/` folder and push. It's part of the skill from then on — nothing to generate or run.
 3. **Install:** everyone installs from your org's copy instead of Itential's.
 4. **Updates:** pull Itential's releases into your copy as you normally sync from upstream. Your rules are never touched.
 
 Step-by-step guide, with what to check at each step: [`docs/customization.md`](docs/customization.md).
+
 ---
 
 ## Spec Library
@@ -217,7 +218,7 @@ Ready-to-run specs in [`spec-files/demo/`](spec-files/demo/) for walkthroughs an
 - [`docs/troubleshooting.md`](docs/troubleshooting.md) — common issues and fixes
 - [`docs/customization.md`](docs/customization.md) — customize any skill without editing it directly (org/team/dev layers), and how to maintain a customized fork across upstream updates
 - [`docs/vendor-install.md`](docs/vendor-install.md) — per-vendor install, invoke, and update commands
-- [`docs/multi-vendor-architecture.md`](docs/multi-vendor-architecture.md) — how the canonical `skills/` tree maps to each vendor's plugin format and local-repo mirror
+- [`docs/multi-vendor-architecture.md`](docs/multi-vendor-architecture.md) — how every tool installs from `skills/`, how skills bundle their files, and the CI checks
 - [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, projects, and reference patterns
 
 ---
@@ -230,8 +231,7 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## Support
 
-- **Bug Reports**: [Open an issue](https://github.com/itential/builder-skills/issues/new)
-- **Questions**: [Start a discussion](https://github.com/itential/builder-skills/discussions)
+- **Bug reports and questions**: [Open an issue](https://github.com/itential/builder-skills/issues/new)
 - **Lead Maintainer**: [@keepithuman](https://github.com/keepithuman)
 
 ---
