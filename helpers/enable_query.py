@@ -9,11 +9,15 @@ saving the workflow silently strips the `#/<path>` -- the task then receives the
 
 Usage:
   python3 enable_query.py check workflow.json        # list tasks whose decorators are missing/wrong
-  python3 enable_query.py fix   workflow.json        # rewrite decorators in place from the references
+  python3 enable_query.py fix   workflow.json        # rewrite query decorators in place from the references
+
+`fix` replaces only query decorators (others, e.g. `encryption`, are kept), lists what it can't repair
+(those need a change to the references themselves) and exits 1 if anything is left. It writes the file
+back as 2-space JSON, so on a hand-formatted file (e.g. helpers/assets) apply `check`'s findings by hand.
 
 Library:
-  from enable_query import decorators_for
-  task["variables"]["decorators"] = decorators_for(task)
+  from enable_query import apply_decorators
+  apply_decorators(task)   # sets the query decorators a task's references call for, keeps the rest
 
 Pointer rules (verified against Studio saves):
   top-level field        $var.x#/a/b                          /incoming/<field>
@@ -122,6 +126,18 @@ def decorators_for(task):
   return decorators
 
 
+def apply_decorators(task):
+  """Set the query decorators a task's references call for, keeping any other decorators.
+  Returns True if the task changed."""
+  variables = task.setdefault("variables", {})
+  current = variables.get("decorators", [])
+  updated = [d for d in current if d.get("type") != "query"] + decorators_for(task)
+  if updated == current:
+    return False
+  variables["decorators"] = updated
+  return True
+
+
 def check_task(task):
   """Return a list of problems for one task (empty list means decorators agree with references)."""
   want = {d["pointer"]: d["displayPath"] for d in decorators_for(task)}
@@ -188,24 +204,27 @@ def main(argv):
   mode, path = argv[1], argv[2]
   with open(path) as handle:
     document = json.load(handle)
-  failures = 0
+  failures, changed = 0, False
   for location, task in find_tasks(document):
     problems = check_task(task)
     if not problems:
       continue
+    if mode == "fix" and apply_decorators(task):
+      changed = True
+      print(f"fixed decorators: {location} ({task.get('name')})")
+      problems = check_task(task)
+    if not problems:
+      continue
     failures += 1
-    if mode == "check":
-      for problem in problems:
-        print(f"{location} ({task.get('name')}): {problem}")
-    else:
-      task["variables"]["decorators"] = decorators_for(task)
-      print(f"fixed {location} ({task.get('name')})")
-  if mode == "fix" and failures:
+    for problem in problems:
+      prefix = "needs a manual change: " if mode == "fix" else ""
+      print(f"{prefix}{location} ({task.get('name')}): {problem}")
+  if changed:
     with open(path, "w") as handle:
-      json.dump(document, handle, indent=2)
-  if mode == "check":
-    print("OK" if not failures else f"{failures} task(s) need attention")
-  return 1 if (mode == "check" and failures) else 0
+      json.dump(document, handle, indent=2, ensure_ascii=False)
+      handle.write("\n")
+  print("OK" if not failures else f"{failures} task(s) need attention")
+  return 1 if failures else 0
 
 
 if __name__ == "__main__":

@@ -1500,7 +1500,7 @@
                 {
                   "type": "query",
                   "pointer": "/incoming/body",
-                  "displayPath": ".result.results.0.output"
+                  "displayPath": ".result.results[0].output"
                 }
               ]
             },
