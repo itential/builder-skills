@@ -219,7 +219,7 @@ Ready-to-run specs in [`spec-files/demo/`](spec-files/demo/) for walkthroughs an
 - [`docs/customization.md`](docs/customization.md) — customize any skill without editing it directly (org/team/dev layers), and how to maintain a customized fork across upstream updates
 - [`docs/vendor-install.md`](docs/vendor-install.md) — per-vendor install, invoke, and update commands
 - [`docs/multi-vendor-architecture.md`](docs/multi-vendor-architecture.md) — how every tool installs from `skills/`, how skills bundle their files, and the CI checks
-- [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, projects, and reference patterns
+- [`helpers/`](helpers/) — JSON scaffolds for workflows, templates, projects, and reference patterns (the source copy; installed skills carry their own copy in `assets/helpers/`)
 
 ---
 

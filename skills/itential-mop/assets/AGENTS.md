@@ -53,7 +53,7 @@ See **Developer Flow** below for the full six-stage delivery pipeline (stages, a
 
 ### Directory Layout
 
-Platform data (shared, pulled once) and use-case data (per engagement) live in separate directories. **Never mix them.**
+Platform data (shared, pulled once) and use-case data (per engagement) live in separate directories. **Never mix them.** `{use-case}` always means `use-cases/<use-case-name>/` inside the folder you're working in — a clone of this repo, or any folder when the skills are installed as a plugin. `platform/` and `scripts/` exist only in a clone; with a plugin install, skills pull platform data into `{use-case}/` themselves.
 
 ```
 builder-skills/
@@ -80,7 +80,7 @@ builder-skills/
         └── (deliverables: customer-spec.md, feasibility.md, solution-design.md, test-plan.md, test-cases.json, test-report.md, as-built.md)
 ```
 
-**Setup sequence (one-time per platform):**
+**Setup sequence (working from a clone only — one-time per platform):**
 ```bash
 ./scripts/platform_pull.py <platform-url> <client-id> <client-secret>
 ```
@@ -97,11 +97,11 @@ builder-skills/
 
 **At the start of every session — read the memory file first:**
 ```bash
-cat use-cases/<name>/use-case-memory.md
+cat {use-case}/use-case-memory.md
 ```
 It contains the platform URL, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented. If the file doesn't exist, create it from `helpers/use-case-memory.md`.
 
-**This applies even in freestyle/explore-mode work with no formal spec.** If a session creates a workflow, project, or other durable platform asset — or discovers a non-obvious platform quirk (e.g., "workflow_builder and automation-studio are separate stores," "runCode requires reading stdin, not a pre-injected `data` variable") — create or update `use-cases/<name>/use-case-memory.md` with at least the IDs created and the lesson learned, even if no spec/design doc exists for this engagement. Don't work entirely out of `/tmp` scratch files and let a session's hard-won discoveries evaporate when it ends — the cost of writing a few lines to a durable file is far lower than the cost of a future session re-discovering the same platform quirk from scratch.
+**This applies even in freestyle/explore-mode work with no formal spec.** If a session creates a workflow, project, or other durable platform asset — or discovers a non-obvious platform quirk (e.g., "workflow_builder and automation-studio are separate stores," "runCode requires reading stdin, not a pre-injected `data` variable") — create or update `{use-case}/use-case-memory.md` with at least the IDs created and the lesson learned, even if no spec/design doc exists for this engagement. Don't work entirely out of `/tmp` scratch files and let a session's hard-won discoveries evaporate when it ends — the cost of writing a few lines to a durable file is far lower than the cost of a future session re-discovering the same platform quirk from scratch.
 
 **If you cause and then recover from a mistake with real consequences (data loss, a destroyed asset, a broken integration), record it in `use-case-memory.md` even more diligently than a routine successful step.** These are exactly the lessons a future session — yours or another model's — most needs to avoid repeating. Write down what you did, what broke, why, and the exact fix, not just the final recovered state.
 
@@ -129,9 +129,9 @@ It contains the platform URL, project ID, what's already built, decisions made, 
 
 ### Auth Reuse — Authenticate Once, Reuse Everywhere
 
-**Auth happens when first needed** — in `/explore` (explore path) or in `/solution-arch-agent` during Feasibility. The token is saved to `use-cases/{use-case}/.auth.json`. Every subsequent skill should:
-1. Read `use-cases/{use-case}/.auth.json` for the token
-2. Read `use-cases/{use-case}/.env` for `PLATFORM_URL` and credentials
+**Auth happens when first needed** — in `/explore` (explore path) or in `/solution-arch-agent` during Feasibility. The token is saved to `{use-case}/.auth.json`. Every subsequent skill should:
+1. Read `{use-case}/.auth.json` for the token
+2. Read `{use-case}/.env` for `PLATFORM_URL` and credentials
 3. Use the token for all API calls — Bearer header for OAuth, query parameter for local-dev `/login` tokens (see "Initial authentication" below for which)
 4. On auth error (401/403): re-authenticate silently — see procedure below
 5. **Never ask the user for credentials if `.env` exists**
@@ -149,9 +149,9 @@ Write whichever token you got, plus `auth_method` (`"local"` or `"oauth"`) so do
 
 When any API call returns 401 or 403, do not stop and do not ask the user. Re-authenticate silently:
 
-1. Read credentials from `use-cases/{use-case}/.env`
+1. Read credentials from `{use-case}/.env`
 2. Call: `POST {PLATFORM_URL}/oauth/token` with `Content-Type: application/x-www-form-urlencoded` and body `grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}`
-3. Write the new token back to `use-cases/{use-case}/.auth.json`
+3. Write the new token back to `{use-case}/.auth.json`
 4. Retry the failed request with the new token
 
 If `.env` does not exist and re-auth is needed, then and only then ask the user for credentials.
@@ -179,7 +179,7 @@ If a named *project* (or anything inside one) the engineer expects doesn't show 
 4. Never hardcode API assumptions — the spec is the source of truth
 
 **Before fetching task schemas:**
-1. Check if `use-cases/{use-case}/task-schemas.json` exists — search it first with `jq` or `grep`
+1. Check if `{use-case}/task-schemas.json` exists — search it first with `jq` or `grep`
 2. Only call `multipleTaskDetails` for tasks NOT already in the local file
 3. After fetching, always append to the local file so future lookups are instant
 

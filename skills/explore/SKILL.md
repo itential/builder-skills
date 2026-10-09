@@ -45,7 +45,9 @@ Connects you to a platform, pulls everything needed to work freely, and routes y
 
 Check for credentials in this order:
 1. `{use-case}/.env` — use-case-specific
-2. `assets/environments/*.env` — pre-configured environments at repo root
+2. A `.env` in the working folder — copy it into `{use-case}/.env`
+
+`assets/environments/*.env` are **templates** with placeholder values (`cloud-lab.env` for OAuth, `local-dev.env` for username/password) — never authenticate with them. Show the user the matching template to fill in instead.
 
 If found, authenticate automatically. If not, ask:
 1. Platform URL

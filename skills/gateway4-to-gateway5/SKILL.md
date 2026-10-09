@@ -180,7 +180,7 @@ auth method — do not mix them up (this is the #1 cause of "malformed token" fa
   `grant_type=client_credentials&client_id=...&client_secret=...`) → `access_token`. Send it on
   **every** call as an `Authorization: Bearer <token>` **header**. `?token=` does NOT work for
   OAuth tokens.
-- **Local (`AUTH_METHOD=login` / username+password):** `POST /login` (`application/json`,
+- **Local (`AUTH_METHOD=password` / username+password):** `POST /login` (`application/json`,
   `{"username":...,"password":...}`) → token string. Send it as a `?token=<token>` **query
   param**.
 

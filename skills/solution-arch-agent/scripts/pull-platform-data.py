@@ -13,6 +13,10 @@ Writes:
     {use-case}/apps.json          — adapter/app type names
     {use-case}/adapters.json      — adapter instances and status
     {use-case}/applications.json  — running applications
+    {use-case}/workflows.json     — every workflow ({"items": [...], "total": N})
+    {use-case}/projects.json      — projects visible to this client
+    {use-case}/devices.json       — every device ({"list": [...], "total": N})
+    {use-case}/device-groups.json — device groups
     {use-case}/platform-summary.json — compact summary for AI context
 """
 
@@ -63,22 +67,48 @@ def main():
             "apps":          pool.submit(get, "/automation-studio/apps/list", "apps.json"),
             "adapters":      pool.submit(get, "/health/adapters", "adapters.json"),
             "applications":  pool.submit(get, "/health/applications", "applications.json"),
-            "workflows":     pool.submit(get, "/automation-studio/workflows?limit=500", "workflows.json"),
             "projects":      pool.submit(get, "/automation-studio/projects?limit=100", "projects.json"),
             "device_groups": pool.submit(get, "/configuration_manager/deviceGroups", "device-groups.json"),
         }
-        # devices needs POST
-        def get_devices():
-            import json as _json
-            url = f"{base}/configuration_manager/devices"
-            body = _json.dumps({"options": {"start": 0, "limit": 1000, "sort": [{"name": 1}], "order": "ascending"}}).encode()
-            req = Request(url, data=body, headers={**headers, "Content-Type": "application/json"})
+        # Workflows are paged (the API returns at most 100 per request) -- fetch every page,
+        # sorted by _id (the default order shifts between pages, duplicating some workflows
+        # and skipping others), so reuse searches see all of them. Saved as {"items": [...], "total": N}.
+        def get_workflows():
+            items, total = [], None
             try:
-                with urlopen(req, timeout=120) as r:
-                    data = r.read().decode("utf-8")
+                while total is None or len(items) < total:
+                    req = Request(f"{base}/automation-studio/workflows?limit=100&skip={len(items)}&sort=_id&order=1", headers=headers)
+                    with urlopen(req, timeout=120) as r:
+                        page = json.loads(r.read().decode("utf-8"))
+                    total = page.get("total", 0)
+                    if not page.get("items"):
+                        break
+                    items.extend(page["items"])
+                data = {"items": items, "total": total}
+                with open(os.path.join(use_case, "workflows.json"), "w") as f:
+                    json.dump(data, f)
+                return data
+            except Exception as e:
+                print(f"  WARN: workflows.json failed — {e}")
+                return None
+        futures["workflows"] = pool.submit(get_workflows)
+
+        # Devices need POST. Paging them is unreliable (pages overlap and skip devices), so
+        # ask for the total first, then fetch every device in one request.
+        def get_devices():
+            url = f"{base}/configuration_manager/devices"
+            def fetch(limit):
+                body = json.dumps({"options": {"start": 0, "limit": limit, "sort": [{"name": 1}], "order": "ascending"}}).encode()
+                req = Request(url, data=body, headers={**headers, "Content-Type": "application/json"})
+                with urlopen(req, timeout=300) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            try:
+                data = fetch(1)
+                if data.get("total", 0) > len(data.get("list", [])):
+                    data = fetch(data["total"])
                 with open(os.path.join(use_case, "devices.json"), "w") as f:
-                    f.write(data)
-                return _json.loads(data)
+                    json.dump(data, f)
+                return data
             except Exception as e:
                 print(f"  WARN: devices.json failed — {e}")
                 return None
@@ -124,7 +154,7 @@ def main():
 
     # Counts only — AI searches raw files for details
     if results["workflows"] and isinstance(results["workflows"], dict):
-        summary["workflow_count"] = results["workflows"].get("count", 0)
+        summary["workflow_count"] = len(results["workflows"].get("items", []))
 
     if results["devices"] and isinstance(results["devices"], dict):
         summary["device_count"] = len(results["devices"].get("list", []))
