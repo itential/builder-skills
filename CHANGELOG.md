@@ -5,6 +5,11 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Fixed builder-agent's Enable Query guidance: it only showed the plain-field decorator, so workflows with a `#/path` but a missing or wrong decorator ran correctly yet showed no query in Studio, and opening then saving them silently dropped the query. It now gives the verified `pointer` for every field shape — top-level fields, whole object fields, `runCode` `data` and `transformation` `variableMap` keys, `merge` items, `childJob` variables and `childJob` loop `data_array`
+- Fixed builder-agent telling builders to put `query` inside an `evaluation` operand, which never applied; the query goes on each evaluation item (`query` / `rightQuery`)
+- Fixed builder-agent saying a `merge` item reading a `childJob` output must use `value`; on 6.5.2 `value` resolves to null with no error and `variable` is correct
+- Added builder-agent guidance for Enable Query edge cases: array indexes (`#/items/0` shown as `.items[0]`), keys containing `/`, `~` or `.` (dotted keys need `.["a.b"]`), and what a path that doesn't exist does (error transition; on `evaluation`, the failure transition)
+- Added `helpers/enable_query.py` to generate and check Enable Query decorators (`check` / `fix` / `decorators_for`); it also flags `$var` references placed inside a static object, which are sent as literal text
 - Fixed `scripts/use_case_init.py` writing an `.auth.json` without `platform_url`/`auth_method`, which made solution-arch-agent's `pull-platform-data.py` crash; it now also starts `use-case-memory.md` from the template
 - Fixed solution-arch-agent's platform pull recording only the first page of workflows (100) and devices (1,000) — it now fetches all of them, so reuse searches see every workflow
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere

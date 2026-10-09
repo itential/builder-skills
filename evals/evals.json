@@ -839,6 +839,136 @@
               "type": "structural"
             }
           ]
+        },
+        {
+          "id": 30,
+          "prompt": "I'm building a workflow where job variable `device` holds an object like {\"body\": {\"name\": \"r1\"}}. I want a `merge` task whose first item (key `deviceName`) takes just `body.name` from it, with no separate `query` task. Show me the merge task's `incoming` and `decorators` JSON.",
+          "expected_output": "Item 0 value is {\"task\": \"job\", \"variable\": \"device#/body/name\"} (suffix on the variable string, no `$var.` prefix, no `query` key). decorators has one query entry with pointer \"/incoming/data_to_merge/0/value/variable\" and displayPath \".body.name\". Mentions both halves are required.",
+          "assertions": [
+            {
+              "text": "Puts the path on the variable string as 'device#/body/name' (not a `query` key beside `variable`)",
+              "type": "critical"
+            },
+            {
+              "text": "Adds a query decorator with pointer '/incoming/data_to_merge/0/value/variable'",
+              "type": "critical"
+            },
+            {
+              "text": "displayPath is '.body.name'",
+              "type": "important"
+            },
+            {
+              "text": "Does not use a `$var.` prefix inside the merge item reference",
+              "type": "important"
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "prompt": "A childJob task passes the child's variable `hostname` from job variable `device` (object {\"body\": {\"name\": \"r1\"}}), narrowed to body.name inline with Enable Query, no separate query task. Give me the childJob task's `variables.incoming.variables` and `decorators`.",
+          "expected_output": "variables.hostname is {\"task\": \"job\", \"value\": \"device#/body/name\"} (childJob uses `value`, suffix on the string, no `query` key). decorators has one entry with pointer \"/incoming/variables/hostname\" and displayPath \".body.name\".",
+          "assertions": [
+            {
+              "text": "Uses `value` (not `variable`) with 'device#/body/name' for the childJob variable reference",
+              "type": "critical"
+            },
+            {
+              "text": "Decorator pointer is '/incoming/variables/hostname' (stops at the variable name)",
+              "type": "critical"
+            },
+            {
+              "text": "Does not add a `query` key beside `task`/`value`",
+              "type": "important"
+            },
+            {
+              "text": "displayPath is '.body.name'",
+              "type": "important"
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "prompt": "My evaluation task compares `operand_1` {\"task\": \"job\", \"variable\": \"src\", \"query\": \"body.name\"} == static \"poc-a\" and it never matches even though src.body.name is \"poc-a\". Studio also shows no query on that task. What's wrong and what should the evaluation look like?",
+          "expected_output": "Explains a `query` key inside the operand is ignored (operand resolves to the whole object, so the comparison fails; Studio has nothing to show). Fix: put `query` (\".body.name\") and `rightQuery` (\"\") on the evaluation object itself next to `operator`, leaving operand_1 as {\"task\":\"job\",\"variable\":\"src\"}. No decorator for evaluation.",
+          "assertions": [
+            {
+              "text": "Identifies the query key inside operand_1 as the cause (ignored at runtime)",
+              "type": "critical"
+            },
+            {
+              "text": "Moves the query to the evaluation object as `query` with `rightQuery` present",
+              "type": "critical"
+            },
+            {
+              "text": "Does not add a decorators entry for the evaluation",
+              "type": "important"
+            },
+            {
+              "text": "Leaves operand_1 as a plain {task, variable} reference",
+              "type": "important"
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "prompt": "I generated a workflow where a toLowerCase task's `str` is \"$var.job.name#/body/name\" and `decorators` is []. Jobs run correctly. A teammate wants to open it in Studio, rename a task and save. Is that safe?",
+          "expected_output": "No. The job runs from the #/path suffix but Studio reads the decorator; with none, Studio shows no query, and saving silently strips the '#/body/name', so the task then gets the whole object and downstream steps break without an error at the toLowerCase task. Add decorators [{type: query, pointer: /incoming/str, displayPath: .body.name}] (or run helpers/enable_query.py fix) before anyone opens it.",
+          "assertions": [
+            {
+              "text": "Answers that it is not safe to open and save as-is",
+              "type": "critical"
+            },
+            {
+              "text": "States that saving strips the '#/path' suffix when the decorator is missing",
+              "type": "critical"
+            },
+            {
+              "text": "Gives the decorator: pointer '/incoming/str', displayPath '.body.name'",
+              "type": "critical"
+            },
+            {
+              "text": "Mentions the enable_query.py check/fix helper or verifying decorators before create/update",
+              "type": "important"
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "prompt": "My workflow runs a childJob (task id `c001`) and then a merge task whose first item should hold the child's whole `job_details`. Write that merge item. The job completes, but my current item `{\"key\": \"child\", \"value\": {\"task\": \"c001\", \"value\": \"job_details\"}}` always comes out null.",
+          "expected_output": "Uses `{\"key\": \"child\", \"value\": {\"task\": \"c001\", \"variable\": \"job_details\"}}`. Explains that a merge item reading a childJob output uses `variable` like any other merge item; with `value` the workflow creates and runs but the item resolves to null with no error. Does not claim that `variable` fails workflow create.",
+          "assertions": [
+            {
+              "text": "Uses `variable` (not `value`) for the merge item reading the childJob's job_details",
+              "type": "critical"
+            },
+            {
+              "text": "Explains that `value` silently resolves to null",
+              "type": "critical"
+            },
+            {
+              "text": "Does not claim that using `variable` makes workflow create or update fail",
+              "type": "important"
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "prompt": "I'm building a childJob in loop mode (loopType \"parallel\", variables {}) whose `data_array` should be `body.devices` from job variable `inventory`, using Enable Query instead of a separate query task. Give me the childJob task's `data_array` value and its `decorators`.",
+          "expected_output": "`\"data_array\": \"$var.job.inventory#/body/devices\"` and `decorators: [{\"type\": \"query\", \"pointer\": \"/incoming/data_array\", \"displayPath\": \".body.devices\"}]`. Notes the decorator is required for Studio to show the query and keep it on save.",
+          "assertions": [
+            {
+              "text": "data_array is '$var.job.inventory#/body/devices'",
+              "type": "critical"
+            },
+            {
+              "text": "Decorator pointer is '/incoming/data_array' with displayPath '.body.devices'",
+              "type": "critical"
+            },
+            {
+              "text": "Does not put the query under `variables` or omit the decorator",
+              "type": "important"
+            }
+          ]
         }
       ]
     },
