@@ -5278,23 +5278,23 @@
               }
             },
             "eb42": {
-              "name": "itential_cli",
-              "canvasName": "itential_cli",
+              "name": "sendConfig",
+              "canvasName": "sendConfig",
               "summary": "Configure Switches",
-              "description": "Ansible Role itential_cli",
+              "description": "Send the rendered configuration to the inventory nodes through Gateway5",
               "location": "Application",
               "locationType": null,
-              "app": "AGManager",
+              "app": "GatewayManager",
               "type": "automatic",
-              "displayName": "AG Manager",
+              "displayName": "GatewayManager",
               "variables": {
                 "incoming": {
-                  "_hosts": "$var.6a5d.devices",
-                  "_groups": "",
-                  "command": "$var.300f.configCommands"
+                  "clusterId": "$var.job.clusterId",
+                  "config": "$var.300f.return_data",
+                  "inventory": "$var.job.inventoryTarget"
                 },
                 "outgoing": {
-                  "stdout": null
+                  "result": null
                 },
                 "error": "",
                 "decorators": []
@@ -5474,10 +5474,10 @@
               }
             },
             "300f": {
-              "name": "transformation",
-              "canvasName": "transformation",
-              "summary": "renderedTemplate to Array",
-              "description": "Perform a JSON Transformation using the JST library.",
+              "name": "query",
+              "canvasName": "query",
+              "summary": "Get Rendered Configuration",
+              "description": "The rendered configuration text for sendConfig",
               "location": "Application",
               "locationType": null,
               "app": "WorkFlowEngine",
@@ -5485,24 +5485,19 @@
               "displayName": "WorkFlowEngine",
               "variables": {
                 "incoming": {
-                  "tr_id": "66e2e5520c3919062e1b4b7a",
-                  "variableMap": {
-                    "input": "$var.a428.renderedTemplate"
-                  },
-                  "options": {
-                    "extractOutput": true,
-                    "validateIncoming": true,
-                    "revertToDefaultValue": true
-                  }
+                  "pass_on_null": true,
+                  "query": "renderedTemplate",
+                  "obj": "$var.a428.renderedTemplate"
                 },
                 "outgoing": {
-                  "configCommands": null
+                  "return_data": null
                 },
+                "error": "",
                 "decorators": []
               },
               "groups": [],
-              "task_name": "renderedTemplate to Array",
-              "retrySettings": null,
+              "actor": "Pronghorn",
+              "scheduled": false,
               "nodeLocation": {
                 "x": 660,
                 "y": -132
@@ -5523,19 +5518,32 @@
                   "all_true_flag": false,
                   "evaluation_groups": [
                     {
-                      "all_true_flag": false,
+                      "all_true_flag": true,
                       "evaluations": [
                         {
                           "operand_1": {
                             "task": "eb42",
-                            "variable": "stdout"
+                            "variable": "result"
                           },
+                          "query": "result.results",
+                          "operator": "!=",
                           "operand_2": {
                             "task": "static",
-                            "variable": "AD.200"
+                            "variable": []
                           },
-                          "operator": "contains",
-                          "query": "completed[0].icode",
+                          "rightQuery": ""
+                        },
+                        {
+                          "operand_1": {
+                            "task": "eb42",
+                            "variable": "result"
+                          },
+                          "query": "result.results[*].success",
+                          "operator": "!contains",
+                          "operand_2": {
+                            "task": "static",
+                            "variable": false
+                          },
                           "rightQuery": ""
                         }
                       ]
@@ -5782,7 +5790,7 @@
                 },
                 "outgoing": {
                   "configContext": null,
-                  "devices": null
+                  "devices": "$var.job.nodeNames"
                 },
                 "decorators": []
               },
@@ -5832,6 +5840,78 @@
                 "x": 1332,
                 "y": 204
               }
+            },
+            "a101": {
+              "name": "merge",
+              "canvasName": "merge",
+              "summary": "Build Inventory Target",
+              "description": "Inventory Manager inventory and node names for sendConfig",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "operation",
+              "displayName": "WorkFlowEngine",
+              "variables": {
+                "incoming": {
+                  "data_to_merge": [
+                    {
+                      "key": "inventory",
+                      "value": {
+                        "task": "job",
+                        "variable": "inventoryName"
+                      }
+                    },
+                    {
+                      "key": "nodeNames",
+                      "value": {
+                        "task": "job",
+                        "variable": "nodeNames"
+                      }
+                    }
+                  ]
+                },
+                "outgoing": {
+                  "merged_object": null
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": 732,
+                "y": -264
+              }
+            },
+            "a102": {
+              "name": "arrayPush",
+              "canvasName": "push",
+              "summary": "Wrap Inventory Target",
+              "description": "sendConfig takes an array of inventory targets",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "automatic",
+              "displayName": "Array",
+              "variables": {
+                "incoming": {
+                  "arr": [],
+                  "elementN": "$var.a101.merged_object"
+                },
+                "outgoing": {
+                  "pushedArray": "$var.job.inventoryTarget"
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": 864,
+                "y": -264
+              }
             }
           },
           "transitions": {
@@ -5876,6 +5956,10 @@
                 "type": "standard",
                 "id": "eb4264b0",
                 "__gohashid": 7394
+              },
+              "a1c4": {
+                "state": "error",
+                "type": "standard"
               }
             },
             "32b7": {
@@ -5905,7 +5989,7 @@
               }
             },
             "300f": {
-              "eb42": {
+              "a101": {
                 "type": "standard",
                 "state": "success"
               }
@@ -5979,6 +6063,18 @@
                 "state": "success",
                 "type": "standard"
               }
+            },
+            "a101": {
+              "a102": {
+                "type": "standard",
+                "state": "success"
+              }
+            },
+            "a102": {
+              "eb42": {
+                "type": "standard",
+                "state": "success"
+              }
             }
           },
           "inputSchema": {
@@ -6028,10 +6124,26 @@
                   }
                 },
                 "required": []
+              },
+              "inventoryName": {
+                "type": "string",
+                "description": "Inventory Manager inventory holding the target devices",
+                "examples": [
+                  "my-inventory"
+                ]
+              },
+              "clusterId": {
+                "type": "string",
+                "description": "Gateway5 cluster that connects to the devices",
+                "examples": [
+                  "cluster_1"
+                ]
               }
             },
             "required": [
-              "formData"
+              "formData",
+              "inventoryName",
+              "clusterId"
             ]
           },
           "outputSchema": {
@@ -7135,10 +7247,10 @@
               }
             },
             "a9f2": {
-              "name": "transformation",
-              "canvasName": "transformation",
-              "summary": "renderedTemplate to Array",
-              "description": "Perform a JSON Transformation using the JST library.",
+              "name": "query",
+              "canvasName": "query",
+              "summary": "Get Rendered Configuration",
+              "description": "The rendered configuration text for sendConfig",
               "location": "Application",
               "locationType": null,
               "app": "WorkFlowEngine",
@@ -7146,24 +7258,19 @@
               "displayName": "WorkFlowEngine",
               "variables": {
                 "incoming": {
-                  "tr_id": "66e2e5520c3919062e1b4b7a",
-                  "variableMap": {
-                    "input": "$var.6e8a.renderedTemplate"
-                  },
-                  "options": {
-                    "extractOutput": true,
-                    "validateIncoming": true,
-                    "revertToDefaultValue": true
-                  }
+                  "pass_on_null": true,
+                  "query": "renderedTemplate",
+                  "obj": "$var.6e8a.renderedTemplate"
                 },
                 "outgoing": {
-                  "configCommands": null
+                  "return_data": null
                 },
+                "error": "",
                 "decorators": []
               },
               "groups": [],
-              "task_name": "renderedTemplate to Array",
-              "retrySettings": null,
+              "actor": "Pronghorn",
+              "scheduled": false,
               "nodeLocation": {
                 "x": -936,
                 "y": -132
@@ -7184,19 +7291,32 @@
                   "all_true_flag": false,
                   "evaluation_groups": [
                     {
-                      "all_true_flag": false,
+                      "all_true_flag": true,
                       "evaluations": [
                         {
                           "operand_1": {
                             "task": "aa3a",
-                            "variable": "stdout"
+                            "variable": "result"
                           },
+                          "query": "result.results",
+                          "operator": "!=",
                           "operand_2": {
                             "task": "static",
-                            "variable": "AD.200"
+                            "variable": []
                           },
-                          "operator": "==",
-                          "query": "completed[0].icode",
+                          "rightQuery": ""
+                        },
+                        {
+                          "operand_1": {
+                            "task": "aa3a",
+                            "variable": "result"
+                          },
+                          "query": "result.results[*].success",
+                          "operator": "!contains",
+                          "operand_2": {
+                            "task": "static",
+                            "variable": false
+                          },
                           "rightQuery": ""
                         }
                       ]
@@ -7299,23 +7419,23 @@
               }
             },
             "aa3a": {
-              "name": "itential_cli",
-              "canvasName": "itential_cli",
+              "name": "sendConfig",
+              "canvasName": "sendConfig",
               "summary": "Decommission Service",
-              "description": "Ansible Role itential_cli",
+              "description": "Send the rendered configuration to the inventory nodes through Gateway5",
               "location": "Application",
               "locationType": null,
-              "app": "AGManager",
+              "app": "GatewayManager",
               "type": "automatic",
-              "displayName": "AG Manager",
+              "displayName": "GatewayManager",
               "variables": {
                 "incoming": {
-                  "_hosts": "$var.369f.devices",
-                  "_groups": "",
-                  "command": "$var.a9f2.configCommands"
+                  "clusterId": "$var.job.clusterId",
+                  "config": "$var.a9f2.return_data",
+                  "inventory": "$var.job.inventoryTarget"
                 },
                 "outgoing": {
-                  "stdout": null
+                  "result": null
                 },
                 "error": "",
                 "decorators": []
@@ -7424,7 +7544,7 @@
                 },
                 "outgoing": {
                   "configContext": null,
-                  "devices": null
+                  "devices": "$var.job.nodeNames"
                 },
                 "decorators": []
               },
@@ -7542,6 +7662,78 @@
                 "x": 420,
                 "y": -132
               }
+            },
+            "a101": {
+              "name": "merge",
+              "canvasName": "merge",
+              "summary": "Build Inventory Target",
+              "description": "Inventory Manager inventory and node names for sendConfig",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "operation",
+              "displayName": "WorkFlowEngine",
+              "variables": {
+                "incoming": {
+                  "data_to_merge": [
+                    {
+                      "key": "inventory",
+                      "value": {
+                        "task": "job",
+                        "variable": "inventoryName"
+                      }
+                    },
+                    {
+                      "key": "nodeNames",
+                      "value": {
+                        "task": "job",
+                        "variable": "nodeNames"
+                      }
+                    }
+                  ]
+                },
+                "outgoing": {
+                  "merged_object": null
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": -852,
+                "y": -264
+              }
+            },
+            "a102": {
+              "name": "arrayPush",
+              "canvasName": "push",
+              "summary": "Wrap Inventory Target",
+              "description": "sendConfig takes an array of inventory targets",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "automatic",
+              "displayName": "Array",
+              "variables": {
+                "incoming": {
+                  "arr": [],
+                  "elementN": "$var.a101.merged_object"
+                },
+                "outgoing": {
+                  "pushedArray": "$var.job.inventoryTarget"
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": -720,
+                "y": -264
+              }
             }
           },
           "transitions": {
@@ -7559,7 +7751,7 @@
               }
             },
             "a9f2": {
-              "aa3a": {
+              "a101": {
                 "state": "success",
                 "type": "standard"
               }
@@ -7596,6 +7788,10 @@
               "9d29": {
                 "state": "success",
                 "type": "standard"
+              },
+              "c616": {
+                "state": "error",
+                "type": "standard"
               }
             },
             "41fb": {
@@ -7630,6 +7826,18 @@
               "0543": {
                 "state": "success",
                 "type": "standard"
+              }
+            },
+            "a101": {
+              "a102": {
+                "type": "standard",
+                "state": "success"
+              }
+            },
+            "a102": {
+              "aa3a": {
+                "type": "standard",
+                "state": "success"
               }
             }
           },
@@ -7714,12 +7922,28 @@
                   },
                   "required": []
                 }
+              },
+              "inventoryName": {
+                "type": "string",
+                "description": "Inventory Manager inventory holding the target devices",
+                "examples": [
+                  "my-inventory"
+                ]
+              },
+              "clusterId": {
+                "type": "string",
+                "description": "Gateway5 cluster that connects to the devices",
+                "examples": [
+                  "cluster_1"
+                ]
               }
             },
             "required": [
               "serviceProvisioningStatus",
               "deviceConfigContext",
-              "devices"
+              "devices",
+              "inventoryName",
+              "clusterId"
             ]
           },
           "outputSchema": {
@@ -8626,23 +8850,23 @@
               }
             },
             "eb42": {
-              "name": "itential_cli",
-              "canvasName": "itential_cli",
+              "name": "sendConfig",
+              "canvasName": "sendConfig",
               "summary": "Configure Switches",
-              "description": "Ansible Role itential_cli",
+              "description": "Send the rendered configuration to the inventory nodes through Gateway5",
               "location": "Application",
               "locationType": null,
-              "app": "AGManager",
+              "app": "GatewayManager",
               "type": "automatic",
-              "displayName": "AG Manager",
+              "displayName": "GatewayManager",
               "variables": {
                 "incoming": {
-                  "_hosts": "$var.0c51.devices",
-                  "_groups": "",
-                  "command": "$var.300f.configCommands"
+                  "clusterId": "$var.job.clusterId",
+                  "config": "$var.300f.return_data",
+                  "inventory": "$var.job.inventoryTarget"
                 },
                 "outgoing": {
-                  "stdout": null
+                  "result": null
                 },
                 "error": "",
                 "decorators": []
@@ -8683,10 +8907,10 @@
               }
             },
             "300f": {
-              "name": "transformation",
-              "canvasName": "transformation",
-              "summary": "renderedTemplate to Array",
-              "description": "Perform a JSON Transformation using the JST library.",
+              "name": "query",
+              "canvasName": "query",
+              "summary": "Get Rendered Configuration",
+              "description": "The rendered configuration text for sendConfig",
               "location": "Application",
               "locationType": null,
               "app": "WorkFlowEngine",
@@ -8694,24 +8918,19 @@
               "displayName": "WorkFlowEngine",
               "variables": {
                 "incoming": {
-                  "tr_id": "66e2e5520c3919062e1b4b7a",
-                  "variableMap": {
-                    "input": "$var.a428.renderedTemplate"
-                  },
-                  "options": {
-                    "extractOutput": true,
-                    "validateIncoming": true,
-                    "revertToDefaultValue": true
-                  }
+                  "pass_on_null": true,
+                  "query": "renderedTemplate",
+                  "obj": "$var.a428.renderedTemplate"
                 },
                 "outgoing": {
-                  "configCommands": null
+                  "return_data": null
                 },
+                "error": "",
                 "decorators": []
               },
               "groups": [],
-              "task_name": "renderedTemplate to Array",
-              "retrySettings": null,
+              "actor": "Pronghorn",
+              "scheduled": false,
               "nodeLocation": {
                 "x": 672,
                 "y": -132
@@ -8732,19 +8951,32 @@
                   "all_true_flag": false,
                   "evaluation_groups": [
                     {
-                      "all_true_flag": false,
+                      "all_true_flag": true,
                       "evaluations": [
                         {
                           "operand_1": {
                             "task": "eb42",
-                            "variable": "stdout"
+                            "variable": "result"
                           },
+                          "query": "result.results",
+                          "operator": "!=",
                           "operand_2": {
                             "task": "static",
-                            "variable": "AD.200"
+                            "variable": []
                           },
-                          "operator": "contains",
-                          "query": "completed[0].icode",
+                          "rightQuery": ""
+                        },
+                        {
+                          "operand_1": {
+                            "task": "eb42",
+                            "variable": "result"
+                          },
+                          "query": "result.results[*].success",
+                          "operator": "!contains",
+                          "operand_2": {
+                            "task": "static",
+                            "variable": false
+                          },
                           "rightQuery": ""
                         }
                       ]
@@ -8944,7 +9176,7 @@
                 },
                 "outgoing": {
                   "configContext": null,
-                  "devices": null
+                  "devices": "$var.job.nodeNames"
                 },
                 "decorators": []
               },
@@ -9032,6 +9264,78 @@
                 "x": 996,
                 "y": 204
               }
+            },
+            "a101": {
+              "name": "merge",
+              "canvasName": "merge",
+              "summary": "Build Inventory Target",
+              "description": "Inventory Manager inventory and node names for sendConfig",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "operation",
+              "displayName": "WorkFlowEngine",
+              "variables": {
+                "incoming": {
+                  "data_to_merge": [
+                    {
+                      "key": "inventory",
+                      "value": {
+                        "task": "job",
+                        "variable": "inventoryName"
+                      }
+                    },
+                    {
+                      "key": "nodeNames",
+                      "value": {
+                        "task": "job",
+                        "variable": "nodeNames"
+                      }
+                    }
+                  ]
+                },
+                "outgoing": {
+                  "merged_object": null
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": 732,
+                "y": -264
+              }
+            },
+            "a102": {
+              "name": "arrayPush",
+              "canvasName": "push",
+              "summary": "Wrap Inventory Target",
+              "description": "sendConfig takes an array of inventory targets",
+              "location": "Application",
+              "locationType": null,
+              "app": "WorkFlowEngine",
+              "type": "automatic",
+              "displayName": "Array",
+              "variables": {
+                "incoming": {
+                  "arr": [],
+                  "elementN": "$var.a101.merged_object"
+                },
+                "outgoing": {
+                  "pushedArray": "$var.job.inventoryTarget"
+                },
+                "error": "",
+                "decorators": []
+              },
+              "groups": [],
+              "actor": "Pronghorn",
+              "scheduled": false,
+              "nodeLocation": {
+                "x": 864,
+                "y": -264
+              }
             }
           },
           "transitions": {
@@ -9068,6 +9372,10 @@
                 "type": "standard",
                 "id": "eb4264b0",
                 "__gohashid": 7394
+              },
+              "a1c4": {
+                "state": "error",
+                "type": "standard"
               }
             },
             "32b7": {
@@ -9079,7 +9387,7 @@
               }
             },
             "300f": {
-              "eb42": {
+              "a101": {
                 "state": "success",
                 "type": "standard"
               }
@@ -9150,6 +9458,18 @@
               "workflow_end": {
                 "state": "success",
                 "type": "standard"
+              }
+            },
+            "a101": {
+              "a102": {
+                "type": "standard",
+                "state": "success"
+              }
+            },
+            "a102": {
+              "eb42": {
+                "type": "standard",
+                "state": "success"
               }
             }
           },
@@ -9224,11 +9544,27 @@
                   },
                   "required": []
                 }
+              },
+              "inventoryName": {
+                "type": "string",
+                "description": "Inventory Manager inventory holding the target devices",
+                "examples": [
+                  "my-inventory"
+                ]
+              },
+              "clusterId": {
+                "type": "string",
+                "description": "Gateway5 cluster that connects to the devices",
+                "examples": [
+                  "cluster_1"
+                ]
               }
             },
             "required": [
               "deviceConfigContext",
-              "devices"
+              "devices",
+              "inventoryName",
+              "clusterId"
             ]
           },
           "outputSchema": {

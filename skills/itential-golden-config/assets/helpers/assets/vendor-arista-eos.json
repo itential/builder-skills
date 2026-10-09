@@ -1402,23 +1402,23 @@
             }
           },
           "ca47": {
-            "name": "itential_cli",
-            "canvasName": "itential_cli",
-            "summary": "Ansible Role itential_cli",
-            "description": "Ansible Role itential_cli",
+            "name": "sendConfig",
+            "canvasName": "sendConfig",
+            "summary": "Push Configuration",
+            "description": "Send the rendered configuration to the inventory nodes through Gateway5",
             "location": "Application",
             "locationType": null,
-            "app": "AGManager",
+            "app": "GatewayManager",
             "type": "automatic",
-            "displayName": "AG Manager",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "_hosts": "$var.582e.deviceList",
-                "_groups": "",
-                "command": "$var.582e.configurationList"
+                "clusterId": "$var.job.clusterId",
+                "config": "$var.job.configurationToPush",
+                "inventory": "$var.job.inventoryTarget"
               },
               "outgoing": {
-                "stdout": null
+                "result": null
               },
               "error": "",
               "decorators": []
@@ -1473,7 +1473,7 @@
               "incoming": {
                 "header": "Configuration Error",
                 "message": "$var.582e.deviceConfigurationPushFailedMessage",
-                "body": "$var.ca47.stdout",
+                "body": "$var.a103.return_data",
                 "variables": {},
                 "btn_success": "Retry",
                 "btn_failure": "End Job"
@@ -1510,27 +1510,28 @@
                       {
                         "operand_1": {
                           "task": "ca47",
-                          "variable": "stdout"
+                          "variable": "result"
                         },
+                        "query": "result.results",
+                        "operator": "!=",
                         "operand_2": {
                           "task": "static",
                           "variable": []
                         },
-                        "operator": "!=",
-                        "query": "completed",
                         "rightQuery": ""
                       },
                       {
-                        "query": "completed[0].response[*].status",
                         "operand_1": {
-                          "variable": "stdout",
-                          "task": "ca47"
+                          "task": "ca47",
+                          "variable": "result"
                         },
+                        "query": "result.results[*].success",
                         "operator": "!contains",
                         "operand_2": {
-                          "variable": "FAILURE",
-                          "task": "static"
-                        }
+                          "task": "static",
+                          "variable": false
+                        },
+                        "rightQuery": ""
                       }
                     ]
                   }
@@ -1760,7 +1761,7 @@
             "displayName": "WorkFlowEngine",
             "variables": {
               "incoming": {
-                "tr_id": "65566996fb4afe017442d30d",
+                "tr_id": "66d0da1821161b4df27174d7",
                 "variableMap": {
                   "renderedJinja2Template": "$var.b9ed.renderedTemplate",
                   "deviceName": "$var.job.device"
@@ -1770,7 +1771,7 @@
               "outgoing": {
                 "renderedTemplate": "$var.job.configurationToPush",
                 "configurationList": null,
-                "deviceList": null,
+                "deviceList": "$var.job.nodeNames",
                 "deviceConfigurationPushMessage": null,
                 "deviceConfigurationPushFailedMessage": null
               },
@@ -1886,11 +1887,113 @@
               "x": 624,
               "y": 900
             }
+          },
+          "a101": {
+            "name": "merge",
+            "canvasName": "merge",
+            "summary": "Build Inventory Target",
+            "description": "Inventory Manager inventory and node names for sendConfig",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "data_to_merge": [
+                  {
+                    "key": "inventory",
+                    "value": {
+                      "task": "job",
+                      "variable": "inventoryName"
+                    }
+                  },
+                  {
+                    "key": "nodeNames",
+                    "value": {
+                      "task": "job",
+                      "variable": "nodeNames"
+                    }
+                  }
+                ]
+              },
+              "outgoing": {
+                "merged_object": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -264,
+              "y": 852
+            }
+          },
+          "a102": {
+            "name": "arrayPush",
+            "canvasName": "push",
+            "summary": "Wrap Inventory Target",
+            "description": "sendConfig takes an array of inventory targets",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "automatic",
+            "displayName": "Array",
+            "variables": {
+              "incoming": {
+                "arr": [],
+                "elementN": "$var.a101.merged_object"
+              },
+              "outgoing": {
+                "pushedArray": "$var.job.inventoryTarget"
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": -132,
+              "y": 852
+            }
+          },
+          "a103": {
+            "name": "query",
+            "canvasName": "query",
+            "summary": "Get Device Output",
+            "description": "The device's output from sendConfig, for the error view",
+            "location": "Application",
+            "locationType": null,
+            "app": "WorkFlowEngine",
+            "type": "operation",
+            "displayName": "WorkFlowEngine",
+            "variables": {
+              "incoming": {
+                "pass_on_null": true,
+                "query": "result.results[0].output",
+                "obj": "$var.ca47.result"
+              },
+              "outgoing": {
+                "return_data": null
+              },
+              "error": "",
+              "decorators": []
+            },
+            "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
+            "nodeLocation": {
+              "x": 492,
+              "y": 1116
+            }
           }
         },
         "transitions": {
           "9722": {
-            "7a4c": {
+            "a103": {
               "type": "standard",
               "state": "failure"
             },
@@ -1947,7 +2050,7 @@
             }
           },
           "cba5": {
-            "ca47": {
+            "a101": {
               "type": "standard",
               "state": "success"
             },
@@ -1957,7 +2060,7 @@
             }
           },
           "c4c9": {
-            "ca47": {
+            "a101": {
               "type": "standard",
               "state": "success"
             },
@@ -2028,8 +2131,24 @@
               "type": "standard"
             }
           },
-          "ed0d": {},
-          "7a2f": {}
+          "a101": {
+            "a102": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "a102": {
+            "ca47": {
+              "type": "standard",
+              "state": "success"
+            }
+          },
+          "a103": {
+            "7a4c": {
+              "type": "standard",
+              "state": "success"
+            }
+          }
         },
         "inputSchema": {
           "type": "object",
@@ -2059,6 +2178,20 @@
             },
             "device": {
               "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "inventoryName": {
+              "type": "string",
+              "description": "Inventory Manager inventory holding the target devices",
+              "examples": [
+                "my-inventory"
+              ]
+            },
+            "clusterId": {
+              "type": "string",
+              "description": "Gateway5 cluster that connects to the devices",
+              "examples": [
+                "cluster_1"
+              ]
             }
           },
           "required": [
@@ -2066,7 +2199,9 @@
             "templateName",
             "templateVariables",
             "suppressSuccessMessage",
-            "device"
+            "device",
+            "inventoryName",
+            "clusterId"
           ]
         },
         "outputSchema": {

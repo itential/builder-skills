@@ -807,6 +807,10 @@ Each `query` extracts `result.stdout` from the JSON-RPC envelope. If the stdout 
 }
 ```
 
+- `config` is one string; `inventory` is an array of objects — build it with `merge` + `arrayPush`, since `$var` doesn't resolve inside it.
+- The node needs `itential_driver_options.netmiko.become: true` (and `secret` if the device has an enable password) to enter config mode; without it the push fails with a `ReadTimeout` waiting for the config prompt.
+- The result is `result.results[]`, one `{name, host, output, success}` per node, with no overall state — check `success` on every node. See builder-agent's *Command Templates (MOP)* section for the full pattern.
+
 ### Testing IAG Services via Workflow
 
 After CLI testing passes (`iagctl run service`), test the full workflow integration:
@@ -853,8 +857,8 @@ Verify:
 | Need | Use |
 |------|-----|
 | Run a Python/Ansible/OpenTofu service | `GatewayManager.runService` |
-| Send ad-hoc CLI commands | `GatewayManager.sendCommand` or `AGManager.itential_cli` |
-| Push config text to device | `GatewayManager.sendConfig` or `AGManager.itential_set_config` |
+| Send ad-hoc CLI commands | `GatewayManager.sendCommand` (`AGManager.itential_cli` is Gateway4 — existing workflows only) |
+| Push config text to device | `GatewayManager.sendConfig` (`AGManager.itential_set_config` / `itential_cli` are Gateway4 — existing workflows only) |
 | Run MOP validation checks | `MOP.RunCommandTemplate` (separate from IAG) |
 
 ### AGManager vs GatewayManager
@@ -863,7 +867,7 @@ Verify:
 |---|-----------|---------------|
 | **Tasks** | One per script/playbook (e.g., `itential_cli`) | Generic (`runService`, `sendCommand`) |
 | **Input style** | Task-specific variables | `serviceName` + `params` object |
-| **When to use** | Built-in IAG capabilities | Custom services built with iagctl |
+| **When to use** | Existing Gateway4 workflows only | Everything new — services, `sendCommand`, `sendConfig` |
 
 ---
 

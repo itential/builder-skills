@@ -5,6 +5,10 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Changed the config-push examples in the asset library from `AGManager.itential_cli` (Gateway4) to `GatewayManager.sendConfig`: "Push Configuration" (`itential-platform-configuration-management.json`), "Push Configuration to Device - IAG" (`vendor-arista-eos.json`) and the three VXLAN Fabric Services LCM action workflows. Each now takes `inventoryName` and `clusterId`, and checks success per device. The two push workflows were run against a live Arista EOS device, both when the push lands and when it can't
+- Changed builder-agent and iag to recommend `sendConfig` for config push, with the inventory, enable-mode and output details it needs; `itential_cli` is called out as Gateway4, for existing workflows only, with two ways to move the tasks that read its output
+- Fixed the two push workflows pointing at a transformation that isn't in their project (they imported as drafts that couldn't start), and their success checks: the LCM workflows only checked Gateway4's `icode`, which reports success even when the device rejects the configuration
+
 - Fixed `scripts/use_case_init.py` writing an `.auth.json` without `platform_url`/`auth_method`, which made solution-arch-agent's `pull-platform-data.py` crash; it now also starts `use-case-memory.md` from the template
 - Fixed solution-arch-agent's platform pull recording only the first page of workflows (100) and devices (1,000) — it now fetches all of them, so reuse searches see every workflow
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere
