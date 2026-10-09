@@ -1624,11 +1624,47 @@ A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/
 
 **Confirmed scope:** works on both a top-level plain-string incoming field AND a field nested inside an object (e.g. `runCode`'s `data.devices`) — confirmed by deleting the upstream `query` task entirely and verifying the job variable it used to write was absent from the job's final state while the downstream task still received the correct value. For a nested field, the `#/<path>` suffix goes on the nested value itself (`"data": {"devices": "$var.job.someVar#/nested/path"}`) and `pointer` uses the full nested path (`/incoming/data/devices`).
 
+
+#### Where `pointer` goes — verified against Studio saves, per field shape
+
+> Everything in this subsection was verified on Itential Platform 6.5.2 (Automation Studio 4.69.69), 2026-10: Studio saves for the stored shapes, live jobs for the runtime behavior. Re-check on other versions before relying on an edge case.
+
+The rule is the same everywhere: `pointer` is `/incoming/` plus the path to the field that **holds the reference string**; the value gets `#/<path>`; `displayPath` is the same path with dots (`#/body/name` → `.body.name`). The holder moves for nested shapes, so check the table instead of assuming `/incoming/<field>`:
+
+| Field shape | Examples | Value stored | `pointer` |
+|---|---|---|---|
+| Top-level field (string, array, object or "any" typed) | `toLowerCase.str`, `newVariable.value`, `stub.response`, `join.arr`, `forEach.data_array`, `setObjectKey.obj`, `ViewData.body`, `restCall.uri`/`body`, `ShowJsonForm.instance_data`, `eventListenerJob.topic`/`schema`, adapter `reference` | `$var.job.x#/body/name` | `/incoming/<field>` |
+| A whole object field | `makeData` / `ViewData` / `ViewHTML` / `renderJinja2TemplateWithCast` `variables`; adapter `requestBodyPayload` | `$var.job.x#/body` | `/incoming/variables` |
+| One key inside `runCode` `data` (the documented one-level exception) | `runCode.data.x` | `$var.job.x#/body` | `/incoming/data/x` |
+| One input inside `transformation` `variableMap` (also one level deep) | `variableMap.<input>` | `$var.job.x#/body/list` | `/incoming/variableMap/<input>` |
+| `merge` item | `data_to_merge[i].value` | `{"task":"job","variable":"x#/body/name"}` | `/incoming/data_to_merge/<i>/value/variable` |
+| `childJob` variable | `variables.<name>` | `{"task":"job","value":"x#/body/name"}` | `/incoming/variables/<name>` |
+| `childJob` loop input (`loopType` set) | `data_array` | `$var.job.x#/body/devices` | `/incoming/data_array` |
+| `evaluation` operand | `operand_1`, `operand_2` | no decorator — use `query` / `rightQuery` on the evaluation object | — |
+
+**Array indexes:** the value uses the index as a path segment and `displayPath` uses brackets — `$var.job.x#/body/items/0/name` with `displayPath` `.body.items[0].name` (whole element: `#/body/items/1` → `.body.items[1]`). **Variadic inputs** (`stringConcat` `stringN`, `arrayPush` `elementN`, `assign` `sourceN`) are stored under that literal key, so the pointer is `/incoming/stringN` etc. **A `merge` item reading a `childJob` output** keeps `"value": "job_details"` and gets the query on an added `variable` key — `{"task": "<childJobId>", "value": "job_details", "variable": "job_details#/received"}`, pointer `/incoming/data_to_merge/<i>/value/variable`. Putting the `#/path` on `value` instead resolves to `null` with no error.
+
+**Keys with special characters:** `/` and `~` in a key use JSON Pointer escapes in the value (`#/a~1b`, `#/a~0b`) and appear unescaped in `displayPath` (`.a/b`, `.a~b`). A key containing `.` uses bracket form: the value keeps the dot inside one segment (`#/a.b`, nested `#/body/mgmt.ip`) and `displayPath` brackets that key — `.["a.b"]` at the top level, `.body["mgmt.ip"]` when nested (no dot before the bracket) — which is what Studio writes when you enter those paths; it resolves the dotted key. Other forms are accepted but produce a different path: `."a.b"` → `#/"a/b"` and `.a\.b` → `#/a\/b` both fail at runtime, and `.a.b` → `#/a/b` reads the nested `a` → `b` with no warning. If you build one by API, use the bracket `displayPath` so Studio shows it correctly.
+
+A reference to another task's output uses the same forms with the task id in place of `job` — `{"task":"a001","variable":"value#/body/ip"}` for a `merge` item, `{"task":"a001","value":"value#/body/ip"}` for a `childJob` variable, `$var.a001.value#/body/ip` for a plain or `runCode` field — with the same `pointer`. The path goes after the output name (`value#/body/ip`).
+
+Note the `merge` and `childJob` references carry **no `$var.` prefix** (`x#/body/name`, same as their plain refs), and the childJob pointer stops at the variable name while the merge pointer includes `/value/variable`.
+
+**Both halves are required, and they are read by different things.** The job runs from the `#/path` suffix; Studio displays from the `decorators` entry. Writing only the suffix (or a decorator whose `pointer` is one level off) still runs correctly, so it passes every job test — but Studio shows the field with no query text, and **opening then saving the workflow silently strips the `#/path`**. The task then receives the whole object instead of the extracted value and the job still completes with no error (a downstream `query` or `evaluation` on it is what fails). A correct decorator survives saves unchanged.
+
+**A path that doesn't exist at runtime fails loudly — except on `evaluation`.** On plain fields, `merge` items, `childJob` variables (the child job is never started) and `runCode` `data` keys, the task takes its **error** transition with `"Query failed for task incoming variable: <source variable>."` — wire an error transition. On `evaluation`, a missing `query` path takes the **failure** transition, which looks exactly like a comparison that was false; check the path when an evaluation unexpectedly fails.
+
+**Do not guess a `merge` or `childJob` form.** Adding a `query` key beside `variable`/`value` (the way an `evaluation` operand looks) is ignored at runtime and invisible in Studio — the whole object is passed through with no error. Use the `#/path` forms in the table.
+
+**Build objects upstream; never put a `$var` inside a static object** to give a field a query. Reference the whole field (`variables`, `requestBodyPayload`) and let the query shape it, or build the object with `merge`/`makeData` first. `runCode` `data` is the one place a `$var` resolves one key deep.
+
+**Generate and verify decorators with the helper instead of writing them by hand:** `python3 assets/helpers/enable_query.py check workflow.json` lists every task whose decorators are missing, dangling or off by a level, and flags the ignored `query`-key forms above and any `$var` placed inside a static object (which is sent as literal text); `fix workflow.json` rewrites the query decorators from the references, keeps any other decorators (e.g. `encryption`), and lists what it can't repair — those need a change to the reference itself. `fix` writes the file back as 2-space JSON, so on a hand-formatted file such as one in `assets/helpers/assets/`, apply `check`'s findings by hand. In code: `apply_decorators(task)`. Run `check` before every create/update.
+
 **When to reach for it:** any spot where a `query` task's only purpose is pulling one field out of an object and handing it to exactly one downstream task's field. Skip it if the queried value feeds more than one consumer, or needs further transformation (evaluation, string ops) before use — a real `query` task is still the right call there.
 
 **Validator vs runtime:** on some platform builds, `POST /workflow_engine/workflows/validate` reports a query decorator as a schema error (`decorators/0/type: must be equal to one of the allowed values` — that build's schema only allows `encryption`) and warns that the field gets an object. Jobs still resolve the decorated reference at runtime — verified by a `sendConfig` whose `config` and `inventory` came through decorators and pushed the right line to a live device. Don't "fix" those errors by removing the decorators.
 
-**Confirmed NOT to try without testing first:** `evaluation` operands use a structured reference (`{"task":"job","variable":"x"}`), not a plain `$var` string — this is a different field shape than every confirmed Enable Query example, and hasn't been tested. Don't assume this decorator applies there. **For this exact scenario, `evaluation`'s own operand object has a native `query` sibling key instead** — see "Operand can drill into a nested field via an inline `query` key" earlier in this section; that's the confirmed way to skip a separate `query` task feeding an `evaluation` operand.
+**`evaluation` does not use a decorator.** Its operands are structured references (`{"task":"job","variable":"x"}`), not `$var` strings, so there is no `#/path` suffix and no `decorators` entry. The query lives on the evaluation object itself: `query` (applied to `operand_1`) and `rightQuery`, exactly as Studio writes them — see `### evaluation` below. Do **not** put a `query` key inside the operand object: it is ignored at runtime and Studio shows nothing for it.
 
 ### Worked example: wiring `runCode` + task query together
 
@@ -1658,7 +1694,7 @@ This hands the *entire* `response` output of tasks `8850` and `4e04` to the scri
 
 - The `#/<path>` suffix goes on the value string itself, `/`-delimited (JSON-Pointer style).
 - The decorator's `pointer` is `/incoming/data/<key>` (locates *which* incoming field has a query), and `displayPath` is the Studio-UI-facing dot-path (`.`-delimited, 1:1 with the `#/...` segments).
-- **This query is evaluated once, before the script ever runs.** If the path doesn't exist on the real resolved object, the whole task — and job — fails immediately with `"Query failed for task incoming variables: <key>"`. The script never gets a chance to handle a missing/wrong path defensively; get the path right up front.
+- **This query is evaluated once, before the script ever runs.** If the path doesn't exist on the real resolved object, the task takes its **error** transition before the script runs, with `"Query failed for task incoming variable: <source variable>."` (the job stops there if the task has no error transition). The script never gets a chance to handle a missing/wrong path defensively; get the path right up front.
 
 **Don't guess the path — verify the real shape first.** The platform's own job-detail API does not help here: `GET /operations-manager/jobs/{id}` always returns the static workflow definition (empty-string outgoing placeholders) regardless of `include`/`dereference` params or job completion status — confirmed directly, including via the browser UI's own network call using session-cookie auth, not just a scripted API token. The two ways that do work: (a) open the job in Operations Manager / Studio and read the task's real Output/Response value directly in the UI, or (b) temporarily pass the reference through *without* a query, and have the script itself print the shape it received (`type()`, keys, a sample item) so you can see the real structure before committing to a query path.
 
@@ -1840,19 +1876,21 @@ Returns `true`/`false`. Invalid operators silently return `false`. Use this to v
 }
 ```
 
-**Operand can drill into a nested field via an inline `"query"` key — no separate `query` task needed.** Add a `query` sibling alongside `task`/`variable` in the operand object, using the same dot-path syntax as a standalone `query` task. This lets `evaluation` read a nested field of another task's output directly:
+**Drill into a nested field with `query` on the evaluation object — no separate `query` task needed.** Put `query` (applies to `operand_1`) and `rightQuery` (applies to `operand_2`) next to `operator` **on every evaluation item** — each item in each group carries its own pair, in any position, using the dot-path syntax Studio writes (`.body.name`):
 
 ```json
 {
-  "operand_1": {"task": "f6f6", "variable": "mop_template_results", "query": "result"},
+  "query": ".body.name",
+  "operand_1": {"task": "job", "variable": "src"},
   "operator": "==",
-  "operand_2": {"task": "static", "variable": true}
+  "operand_2": {"task": "static", "variable": "poc-a"},
+  "rightQuery": ""
 }
 ```
 
-This replaces the older pattern of a `query` task extracting the field into a job variable before `evaluation` reads it (`query` task → `$var.job.postCheckPassed` → `{"task": "job", "variable": "postCheckPassed"}`) — one task instead of two, and it also avoids adding that intermediate job variable to `inputSchema.required` (see the `{task:"job"}` warning above). Confirmed live: `mop_template_results` is a MOP command-template result object; `query: "result"` pulls its top-level `result` boolean without a separate extraction step.
+Always include `rightQuery` (empty string when unused), as Studio does. At runtime the leading dot is optional and single- or multi-segment paths both work; write the Studio form so a Studio save changes nothing. This is the form Studio shows under Enable Query, and it survives a save. No decorator is involved.
 
-> **Not confirmed for multi-segment/array-index paths on every platform build.** Live-tested on a NetBox device-status-branch workflow: `operand_1: {"task": "a1a1", "variable": "result", "query": "response.results[0].status.value"}` was silently ignored — `operand_1` resolved to the *entire* untouched `result` object at runtime (confirmed via `GET /operations-manager/tasks/{iterationId}` on the evaluation task's own iteration, since `GET /operations-manager/jobs/{id}` only ever shows the static task definition, never resolved runtime operand values). The `mop_template_results`/`"query": "result"` example above is a single top-level key with no array index — that shape worked. A multi-segment dotted path with a `[0]` array index did not. **If an inline evaluation `query` sibling appears to have no effect (operand resolves to the whole object instead of the drilled-down field), fall back to the explicit two-task pattern**: a standalone `query` task extracting the nested path into a job variable, then `{"task": "<queryTaskId>", "variable": "return_data"}` as the evaluation operand. Don't assume the inline form works for nested/indexed paths without testing it against a real job first.
+> **Do not put `query` inside the operand** (`"operand_1": {"task": "job", "variable": "src", "query": "body.name"}`). Tested with the operand pointing at a job variable and at a task output, single and multi-segment, with and without a leading dot: the query was ignored every time — `operand_1` resolved to the whole object, so the comparison silently failed — and Studio shows no Enable Query for it. If you inherit a workflow that uses it, move the query to the evaluation object. If a query still has no effect, fall back to a standalone `query` task writing a job variable, then compare that.
 
 ### childJob
 
@@ -1870,7 +1908,7 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "
 
 **`childJob` cannot resolve project-scoped workflow names.** `{"workflow": "@<projectId>: <name>"}` fails at runtime with `"Error starting child job: Cannot find workflow ..."` — and so does the bare unprefixed name (`{"workflow": "<name>"}`), even when the *calling* workflow is moved into the same project as the target. Confirmed with an isolated minimal test: a standalone parent calling a standalone (unprojected) child by bare name succeeds (fails later for an unrelated reason, but the child IS found); the identical parent calling a project-scoped child by either name form fails to find it. Ruled out `incomingRefs` staleness as the cause — persisted after a full delete-and-recreate of the parent. **If you need to call a workflow that lives in a project, inline its task(s) directly into the calling workflow instead of `childJob`-ing it** — there is no known workaround for calling it as a child.
 
-**A `merge` referencing a `childJob`'s output must use `"value"`, not `"variable"`** — e.g. `{"task": "<childJobId>", "value": "job_details"}`. This contradicts merge's general rule (merge uses `"variable"`, childJob uses `"value"` — see the Variable Syntax Reference table) but matches childJob's own internal convention for its own output. Using `"variable"` here doesn't fail at runtime — it fails workflow **create/update** outright, with the unhelpful generic error `"Cannot read properties of undefined (reading 'task')"` (no task ID named in the error; bisect the task graph to find it if you hit this).
+**A `merge` item reading a `childJob`'s output uses `"variable"`** — `{"task": "<childJobId>", "variable": "job_details"}`, the same key as any other merge item. With `"value"` instead, the workflow creates, updates and runs without error but the item resolves to `null`. (When you enable a query on this item in Studio it keeps a `"value": "job_details"` key and adds `"variable": "job_details#/<path>"`; the runtime reads `variable`.) Tested on Itential Platform 6.5.2.
 
 **Variables use `{"task", "value"}` syntax — NOT `$var`:**
 ```json
@@ -1962,7 +2000,7 @@ Create or set a job variable at runtime.
 }
 ```
 
-**GOTCHA:** `$var` inside `value` does NOT resolve. The literal string is stored. Use merge + query to build dynamic values.
+**GOTCHA:** `value` resolves only a whole-field reference — `"$var.job.x"`, or with Enable Query `"$var.job.x#/path"` plus its decorator. A `$var` embedded in a longer string (`"prefix-$var.job.x"`) or placed inside an object/array value is stored as literal text. Use merge (or a template) to build dynamic values. Tested on Itential Platform 6.5.2.
 
 ### makeData
 
@@ -2536,7 +2574,7 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "
 Key differences from ViewData:
 1. `view` is `/workflow_engine/task/ViewHTML`
 2. `body` is a raw HTML string — use inline CSS (no `<style>` blocks), `<!var!>` syntax for variable substitution
-3. `incoming.variables` is a **plain object** `{"varName": "value"}` that populates `<!var!>` placeholders in the HTML — NOT a `$var` reference
+3. `incoming.variables` supplies the `<!var!>` placeholders in the HTML: a static object `{"varName": "value"}`, or a whole-field reference to an object built upstream (`"$var.job.x"`, or with Enable Query `"$var.job.x#/body"` plus its decorator). A `$var` placed inside the static object is not resolved
 4. `displayName: "Tools"`, no `actor` field (same as ViewData)
 
 ```json
@@ -2666,6 +2704,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 9. **Task IDs must be hex `[0-9a-f]{1,4}`** — non-hex causes silent `$var` failure.
 10. **Validation errors = draft workflow** that cannot be started. Run `POST /workflow_engine/workflows/validate` (deep validation, prefer over `/automation-studio/workflows/validate`) before every create or update, and check `warnings[]` too — `isValid` ignores them.
 11. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object first. Exception: `GatewayManager.runService`/`runServiceStatic` (`params`), `GatewayManager.runCode` (`data`), `AgentSessionManager.runAgent` (`inputs`) resolve one level deep into that one specific key.
+11a. **Enable Query needs a suffix AND a decorator** — `$var.x#/path` alone runs fine but Studio shows no query, and a Studio save then strips the `#/path`. The pointer depends on the field shape (`merge` and `childJob` differ); on `evaluation` put `query`/`rightQuery` on the evaluation object, never inside the operand. Verify with `assets/helpers/enable_query.py check` — see [Enable Query](#enable-query--inline-query-decorator-on-any-incoming-field-aka-in-task-query-called-task-query-in-official-docs).
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
 13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a missing success path.
 14. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, route error to an intermediate `newVariable` task first.
@@ -2682,14 +2721,14 @@ The `revert` transition moves execution back to a previous task, allowing the us
 23. **`makeData` `variables` must be a resolved object** — use merge first, then pass `$var.taskId.merged_object`.
 24. **Adapter task `result` is always an object** — never a primitive. When the upstream API returns a simple string (e.g., Infoblox `_ref`), it's at `result.response`. Passing raw `result` in a string context produces `[object Object]`.
 25. **`childJob` cannot resolve project-scoped workflow names** — `"@<projectId>: <name>"` and the bare name both fail with `"Cannot find workflow ..."`, even from a calling workflow in the same project. Inline the target task(s) instead; there's no known childJob workaround. See `### childJob` for how this was confirmed.
-26. **A `merge` reading a `childJob`'s output must use `"value"`, not `"variable"`** — the one exception to "merge uses variable." Using `"variable"` fails workflow create/update with a generic, task-unattributed `"Cannot read properties of undefined (reading 'task')"` error.
+26. **A `merge` reading a `childJob`'s output uses `"variable"`, like every other merge item** — `{"task": "<childJobId>", "variable": "job_details"}`. With `"value"` the workflow creates and runs but the item resolves to `null`. See `### childJob`.
 27. **`push`'s incoming must omit `job_id`** (even though `tasks.json` lists it) and its outgoing must declare `job_variable_value` (not an empty `{}`) — both cause the same generic create/update failure as #26 if wrong.
 28. **`parse`'s real fields are `text`/`textObject`**, not `stringToParse`/`result`.
 29. **`objectToString`'s `replacer` is a property whitelist — `replacer: []` silently produces `{}` for every input, no error, no warning.** `replacer`/`space` are both optional (`required: false`); if you don't need them, OMIT the keys entirely rather than passing `null` (which trips a validate-time type warning) or `[]`/`0` (which is schema-valid but semantically means "include zero properties" — the empty-whitelist regression). This is a genuine silent-data-loss bug, not cosmetic: the task's own `stringified` output reads as `"{}"` with no error while `$var.job.<sourceVar>` is fully populated the whole time. If you see `objectToString` "losing" data that a job's final variable dump shows was correct, check `replacer` first before suspecting a timing/race issue in whatever produced the source object.
 30. **`$var` does not resolve when written as an element inside an inline array literal** — `"groups": ["$var.job.myGroup"]` sends the literal unresolved string, not the resolved value (confirmed via A/B test: `["academy"]` worked, `["$var.job.groupVar"]` sent the literal 21-character string and the API rejected it as an unknown group name). Same family as "no `$var` inside nested object values," but applies to plain arrays of primitives too. Fix: build the array with `newVariable` (`value: []`) + `push` (one item at a time), then reference the whole array as a single top-level `$var.job.<name>` — a bare job-variable reference resolves fine.
 31. **`InventoryManager.getNodesByInventory`'s `params` field is required at runtime even though its live schema (`multipleTaskDetails?dereferenceSchemas=true`) doesn't mark it `required: true`.** Omitting it fails job start with `"Cannot find match for input: \"params\" from model"`. Always pass `"params": {}` explicitly for this task, regardless of what the schema implies.
 32. **`InventoryManager.getInventoryByIdentifier` surfaces "not found" as a task-level `error` transition, not a `success` with an error-shaped body** (confirmed with an isolated probe: HTTP 404 → job `status: error`, task's `outgoing.response` stays unset). Branch on the task's own `success`/`error` transitions for existence checks — no `evaluation` task needed to inspect a response field.
-33. **`evaluation`'s inline operand `query` sibling key can be silently ignored for multi-segment/array-index paths** — e.g. `{"task":"a1a1","variable":"result","query":"response.results[0].status.value"}` can resolve `operand_1` to the entire untouched `result` object instead of the nested field. Verify via `GET /operations-manager/tasks/{iterationId}` on the evaluation task (job-level `GET .../jobs/{id}` never shows resolved operand values). If it doesn't drill down, fall back to a standalone `query` task + `{"task":"<queryTaskId>","variable":"return_data"}` operand ref. See `### query` / evaluation operand section.
+33. **Put an `evaluation` query on the evaluation item (`query` / `rightQuery`), never inside the operand** — `{"task":"job","variable":"src","query":"body.name"}` is ignored at runtime for every path form (operand resolves to the whole object, the comparison silently fails) and Studio shows nothing for it. Use `{"query":".body.name","operand_1":{"task":"job","variable":"src"},"operator":"==","operand_2":{...},"rightQuery":""}`. If a query still has no effect, fall back to a standalone `query` task + `{"task":"<queryTaskId>","variable":"return_data"}` operand ref. See the `### evaluation` section.
 34. **`query`'s `pass_on_null: false` does not reliably trigger `failure` for an out-of-bounds array index** (e.g. `results[0]` on an empty `[]`) — observed `return_data: null` but `success` transition still taken. Don't rely on the `failure` transition to catch this case; check the extracted value explicitly downstream. See `### query`.
 
 ### Templates
