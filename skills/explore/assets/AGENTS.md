@@ -286,6 +286,18 @@ Build workflows/templates → load `/builder-agent`. Need acceptance testing or 
 
 **For explore / freestyle work, skip this pipeline entirely:** `/explore → auth → pull platform data → use skills directly`
 
+## Other Itential skill packs
+
+| Pack | Repo | Plugin | For |
+|---|---|---|---|
+| **Builder** (this repo) | [`itential/builder-skills`](https://github.com/itential/builder-skills) | `itential-builder` | Design, build and test automations — spec, feasibility, design, build, QA and as-built |
+| **Admin** | [`itential/admin-skills`](https://github.com/itential/admin-skills) | `itential-admin-skills` | Platform health, adapters and applications, users, groups, roles, service accounts, SSO, integrations |
+| **Operator** | [`itential/operator-skills`](https://github.com/itential/operator-skills) | `itential-operator-skills` | Run automations, monitor jobs, diagnose and retry failures, approve manual tasks, manage triggers |
+
+**Where the line is.** Running jobs to build and verify what you're delivering — component tests in `/builder-agent`, acceptance tests and the as-built record in `/qa-agent` — always stays in this pack, even when the operator pack is installed. Point to another pack only for work outside the delivery: day-to-day running of already-delivered automations (what failed overnight, approving production manual tasks, schedules and triggers) → **Operator**; platform health, adapters, users and access → **Admin**.
+
+If a request belongs to another pack, say which pack covers it and how to install it (`/plugin marketplace add <repo>` then `/plugin install <plugin>@<plugin>` in Claude Code; other tools in `docs/vendor-install.md`), rather than improvising from general knowledge. If that pack is already installed, use its skill.
+
 ## Key Rules
 
 1. **Never invent task names** — always look them up from `tasks/list`
