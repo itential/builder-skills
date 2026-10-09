@@ -18,15 +18,12 @@
 
 ## Testing
 
-<!-- Describe how you tested your changes -->
+<!-- Describe how you tested your changes — for skill changes, what you ran and against which platform -->
 
 ## Checklist
 
-- [ ] Code follows the project's style guidelines
-- [ ] Self-review of code has been performed
-- [ ] Code has been commented where necessary
-- [ ] Tested with `make setup` or relevant profile
-- [ ] Commits follow conventional format (`type: subject`)
+- [ ] PR title follows `<type>: <description>` (it becomes the commit on `main`)
+- [ ] `scripts/check-generated.sh` passes locally, and any `skills/*/assets` changes it made are committed
+- [ ] Nothing added under `skills/*/custom/`, and no version changes (see CONTRIBUTING.md -> Releasing)
+- [ ] `CHANGELOG.md` has a bullet under `## Unreleased` if the change is user-facing
 - [ ] No secrets or credentials committed
-- [ ] Documentation has been updated accordingly
-- [ ] PR has been labeled appropriately (`enhancement`, `bug`, `documentation`, `refactor`, `chore`)

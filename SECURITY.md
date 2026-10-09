@@ -2,12 +2,12 @@
 
 ## Supported Versions
 
-<!-- MAINTAINER: Replace the example rows below with your project's actual versions and support status -->
+Security fixes are released for the latest version only. Update to the newest release to receive them.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| x.x.x   | :white_check_mark: |
-| x.x.x   | :x:                |
+| Latest release | :white_check_mark: |
+| Older releases | :x:                |
 
 ## Reporting a Vulnerability
 
@@ -28,18 +28,10 @@ We will acknowledge your report within 48 hours and provide regular updates on o
 
 ## Security Best Practices
 
-<!-- MAINTAINER: Update the sections below for your project's technology stack. Remove items that don't apply and add stack-specific guidance (e.g., SQL injection prevention for database projects, CSRF protection for web apps). -->
+These skills drive an AI agent that calls your Itential Platform's API with your credentials. When using them:
 
-- **Credentials:** Never hardcode secrets, API keys, or passwords. Use environment variables or a secrets manager.
-- **Dependencies:** Keep dependencies up to date. Run security scans regularly and monitor advisories.
-- **Input validation:** Validate and sanitize all external input at system boundaries.
-- **Error handling:** Sanitize error messages before exposing them. Avoid logging sensitive data.
-- **TLS:** Always use HTTPS in production environments.
-- **Access control:** Follow the principle of least privilege for all credentials and permissions.
-
-<!-- MAINTAINER: Add any project-specific security considerations below. Examples:
-- Authentication/authorization requirements
-- Data encryption standards
-- Compliance requirements (SOC 2, GDPR, etc.)
-- Security testing tools used in CI/CD
--->
+- **Credentials:** keep platform credentials in the `.env` of the folder you work in (the agent caches a token in `.auth.json` next to it). Never commit either file, and never put credentials in a skill's `custom/` rules.
+- **Least privilege:** use a service account whose roles cover only what the work needs, rather than an administrator's login.
+- **Review before changes:** read what the agent plans to change on the platform before you approve it, and try new work on a non-production platform first.
+- **Treat `custom/` rules as code:** they are instructions the agent follows. Review changes to them like any other change to your automation.
+- **Report skill guidance that is unsafe** — for example, guidance that could expose credentials or bypass a skill's safety rules — the same way as any other vulnerability (above).
