@@ -3179,14 +3179,25 @@
             "variables": {
               "incoming": {
                 "clusterId": "$var.job.clusterId",
-                "config": "$var.job.configurationToPush",
-                "inventory": "$var.job.inventoryTarget"
+                "config": "$var.582e.result#/stdout_json/config",
+                "inventory": "$var.582e.result#/stdout_json/inventory"
               },
               "outgoing": {
                 "result": null
               },
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/config",
+                  "displayPath": ".stdout_json.config"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/inventory",
+                  "displayPath": ".stdout_json.inventory"
+                }
+              ]
             },
             "groups": [],
             "actor": "Pronghorn",
@@ -3237,15 +3248,26 @@
             "variables": {
               "incoming": {
                 "header": "Configuration Error",
-                "message": "$var.582e.deviceConfigurationPushFailedMessage",
-                "body": "$var.a103.return_data",
+                "message": "$var.582e.result#/stdout_json/failedMessage",
+                "body": "$var.ca47.result#/result/results/0/output",
                 "variables": {},
                 "btn_success": "Retry",
                 "btn_failure": "End Job"
               },
               "outgoing": {},
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/message",
+                  "displayPath": ".stdout_json.failedMessage"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/body",
+                  "displayPath": ".result.results.0.output"
+                }
+              ]
             },
             "view": "/workflow_engine/task/ViewData",
             "groups": [],
@@ -3324,15 +3346,26 @@
             "variables": {
               "incoming": {
                 "header": "View Configuration",
-                "message": "$var.582e.deviceConfigurationPushMessage",
-                "body": "$var.582e.renderedTemplate",
+                "message": "$var.582e.result#/stdout_json/pushMessage",
+                "body": "$var.582e.result#/stdout_json/config",
                 "variables": {},
                 "btn_success": "Provision",
                 "btn_failure": "End Job"
               },
               "outgoing": {},
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/message",
+                  "displayPath": ".stdout_json.pushMessage"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/body",
+                  "displayPath": ".stdout_json.config"
+                }
+              ]
             },
             "view": "/workflow_engine/task/ViewData",
             "groups": [],
@@ -3515,35 +3548,39 @@
             }
           },
           "582e": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Process Push Configuration Data",
-            "description": "Process push configuration data",
+            "description": "Configuration text, inventory target and messages for the push, in one result",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "66cf67bf21161b4df2717481",
-                "variableMap": {
-                  "renderedJinja2Template": "$var.b9ed.renderedTemplate",
-                  "deviceName": "$var.job.device"
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# Rendered configuration + target device(s) -> everything the push needs, in one result.\ndata = json.load(sys.stdin)\nconfig = data.get(\"renderedTemplate\")\nif isinstance(config, dict):  # renderJinjaTemplate's output is {\"renderedTemplate\": \"...\"}\n    config = config.get(\"renderedTemplate\", \"\")\ndevice = data.get(\"device\")\ndevices = device if isinstance(device, list) else [device]\nnames = \", \".join(str(d) for d in devices)\nprint(json.dumps({\n    \"config\": config,\n    \"devices\": devices,\n    \"inventory\": [{\"inventory\": data.get(\"inventoryName\"), \"nodeNames\": devices}],\n    \"pushMessage\": f'See configuration below to provision against the device \"{names}\". Select \"Provision\" '\n                   'to attempt to push the configuration to the device or select \"End Job\" to skip pushing '\n                   'configuration and to end the job.',\n    \"failedMessage\": f'Pushing configuration to device \"{names}\" failed. See details below. Select \"Retry\" '\n                     'to retry provisioning the configuration against the device or select \"End Job\" to end '\n                     'the job without pushing configuration to the device.',\n}))\n",
+                "data": {
+                  "renderedTemplate": "$var.b9ed.renderedTemplate",
+                  "device": "$var.job.device",
+                  "inventoryName": "$var.job.inventoryName"
                 },
-                "options": ""
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "renderedTemplate": "$var.job.configurationToPush",
-                "configurationList": null,
-                "deviceList": "$var.job.nodeNames",
-                "deviceConfigurationPushMessage": null,
-                "deviceConfigurationPushFailedMessage": null
+                "result": "$var.job.pushData"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": -648,
               "y": 1272
@@ -3652,113 +3689,11 @@
               "x": -72,
               "y": 1356
             }
-          },
-          "a101": {
-            "name": "merge",
-            "canvasName": "merge",
-            "summary": "Build Inventory Target",
-            "description": "Inventory Manager inventory and node names for sendConfig",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
-            "variables": {
-              "incoming": {
-                "data_to_merge": [
-                  {
-                    "key": "inventory",
-                    "value": {
-                      "task": "job",
-                      "variable": "inventoryName"
-                    }
-                  },
-                  {
-                    "key": "nodeNames",
-                    "value": {
-                      "task": "job",
-                      "variable": "nodeNames"
-                    }
-                  }
-                ]
-              },
-              "outgoing": {
-                "merged_object": null
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": -912,
-              "y": 1308
-            }
-          },
-          "a102": {
-            "name": "arrayPush",
-            "canvasName": "push",
-            "summary": "Wrap Inventory Target",
-            "description": "sendConfig takes an array of inventory targets",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "automatic",
-            "displayName": "Array",
-            "variables": {
-              "incoming": {
-                "arr": [],
-                "elementN": "$var.a101.merged_object"
-              },
-              "outgoing": {
-                "pushedArray": "$var.job.inventoryTarget"
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": -780,
-              "y": 1308
-            }
-          },
-          "a103": {
-            "name": "query",
-            "canvasName": "query",
-            "summary": "Get Device Output",
-            "description": "The device's output from sendConfig, for the error view",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
-            "variables": {
-              "incoming": {
-                "pass_on_null": true,
-                "query": "result.results[0].output",
-                "obj": "$var.ca47.result"
-              },
-              "outgoing": {
-                "return_data": null
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": -204,
-              "y": 1608
-            }
           }
         },
         "transitions": {
           "9722": {
-            "a103": {
+            "7a4c": {
               "type": "standard",
               "state": "failure"
             },
@@ -3815,7 +3750,7 @@
             }
           },
           "cba5": {
-            "a101": {
+            "ca47": {
               "type": "standard",
               "state": "success"
             },
@@ -3825,7 +3760,7 @@
             }
           },
           "c4c9": {
-            "a101": {
+            "ca47": {
               "type": "standard",
               "state": "success"
             },
@@ -3895,24 +3830,6 @@
               "state": "success",
               "type": "standard"
             }
-          },
-          "a101": {
-            "a102": {
-              "type": "standard",
-              "state": "success"
-            }
-          },
-          "a102": {
-            "ca47": {
-              "type": "standard",
-              "state": "success"
-            }
-          },
-          "a103": {
-            "7a4c": {
-              "type": "standard",
-              "state": "success"
-            }
           }
         },
         "inputSchema": {
@@ -3953,7 +3870,7 @@
             },
             "clusterId": {
               "type": "string",
-              "description": "Gateway5 cluster that connects to the devices",
+              "description": "Gateway5 cluster that runs the workflow's runCode tasks",
               "examples": [
                 "cluster_1"
               ]
@@ -4005,11 +3922,12 @@
             "initiator": {
               "type": "string"
             },
-            "configurationToPush": {
-              "type": ["array", "boolean", "null", "number", "object", "string"]
-            },
             "pushConfigurationResult": {
               "type": "string"
+            },
+            "pushData": {
+              "type": "object",
+              "description": "runCode result: stdout_json holds config, inventory, devices, pushMessage, failedMessage"
             }
           }
         },

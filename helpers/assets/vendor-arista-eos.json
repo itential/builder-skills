@@ -1414,14 +1414,25 @@
             "variables": {
               "incoming": {
                 "clusterId": "$var.job.clusterId",
-                "config": "$var.job.configurationToPush",
-                "inventory": "$var.job.inventoryTarget"
+                "config": "$var.582e.result#/stdout_json/config",
+                "inventory": "$var.582e.result#/stdout_json/inventory"
               },
               "outgoing": {
                 "result": null
               },
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/config",
+                  "displayPath": ".stdout_json.config"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/inventory",
+                  "displayPath": ".stdout_json.inventory"
+                }
+              ]
             },
             "groups": [],
             "actor": "Pronghorn",
@@ -1472,15 +1483,26 @@
             "variables": {
               "incoming": {
                 "header": "Configuration Error",
-                "message": "$var.582e.deviceConfigurationPushFailedMessage",
-                "body": "$var.a103.return_data",
+                "message": "$var.582e.result#/stdout_json/failedMessage",
+                "body": "$var.ca47.result#/result/results/0/output",
                 "variables": {},
                 "btn_success": "Retry",
                 "btn_failure": "End Job"
               },
               "outgoing": {},
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/message",
+                  "displayPath": ".stdout_json.failedMessage"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/body",
+                  "displayPath": ".result.results.0.output"
+                }
+              ]
             },
             "view": "/workflow_engine/task/ViewData",
             "groups": [],
@@ -1559,15 +1581,26 @@
             "variables": {
               "incoming": {
                 "header": "View Configuration",
-                "message": "$var.582e.deviceConfigurationPushMessage",
-                "body": "$var.582e.renderedTemplate",
+                "message": "$var.582e.result#/stdout_json/pushMessage",
+                "body": "$var.582e.result#/stdout_json/config",
                 "variables": {},
                 "btn_success": "Provision",
                 "btn_failure": "End Job"
               },
               "outgoing": {},
               "error": "",
-              "decorators": []
+              "decorators": [
+                {
+                  "type": "query",
+                  "pointer": "/incoming/message",
+                  "displayPath": ".stdout_json.pushMessage"
+                },
+                {
+                  "type": "query",
+                  "pointer": "/incoming/body",
+                  "displayPath": ".stdout_json.config"
+                }
+              ]
             },
             "view": "/workflow_engine/task/ViewData",
             "groups": [],
@@ -1750,35 +1783,39 @@
             }
           },
           "582e": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Process Push Configuration Data",
-            "description": "Process push configuration data",
+            "description": "Configuration text, inventory target and messages for the push, in one result",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "66d0da1821161b4df27174d7",
-                "variableMap": {
-                  "renderedJinja2Template": "$var.b9ed.renderedTemplate",
-                  "deviceName": "$var.job.device"
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# Rendered configuration + target device(s) -> everything the push needs, in one result.\ndata = json.load(sys.stdin)\nconfig = data.get(\"renderedTemplate\")\nif isinstance(config, dict):  # renderJinjaTemplate's output is {\"renderedTemplate\": \"...\"}\n    config = config.get(\"renderedTemplate\", \"\")\ndevice = data.get(\"device\")\ndevices = device if isinstance(device, list) else [device]\nnames = \", \".join(str(d) for d in devices)\nprint(json.dumps({\n    \"config\": config,\n    \"devices\": devices,\n    \"inventory\": [{\"inventory\": data.get(\"inventoryName\"), \"nodeNames\": devices}],\n    \"pushMessage\": f'See configuration below to provision against the device \"{names}\". Select \"Provision\" '\n                   'to attempt to push the configuration to the device or select \"End Job\" to skip pushing '\n                   'configuration and to end the job.',\n    \"failedMessage\": f'Pushing configuration to device \"{names}\" failed. See details below. Select \"Retry\" '\n                     'to retry provisioning the configuration against the device or select \"End Job\" to end '\n                     'the job without pushing configuration to the device.',\n}))\n",
+                "data": {
+                  "renderedTemplate": "$var.b9ed.renderedTemplate",
+                  "device": "$var.job.device",
+                  "inventoryName": "$var.job.inventoryName"
                 },
-                "options": ""
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "renderedTemplate": "$var.job.configurationToPush",
-                "configurationList": null,
-                "deviceList": "$var.job.nodeNames",
-                "deviceConfigurationPushMessage": null,
-                "deviceConfigurationPushFailedMessage": null
+                "result": "$var.job.pushData"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": 0,
               "y": 816
@@ -1887,113 +1924,11 @@
               "x": 624,
               "y": 900
             }
-          },
-          "a101": {
-            "name": "merge",
-            "canvasName": "merge",
-            "summary": "Build Inventory Target",
-            "description": "Inventory Manager inventory and node names for sendConfig",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
-            "variables": {
-              "incoming": {
-                "data_to_merge": [
-                  {
-                    "key": "inventory",
-                    "value": {
-                      "task": "job",
-                      "variable": "inventoryName"
-                    }
-                  },
-                  {
-                    "key": "nodeNames",
-                    "value": {
-                      "task": "job",
-                      "variable": "nodeNames"
-                    }
-                  }
-                ]
-              },
-              "outgoing": {
-                "merged_object": null
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": -264,
-              "y": 852
-            }
-          },
-          "a102": {
-            "name": "arrayPush",
-            "canvasName": "push",
-            "summary": "Wrap Inventory Target",
-            "description": "sendConfig takes an array of inventory targets",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "automatic",
-            "displayName": "Array",
-            "variables": {
-              "incoming": {
-                "arr": [],
-                "elementN": "$var.a101.merged_object"
-              },
-              "outgoing": {
-                "pushedArray": "$var.job.inventoryTarget"
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": -132,
-              "y": 852
-            }
-          },
-          "a103": {
-            "name": "query",
-            "canvasName": "query",
-            "summary": "Get Device Output",
-            "description": "The device's output from sendConfig, for the error view",
-            "location": "Application",
-            "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
-            "variables": {
-              "incoming": {
-                "pass_on_null": true,
-                "query": "result.results[0].output",
-                "obj": "$var.ca47.result"
-              },
-              "outgoing": {
-                "return_data": null
-              },
-              "error": "",
-              "decorators": []
-            },
-            "groups": [],
-            "actor": "Pronghorn",
-            "scheduled": false,
-            "nodeLocation": {
-              "x": 492,
-              "y": 1116
-            }
           }
         },
         "transitions": {
           "9722": {
-            "a103": {
+            "7a4c": {
               "type": "standard",
               "state": "failure"
             },
@@ -2050,7 +1985,7 @@
             }
           },
           "cba5": {
-            "a101": {
+            "ca47": {
               "type": "standard",
               "state": "success"
             },
@@ -2060,7 +1995,7 @@
             }
           },
           "c4c9": {
-            "a101": {
+            "ca47": {
               "type": "standard",
               "state": "success"
             },
@@ -2130,24 +2065,6 @@
               "state": "success",
               "type": "standard"
             }
-          },
-          "a101": {
-            "a102": {
-              "type": "standard",
-              "state": "success"
-            }
-          },
-          "a102": {
-            "ca47": {
-              "type": "standard",
-              "state": "success"
-            }
-          },
-          "a103": {
-            "7a4c": {
-              "type": "standard",
-              "state": "success"
-            }
           }
         },
         "inputSchema": {
@@ -2188,7 +2105,7 @@
             },
             "clusterId": {
               "type": "string",
-              "description": "Gateway5 cluster that connects to the devices",
+              "description": "Gateway5 cluster that runs the workflow's runCode tasks",
               "examples": [
                 "cluster_1"
               ]
@@ -2240,11 +2157,12 @@
             "initiator": {
               "type": "string"
             },
-            "configurationToPush": {
-              "type": ["array", "boolean", "null", "number", "object", "string"]
-            },
             "pushConfigurationResult": {
               "type": "string"
+            },
+            "pushData": {
+              "type": "object",
+              "description": "runCode result: stdout_json holds config, inventory, devices, pushMessage, failedMessage"
             }
           }
         },
@@ -6887,37 +6805,38 @@
             }
           },
           "2bd6": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Standard Output",
-            "description": "Create a standard object for job status and error-handling. ",
+            "description": "The runner's result: success and reason",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "6793b713f921f091fd10502a",
-                "variableMap": {
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# The runner's one output: {success, reason, errorMessage}.\n# Given templateResults (MOP RunCommandTemplate output), work it out; otherwise pass success/reason through.\ndata = json.load(sys.stdin)\nresults = data.get(\"templateResults\")\nif results is None:\n    success = bool(data.get(\"success\"))\n    reason = data.get(\"reason\") or \"\"\nelse:\n    success = bool(results.get(\"result\"))\n    failed = [f'{c.get(\"device\")}: \"{c.get(\"evaluated\")}\" {r.get(\"eval\")} \"{r.get(\"rule\")}\"'\n              for c in results.get(\"commands_results\") or []\n              for r in c.get(\"rules\") or [] if not r.get(\"result\")]\n    reason = \"\" if success else (f'Command template \"{data.get(\"templateName\")}\" failed: '\n                                 + (\"; \".join(failed) or \"no command results\"))\nprint(json.dumps({\"success\": success, \"reason\": reason, \"errorMessage\": \"\" if success else reason}))\n",
+                "data": {
                   "success": true,
                   "reason": ""
                 },
-                "options": {
-                  "extractOutput": false,
-                  "validateIncoming": true,
-                  "revertToDefaultValue": true
-                }
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "success": "$var.job.success",
-                "reason": "$var.job.reason",
-                "type": null
+                "result": "$var.job.standardOutput"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": 492,
               "y": 528
@@ -6951,37 +6870,38 @@
             }
           },
           "c2fa": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Command Template Response Processor",
-            "description": "Perform a JSON Transformation using the JST library.",
+            "description": "Success, reason and error message from the command template results",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "66f75bba489dc00177ecd68c",
-                "variableMap": {
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# The runner's one output: {success, reason, errorMessage}.\n# Given templateResults (MOP RunCommandTemplate output), work it out; otherwise pass success/reason through.\ndata = json.load(sys.stdin)\nresults = data.get(\"templateResults\")\nif results is None:\n    success = bool(data.get(\"success\"))\n    reason = data.get(\"reason\") or \"\"\nelse:\n    success = bool(results.get(\"result\"))\n    failed = [f'{c.get(\"device\")}: \"{c.get(\"evaluated\")}\" {r.get(\"eval\")} \"{r.get(\"rule\")}\"'\n              for c in results.get(\"commands_results\") or []\n              for r in c.get(\"rules\") or [] if not r.get(\"result\")]\n    reason = \"\" if success else (f'Command template \"{data.get(\"templateName\")}\" failed: '\n                                 + (\"; \".join(failed) or \"no command results\"))\nprint(json.dumps({\"success\": success, \"reason\": reason, \"errorMessage\": \"\" if success else reason}))\n",
+                "data": {
                   "templateName": "$var.job.templateName",
-                  "mopTemplateResults": "$var.job.templateResults"
+                  "templateResults": "$var.job.templateResults"
                 },
-                "options": {
-                  "extractOutput": false,
-                  "validateIncoming": true,
-                  "revertToDefaultValue": true
-                }
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "errorMessage": "$var.job.errorMessage",
-                "success": "$var.job.success",
-                "reason": "$var.job.reason"
+                "result": "$var.job.standardOutput"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": 492,
               "y": 1380
@@ -7040,111 +6960,114 @@
             }
           },
           "e39d": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Standard Output",
-            "description": "Create a standard object for job status and error-handling. ",
+            "description": "The runner's result: success and reason",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "6793b713f921f091fd10502a",
-                "variableMap": {
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# The runner's one output: {success, reason, errorMessage}.\n# Given templateResults (MOP RunCommandTemplate output), work it out; otherwise pass success/reason through.\ndata = json.load(sys.stdin)\nresults = data.get(\"templateResults\")\nif results is None:\n    success = bool(data.get(\"success\"))\n    reason = data.get(\"reason\") or \"\"\nelse:\n    success = bool(results.get(\"result\"))\n    failed = [f'{c.get(\"device\")}: \"{c.get(\"evaluated\")}\" {r.get(\"eval\")} \"{r.get(\"rule\")}\"'\n              for c in results.get(\"commands_results\") or []\n              for r in c.get(\"rules\") or [] if not r.get(\"result\")]\n    reason = \"\" if success else (f'Command template \"{data.get(\"templateName\")}\" failed: '\n                                 + (\"; \".join(failed) or \"no command results\"))\nprint(json.dumps({\"success\": success, \"reason\": reason, \"errorMessage\": \"\" if success else reason}))\n",
+                "data": {
                   "success": false,
                   "reason": "$var.job.reason"
                 },
-                "options": {
-                  "extractOutput": false,
-                  "validateIncoming": true,
-                  "revertToDefaultValue": true
-                }
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "success": "$var.job.success",
-                "reason": "$var.job.reason",
-                "type": null
+                "result": "$var.job.standardOutput"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": -60,
               "y": 1836
             }
           },
           "6d55": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Standard Output",
-            "description": "If Error Running Command Template, set the reason to the error message",
+            "description": "The runner's result: success and reason",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "6793b713f921f091fd10502a",
-                "variableMap": {
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# The runner's one output: {success, reason, errorMessage}.\n# Given templateResults (MOP RunCommandTemplate output), work it out; otherwise pass success/reason through.\ndata = json.load(sys.stdin)\nresults = data.get(\"templateResults\")\nif results is None:\n    success = bool(data.get(\"success\"))\n    reason = data.get(\"reason\") or \"\"\nelse:\n    success = bool(results.get(\"result\"))\n    failed = [f'{c.get(\"device\")}: \"{c.get(\"evaluated\")}\" {r.get(\"eval\")} \"{r.get(\"rule\")}\"'\n              for c in results.get(\"commands_results\") or []\n              for r in c.get(\"rules\") or [] if not r.get(\"result\")]\n    reason = \"\" if success else (f'Command template \"{data.get(\"templateName\")}\" failed: '\n                                 + (\"; \".join(failed) or \"no command results\"))\nprint(json.dumps({\"success\": success, \"reason\": reason, \"errorMessage\": \"\" if success else reason}))\n",
+                "data": {
                   "success": false,
                   "reason": "$var.job.templateError"
                 },
-                "options": {
-                  "extractOutput": false,
-                  "validateIncoming": true,
-                  "revertToDefaultValue": true
-                }
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "success": "$var.job.success",
-                "reason": "$var.job.reason",
-                "type": null
+                "result": "$var.job.standardOutput"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": -576,
               "y": 996
             }
           },
           "164f": {
-            "name": "transformation",
-            "canvasName": "transformation",
+            "name": "runCode",
+            "canvasName": "runCode",
             "summary": "Standard Output",
-            "description": "If Error Running Command Template, set the reason to the error message",
+            "description": "The runner's result: success and reason",
             "location": "Application",
             "locationType": null,
-            "app": "WorkFlowEngine",
-            "type": "operation",
-            "displayName": "WorkFlowEngine",
+            "app": "GatewayManager",
+            "type": "automatic",
+            "displayName": "GatewayManager",
             "variables": {
               "incoming": {
-                "tr_id": "6793b713f921f091fd10502a",
-                "variableMap": {
+                "clusterId": "$var.job.clusterId",
+                "language": "python",
+                "code": "import sys, json\n\n# The runner's one output: {success, reason, errorMessage}.\n# Given templateResults (MOP RunCommandTemplate output), work it out; otherwise pass success/reason through.\ndata = json.load(sys.stdin)\nresults = data.get(\"templateResults\")\nif results is None:\n    success = bool(data.get(\"success\"))\n    reason = data.get(\"reason\") or \"\"\nelse:\n    success = bool(results.get(\"result\"))\n    failed = [f'{c.get(\"device\")}: \"{c.get(\"evaluated\")}\" {r.get(\"eval\")} \"{r.get(\"rule\")}\"'\n              for c in results.get(\"commands_results\") or []\n              for r in c.get(\"rules\") or [] if not r.get(\"result\")]\n    reason = \"\" if success else (f'Command template \"{data.get(\"templateName\")}\" failed: '\n                                 + (\"; \".join(failed) or \"no command results\"))\nprint(json.dumps({\"success\": success, \"reason\": reason, \"errorMessage\": \"\" if success else reason}))\n",
+                "data": {
                   "success": true,
                   "reason": "User Overrride To Success"
                 },
-                "options": {
-                  "extractOutput": false,
-                  "validateIncoming": true,
-                  "revertToDefaultValue": true
-                }
+                "safety": {
+                  "timeout": 60
+                },
+                "packages": []
               },
               "outgoing": {
-                "success": "$var.job.success",
-                "reason": "$var.job.reason",
-                "type": null
+                "result": "$var.job.standardOutput"
               },
+              "error": "",
               "decorators": []
             },
-            "actor": "Pronghorn",
             "groups": [],
+            "actor": "Pronghorn",
+            "scheduled": false,
             "nodeLocation": {
               "x": -264,
               "y": 1584
@@ -7510,6 +7433,13 @@
             },
             "suppressFailureMessage": {
               "type": ["array", "boolean", "null", "number", "object", "string"]
+            },
+            "clusterId": {
+              "type": "string",
+              "description": "Gateway5 cluster that runs the workflow's runCode tasks",
+              "examples": [
+                "cluster_1"
+              ]
             }
           },
           "required": [
@@ -7521,7 +7451,8 @@
             "_id",
             "reattemptWaitTime",
             "reattemptQuantity",
-            "suppressFailureMessage"
+            "suppressFailureMessage",
+            "clusterId"
           ]
         },
         "outputSchema": {
@@ -7635,18 +7566,12 @@
             "templateError": {
               "type": ["array", "boolean", "null", "number", "object", "string"]
             },
-            "reason": {
-              "$id": "reason",
-              "type": "string",
-              "examples": ["default"]
-            },
-            "success": {
-              "$id": "success",
-              "type": "boolean",
-              "examples": [true, false]
-            },
             "manualAcceptAndContinue": {
               "type": "boolean"
+            },
+            "standardOutput": {
+              "type": "object",
+              "description": "runCode result: stdout_json holds success, reason, errorMessage"
             }
           }
         },

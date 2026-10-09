@@ -1520,6 +1520,8 @@ These are built-in tasks that require no adapter. They handle data manipulation 
 
 **Default for any per-item transform, lookup, or branching loop: `runCode` + Enable Query below — not a chain of the individual utility tasks that follow.** The individual tasks (`query`, `merge`, `evaluation`, `forEach`, `newVariable`, `makeData`, `push`/`pop`/`shift`, `deepmerge`, `transformation`, `decision`, and the rest) are secondary: use one of them alone for a single non-looping operation, or when the per-item work must call another platform task (adapter, app method, childJob) per item — `runCode` can't do that, it only runs Python against the `data` it's given.
 
+**Reshaping data: `runCode`, not a JST transformation.** Put the logic in a `runCode` task on the canvas — readable Python, testable on its own with JSON on stdin — and have it return everything downstream needs in one result; consumers read its fields with Enable Query (`$var.<task>.result#/stdout_json/<field>`). The cost: `runCode` runs on a Gateway5 cluster, so the workflow needs a `clusterId` input; a transformation runs on the platform. Worked examples: "Process Push Configuration Data" in the push-config assets and the "Standard Output" tasks in `vendor-arista-eos.json`'s Command Template Runner_v2.
+
 ### runCode (GatewayManager) — real Python instead of chaining WorkFlowEngine utility tasks
 
 **Before wiring a `runCode` task, read this section and `assets/helpers/assets/runcode-taskquery-reference.json` in full.** Do not construct the task shape from a live job's error trace or from memory — `runCode` is a `GatewayManager` **automatic** task (not a `WorkFlowEngine` operation task, an easy but costly mix-up), and its exact field names (`clusterId`, `language`, `code`, `data`, `safety.timeout`, `packages`) are documented in the table below. Getting this wrong produces confusing "additional properties"/"required property" validation errors that look like a project-import problem when the real cause is simply the wrong `app`/`type` on this one task.
@@ -1618,6 +1620,8 @@ A per-field Studio toggle, not a task or endpoint — invisible to `tasks.json`/
 **Confirmed scope:** works on both a top-level plain-string incoming field AND a field nested inside an object (e.g. `runCode`'s `data.devices`) — confirmed by deleting the upstream `query` task entirely and verifying the job variable it used to write was absent from the job's final state while the downstream task still received the correct value. For a nested field, the `#/<path>` suffix goes on the nested value itself (`"data": {"devices": "$var.job.someVar#/nested/path"}`) and `pointer` uses the full nested path (`/incoming/data/devices`).
 
 **When to reach for it:** any spot where a `query` task's only purpose is pulling one field out of an object and handing it to exactly one downstream task's field. Skip it if the queried value feeds more than one consumer, or needs further transformation (evaluation, string ops) before use — a real `query` task is still the right call there.
+
+**Validator vs runtime:** on some platform builds, `POST /workflow_engine/workflows/validate` reports a query decorator as a schema error (`decorators/0/type: must be equal to one of the allowed values` — that build's schema only allows `encryption`) and warns that the field gets an object. Jobs still resolve the decorated reference at runtime — verified by a `sendConfig` whose `config` and `inventory` came through decorators and pushed the right line to a live device. Don't "fix" those errors by removing the decorators.
 
 **Confirmed NOT to try without testing first:** `evaluation` operands use a structured reference (`{"task":"job","variable":"x"}`), not a plain `$var` string — this is a different field shape than every confirmed Enable Query example, and hasn't been tested. Don't assume this decorator applies there. **For this exact scenario, `evaluation`'s own operand object has a native `query` sibling key instead** — see "Operand can drill into a nested field via an inline `query` key" earlier in this section; that's the confirmed way to skip a separate `query` task feeding an `evaluation` operand.
 
@@ -2137,8 +2141,7 @@ Pre-Check (RunCommandTemplate child)
 
 Verified against a live Arista EOS device:
 
-- **`config`** is the rendered text as one string. `renderJinjaTemplate`'s `renderedTemplate` output is an object (`{renderedTemplate: "..."}`) — pull the text out with a `query` task (`query: "renderedTemplate"`) first.
-- **`inventory`** is `[{"inventory": "<inventory>", "nodeNames": ["<node>", ...]}]`. `$var` doesn't resolve inside it, so build it with `merge` (keys `inventory` and `nodeNames`, from job variables) and wrap the merged object with `arrayPush` (`arr: []`).
+- **`config`** is the rendered text as one string, and **`inventory`** is `[{"inventory": "<inventory>", "nodeNames": ["<node>", ...]}]`. Build both in one `runCode` task before the push — it takes `renderJinjaTemplate`'s output (an object, `{renderedTemplate: "..."}`), the device(s) and the inventory name, and returns `{config, inventory, ...}`; `sendConfig` reads them with Enable Query (`config: "$var.<task>.result#/stdout_json/config"`). See "Process Push Configuration Data" in the asset. (Without `runCode`: a `query` task for the text, and `merge` + `arrayPush` for the inventory — `$var` doesn't resolve inside it.)
 - **Config mode needs enable:** the node's `itential_driver_options.netmiko.become` must be `true` (plus `secret` if the device has an enable password). Without it the push fails with `ReadTimeout: Pattern not detected: '<host>.*\)\#'`.
 - **Output:** `result.result.results[]`, one `{name, host, output, success}` per node — there is no overall `state` field. Check every node: an `evaluation` with `query: "result.results"` `!=` `[]` **and** `query: "result.results[*].success"` `!contains` `false` (group `all_true_flag: true`). Prove the check by running it once against a push that can't land — a wrong query path passes silently.
 - A Gateway4-style template that wraps its lines in `conf t` … `end` still works on EOS; the driver enters config mode itself, so new templates don't need the wrapper.
@@ -2784,8 +2787,8 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "
 jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name == "TASK_NAME")] | first | .value' \
   assets/helpers/assets/itential-platform-configuration-management.json
 
-# sendConfig (config push via Gateway5) and the merge + arrayPush that build its inventory
-jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name | test("^(sendConfig|merge|arrayPush)$"))] | map(.value)' \
+# sendConfig (config push via Gateway5) and the runCode task that builds its config and inventory
+jq '[.components[].document.tasks // {} | to_entries[] | select(.value.name | test("^(sendConfig|runCode)$"))] | map(.value)' \
   assets/helpers/assets/vendor-arista-eos.json
 
 # ViewData / ViewHTML (manual tasks)

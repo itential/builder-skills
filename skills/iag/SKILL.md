@@ -807,7 +807,7 @@ Each `query` extracts `result.stdout` from the JSON-RPC envelope. If the stdout 
 }
 ```
 
-- `config` is one string; `inventory` is an array of objects — build it with `merge` + `arrayPush`, since `$var` doesn't resolve inside it.
+- `config` is one string; `inventory` is an array of objects — build both in a `runCode` task and read them with Enable Query (`$var.<task>.result#/stdout_json/inventory`), since `$var` doesn't resolve inside an object.
 - The node needs `itential_driver_options.netmiko.become: true` (and `secret` if the device has an enable password) to enter config mode; without it the push fails with a `ReadTimeout` waiting for the config prompt.
 - The result is `result.results[]`, one `{name, host, output, success}` per node, with no overall state — check `success` on every node. See builder-agent's *Command Templates (MOP)* section for the full pattern.
 
