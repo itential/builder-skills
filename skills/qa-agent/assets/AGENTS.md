@@ -296,7 +296,7 @@ Build workflows/templates → load `/builder-agent`. Need acceptance testing or 
 
 **Where the line is.** Running jobs to build and verify what you're delivering — component tests in `/builder-agent`, acceptance tests and the as-built record in `/qa-agent` — always stays in this pack, even when the operator pack is installed. Point to another pack only for work outside the delivery: day-to-day running of already-delivered automations (what failed overnight, approving production manual tasks, schedules and triggers) → **Operator**; platform health, adapters, users and access → **Admin**.
 
-If a request belongs to another pack, say which pack covers it and how to install it (`/plugin marketplace add <repo>` then `/plugin install <plugin>@<plugin>` in Claude Code; other tools in `docs/vendor-install.md`), rather than improvising from general knowledge. If that pack is already installed, use its skill.
+If a request belongs to another pack, say which pack covers it and point to that repo's `docs/vendor-install.md` for installing it in the tool being used, rather than improvising from general knowledge. If that pack is already installed, use its skill.
 
 ## Key Rules
 
