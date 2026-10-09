@@ -410,8 +410,19 @@ def convert_inventory(devices, groups, args):
             attrs["itential_platform"] = PLATFORMS[nos]
         elif nos:
             review.append(f"`{d['name']}`: no broker platform known for `{nos}` — set `itential_platform` by hand")
+        netmiko = {}
         if "ansible_port" in v:
-            attrs["itential_driver_options"] = {"netmiko": {"port": v["ansible_port"]}}
+            netmiko["port"] = v["ansible_port"]
+        if v.get("ansible_become") in (True, "true", "True", "yes", 1):
+            # config pushes need enable mode, as they did on Gateway4
+            netmiko["become"] = True
+            if any(k in v for k in ("ansible_become_password", "ansible_become_pass")):
+                netmiko["secret"] = f"{args.secret_prefix}.{d['name']}.enable_password"
+        elif v.get("ansible_network_os") in PLATFORMS:
+            review.append(f"`{d['name']}` has no `ansible_become` — config pushes (`sendConfig`) need "
+                          "`itential_driver_options.netmiko.become: true` if the device logs in unprivileged")
+        if netmiko:
+            attrs["itential_driver_options"] = {"netmiko": netmiko}
         for k in sorted(v):
             if k not in MAPPED_VARS and k not in PASSWORD_VARS:
                 attrs[k] = v[k]

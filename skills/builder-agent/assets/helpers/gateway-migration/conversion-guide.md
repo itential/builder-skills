@@ -106,20 +106,42 @@ Gateway4's built-in device tasks map to Gateway5's broker actions on the Invento
 
 | Gateway4 task (`AGManager`) | Gateway5 replacement | Input change |
 |---|---|---|
-| `itential_cli` (`_hosts`, `_groups`, `command`) | `GatewayManager.sendCommand` | `commands: [command]`; `inventory: [{"inventory": "<inv>", "nodeNames": _hosts}]` |
+| `itential_cli` running show commands (`_hosts`, `_groups`, `command`) | `GatewayManager.sendCommand` | `commands: [command]`; `inventory: [{"inventory": "<inv>", "nodeNames": _hosts}]` |
+| `itential_cli` pushing configuration (`command` is config text, often `conf t` … `end`) | `GatewayManager.sendConfig` | `config: <the rendered text, one string>`; same `inventory` |
 | `itential_set_config` (`_hosts`, `_groups`, `transactions`) | `GatewayManager.sendConfig` | `config: <config text>`; same `inventory` |
 | `itential_get_config`, `itential_get_state`, `itential_get_info` | the inventory's `get-config` / `run-command` broker action | — |
 | `netmikoSendCommand` (`host`, `command_string`, …) | `GatewayManager.sendCommand` | `host` → a node name in `inventory` |
 | `netmikoSendConfigSet` (`host`, `config_commands`, …) | `GatewayManager.sendConfig` | `config_commands` joined into `config` |
 
-`_groups` becomes the nodes carrying that group's tag. Output shapes differ, so re-point every task in
-the report's `referenced_by`:
+`_groups` becomes the nodes carrying that group's tag. `inventory` is an array of objects, so build it
+with `merge` (`inventory`, `nodeNames` from job variables) and wrap it with `arrayPush` — `$var` doesn't
+resolve inside it. For `sendConfig` the node needs `itential_driver_options.netmiko.become: true` (the
+converter maps it from Gateway4's `ansible_become`); without it every push times out waiting for the
+config prompt. Worked, tested examples: the "Push Configuration" workflows in the asset library.
+
+Output shapes differ, so re-point every task in the report's `referenced_by`:
 
 | Path | Output |
 |---|---|
 | Gateway4 `itential_cli` | `stdout` |
 | `GatewayManager.sendCommand` | `result.results[]` — one `{name, command, output, success}` per node and command |
+| `GatewayManager.sendConfig` | `result.results[]` — one `{name, host, output, success}` per node; no overall `state` |
 | Broker action (`run-command`, …) | `result.stdout` (the device's output as text) |
+
+Two ways to move the tasks that read the old output:
+
+1. **Re-point each one** — e.g. a success check becomes `query: "result.results"` `!=` `[]` and
+   `query: "result.results[*].success"` `!contains` `false`. Best when few tasks read it.
+2. **Rebuild the old shape** with one `runCode` task after `sendConfig` (`data: {"result":
+   "$var.<task>.result"}`) that prints `{"completed": [{"icode": "AD.200", "response": [{"host",
+   "status": "SUCCESS"|"FAILURE", "stdout"}]}]}`; point the consumers at it and prefix their queries
+   with `stdout_json.` (its `result` is flat — no JSON-RPC envelope). Best when many tasks or
+   transformations parse the Gateway4 shape. builder-agent has the script.
+
+Either way, run the migrated check once against a push that can't land: a check like "not empty and
+doesn't contain FAILURE" also passes when its query path resolves to nothing. And Gateway4's
+`icode: "AD.200"` only meant the call reached the gateway — a workflow that checked only `icode`
+never caught a rejected push, so its parity baseline is weaker than it looks.
 
 Other Ansible roles or collection modules
 (`cisco.ios_ios_command` and the like) are wrapped in a small playbook and migrated as **REVIEW**.
