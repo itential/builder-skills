@@ -73,15 +73,17 @@ Or the engineer describes what they need and you recommend a spec.
 
 ## Step 2: Fork the Spec
 
+`{use-case}` is `use-cases/<use-case-name>/` inside the folder the engineer is working in — every later skill uses this same path.
+
 ```bash
-mkdir -p {use-case-name}
+mkdir -p {use-case}
 # Only fork if it doesn't already exist — engineer may have customized from a previous session
 [ ! -f {use-case}/customer-spec.md ] && cp assets/spec-files/spec-port-turn-up.md {use-case}/customer-spec.md
 ```
 
 If `{use-case}/customer-spec.md` already exists, **reuse it** — do not overwrite.
 
-If the engineer provided credentials or a `.env` file exists, save it to `{use-case}/.env` for later use during Feasibility. Do NOT authenticate yet.
+If the engineer provided credentials or a `.env` file exists in the working folder, save it to `{use-case}/.env` for later use during Feasibility. Do NOT authenticate yet.
 
 ---
 

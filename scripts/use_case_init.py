@@ -9,6 +9,8 @@ Usage:
 
 import argparse
 import json
+import shutil
+from datetime import datetime, timezone
 import sys
 import urllib.parse
 import urllib.request
@@ -79,17 +81,30 @@ def main():
     # Get initial token and write .auth.json
     print(f"Authenticating to {base}...")
     token = get_token(base, args.client_id, args.client_secret)
-    (use_case_dir / ".auth.json").write_text(json.dumps({"token": token}, indent=2) + "\n")
+    # Same shape the skills write and read (see AGENTS.md -> Auth Reuse)
+    auth = {
+        "platform_url": base,
+        "auth_method": "oauth",
+        "token": token,
+        "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    (use_case_dir / ".auth.json").write_text(json.dumps(auth, indent=2) + "\n")
     print("Authenticated.")
 
     # Create empty task schema cache
     (use_case_dir / "task-schemas.json").write_text("[]\n")
+
+    # Start the use-case memory file from the template (AGENTS.md -> Directory Layout)
+    template = SCRIPTS_DIR.parent / "helpers" / "use-case-memory.md"
+    if template.exists():
+        shutil.copy(template, use_case_dir / "use-case-memory.md")
 
     print(f"\n=== Use-case initialized: {args.use_case} ===")
     print(f"  {use_case_dir}/")
     print(f"    .env              — credentials (gitignored)")
     print(f"    .auth.json        — bearer token (gitignored, auto-refreshed)")
     print(f"    task-schemas.json — task schema cache (populated on demand)")
+    print(f"    use-case-memory.md — living context: IDs, decisions, open items")
     print(f"\nPlatform data (shared): {PLATFORM_DIR}/")
     print(f"  openapi.json, tasks.json, apps.json, adapters.json, environment.md")
 

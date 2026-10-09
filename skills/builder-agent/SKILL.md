@@ -115,7 +115,7 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 ## Build Lifecycle
 
 ```
-0. Memory file              → create or read use-cases/{name}/use-case-memory.md
+0. Memory file              → create or read {use-case}/use-case-memory.md
 1. Decompose                → identify parent/child split before writing any code
 2. Create project           → container for all assets
 3. Discover tasks           → search tasks.json, fetch schemas
@@ -135,7 +135,7 @@ grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET
 
 **Step 0 — memory file:**
 
-At the start of every session, check for `use-cases/{use-case}/use-case-memory.md`:
+At the start of every session, check for `{use-case}/use-case-memory.md` (`{use-case}` = `use-cases/<use-case-name>/` in the working folder):
 - **Exists** → read it before doing anything else. It tells you the platform, project ID, what's already built, decisions made, and open items. Don't re-discover what's already documented.
 - **Missing** → create it now from `assets/helpers/use-case-memory.md` template. Fill in Platform URL, `Stage: build`, `Status: active` immediately.
 
@@ -2392,7 +2392,7 @@ POST /workflow_engine/workflows/validate
 
 **The endpoint can return HTTP 500 instead of a normal body.** A manual-view task (e.g. `ViewData`) with `type` set to anything other than `"manual"` returns `{"message":"An unknown error occurred...", "data":{"error":"Cannot destructure property 'input' of 'undefined'..."}}` at HTTP 500. Always check for this shape before parsing `isValid`/`errors`/`warnings`. Fix the task's `type` first if you hit it.
 
-**What this endpoint catches, by category** (full breakdown in `use-cases/_analysis/workflow-validate-deep-dive.md` if present locally):
+**What this endpoint catches, by category:**
 - **Errors (block `isValid`):** non-hex/reserved task IDs, workflow-level required fields, per-task required fields (including `description`, required on every task), adapter `app` checked against the platform's registered adapter types (`"No config found for Adapter: X"`), adapter `adapter_id` checked against live registered adapter instances (`"X is not a configured adapter within the platform"` — exempts `$var`/task-ref values), adapter/application method incoming and outgoing field-name mismatches, transition type/state enum values, dangling/missing transition entries, cycles in standard transitions, `created_by`/`last_updated_by` object-vs-string shape on import documents.
 - **Warnings only (`isValid` stays `true` — inspect `warnings[]` separately):** nested `$var` inside an object/array incoming value (see the allow-list exceptions in the `$var` Resolution Rules section below), static-value type mismatches (`"should be of type X but is of type Y"`), enum-typed static values with a non-enumerated value, dangling/out-of-order job-variable and task-to-task `$var` references.
 - **Not checked at all — keep doing these manually:** missing `error`/`failure` transitions (only a missing success path is flagged), `evaluation.operator` invalid values like `"regex"` (the closed enum is only wired to the standalone evaluation-test endpoints, not to a workflow document's embedded `evaluation` task), `merge`/`childJob` `"value"` vs `"variable"` key-naming mistakes, wrong `canvasName`, `incomingRefs` cache staleness after PUT, adapter response-shape assumptions, `projects/import` semantics (different service).
