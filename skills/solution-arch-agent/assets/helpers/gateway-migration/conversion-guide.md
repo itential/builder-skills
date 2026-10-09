@@ -26,7 +26,7 @@ python3 convert_gateway4.py --from-dir exports/ --out migration/ ...
 | Output | What it is | Next step |
 |---|---|---|
 | `services.yaml` | A decorator and a service for every script and playbook. Script inputs come from the script's Gateway4 schema, or — for Gateway4's generic `argument_list` — from the script's own `argparse` flags | Import through Gateway Manager (`validate: true` first) |
-| `repo/` | `scripts/<service>/` and `playbooks/<service>/` with the original files, playbooks retargeted, plus `inventory.yaml`, `ansible.cfg`, `requirements.txt` | Push to the service repository |
+| `repo/` | `scripts/<service>/` and `playbooks/<service>/` with the original files, playbooks retargeted, plus `inventory.py` (Inventory Manager nodes → Ansible hosts), `ansible.cfg`, `requirements.txt` | Push to the service repository |
 | `inventory-nodes.json` | Gateway4 devices as Inventory Manager nodes with broker attributes; passwords as `$SECRET.` references; groups as tags | Create the inventory (`createBrokerActions: true`), then `POST /inventory_manager/v1/nodes/bulk` |
 | `conversion-report.md` | What converted automatically and what a person must review, per item | Resolve every review item before import |
 
@@ -126,36 +126,29 @@ Other Ansible roles or collection modules
 
 ### REVIEW — Ansible playbooks (`AutomationGateway.runPlaybook`, `AGManager.<playbook>`)
 
-The playbook usually needs one change, and the service needs an inventory:
+The playbook usually needs one change, and the service needs a way to read its devices:
 
-1. **Playbook:** change `hosts:` from a Gateway4 device or group name to `hosts: all` — the device is
-   chosen at run time.
-2. **Inventory file in the repo:** a one-host `inventory.yaml` whose values come from the service's
-   input parameters:
-   ```yaml
-   all:
-     hosts:
-       device:
-         ansible_host: "{{ device_host }}"
-         ansible_network_os: "{{ device_network_os }}"
-         ansible_user: "{{ device_username }}"
-         ansible_password: "{{ device_password }}"   # or a gateway secret via lookup('env', ...)
-         # plus whatever connection variables the playbook used on Gateway4
-   ```
-   Passing Inventory Manager nodes in `runService`'s `inventory` field does **not** populate Ansible's
-   inventory for a playbook service — the run sees no hosts. Pass the device's attributes as
-   parameters instead.
-3. **Service:** `type: ansible-playbook`, a decorator declaring those parameters, `runtime.inventory:
-   [inventory.yaml]`, and `runtime.req-file: requirements.txt` listing **`ansible`** (the full package —
-   it brings `ansible-playbook` and the vendor collections such as `arista.eos`; the gateway has no
-   Ansible of its own).
+1. **Playbook:** change `hosts:` from a Gateway4 device or group name to `hosts: all` — the workflow
+   chooses the devices at run time.
+2. **Devices come from Inventory Manager, not the repo.** When a workflow calls `runService` with
+   `inventory` (`[{"inventory": "<name>", "nodeNames": ["<node>"]}]`), Gateway5 passes those nodes to
+   the service on stdin as `{"inventory_nodes": [{"name", "attributes", "tags"}, ...]}`. A playbook
+   service reads them through a small inventory script in `runtime.inventory`; the converter writes
+   one (`inventory.py`) next to each playbook. It makes each node a host named after the node, its
+   tags groups, and every attribute a host variable, and fills `ansible_host`, `ansible_user`,
+   `ansible_password`, `ansible_port` and `ansible_network_os` from the broker attributes. Gateway4
+   connection variables (`ansible_httpapi_port`, `ansible_httpapi_use_ssl`, …) travel as node
+   attributes, so nothing device-specific lives in the repo or in the service's parameters.
+3. **Service:** `type: ansible-playbook`, a decorator for the playbook's own inputs only,
+   `runtime.inventory: [inventory.py]`, and `runtime.req-file: requirements.txt` listing **`ansible`**
+   (the full package — it brings `ansible-playbook` and the vendor collections such as `arista.eos`;
+   the gateway has no Ansible of its own).
 4. **Structured output:** add an `ansible.cfg` with `stdout_callback = ansible.posix.json` and point
    `runtime.config-file` at it. Setting `ANSIBLE_STDOUT_CALLBACK` in `runtime.env` has no effect — the
    playbook output stays plain text.
-5. **Workflow:** read the node from Inventory Manager (`InventoryManager.getNodesByInventory`, with
-   `params: {}`), pick out its attributes with `query`, then `GatewayManager.runService` with
-   `serviceName`, `clusterId`, `params` (the device attributes plus the Gateway4 task's `args`) and
-   `inventory: ""`.
+5. **Workflow:** `GatewayManager.runService` with `serviceName`, `clusterId`, `params` (the Gateway4
+   task's `args`) and `inventory` naming the Inventory Manager inventory and the nodes that replace
+   the Gateway4 task's `hosts` / `groups`.
 6. **Output:** Gateway4's `runPlaybook` returned per-host structured results
    (`response[].results.ansible_facts…`). Gateway5 returns a JSON-RPC envelope whose
    `result.stdout` is the playbook's JSON output as a **string** (`plays[].tasks[].hosts.<host>…`,
@@ -180,7 +173,9 @@ the inputs are a **decorator in `services.yaml`**, and every property is passed 
    switches don't fit `--flag <value>` either.
 3. **Credentials and environment:** credential arguments move to gateway secrets injected as
    environment variables. Gateway4's per-run `env_vars` have no Gateway5 equivalent — static values go
-   in `runtime.env`, per-run values become flags.
+   in `runtime.env`, per-run values become flags. A script that took device addresses or credentials
+   as arguments can instead read the devices from stdin: when the workflow passes `inventory` to
+   `runService`, the script receives `{"inventory_nodes": [...]}` with each node's attributes.
 4. **Service:** `type: python-script`, the decorator, `runtime.req-file` for third-party imports.
 5. **Workflow:** `GatewayManager.runService` with `params` built from the Gateway4 task's
    `argument_list` / `args`; downstream consumers re-pointed to `result.stdout` (a string). When the
@@ -243,9 +238,11 @@ arista_eos_facts`, `hosts: ["ceos1"]`), code REVIEW.
   `createBrokerActions: true`; `run-command` → `show version` returned the device's identity through
   Gateway5.
 - Playbook: copied unchanged except `hosts: ceos1` → `hosts: all`.
-- Repo: `ansible/arista_eos_facts/` with `arista_eos_facts.yml`, `inventory.yaml` (above) and
-  `requirements.txt` (`ansible`).
+- Repo: `playbooks/arista-eos-facts/` with `arista_eos_facts.yml`, `inventory.py` and
+  `requirements.txt` (`ansible`), as the converter writes them.
 - Repo also carries `ansible.cfg` (`stdout_callback = ansible.posix.json`) for structured output.
+- Run: `runService` with no parameters and `inventory: [{"inventory": "<inventory>", "nodeNames":
+  ["ceos1"]}]` — the node's attributes became the Ansible host.
 - Service: imported through `/gateway_manager/v1/gateways/{clusterId}/configuration/import`; the
   first run installed Ansible on the gateway (~40 s), later runs reuse it.
 - Built-in task path: `send-command` with the Inventory Manager node returned `show version` and

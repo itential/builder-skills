@@ -56,8 +56,8 @@ through Gateway5, **stop** — no workflow that targets it can be migrated yet.
 
 ### Services
 Put the in-scope scripts and playbooks in a git repository the Gateway5 cluster can reach (the
-report's recommended layout). Scripts take named arguments; playbooks target `all` with a templated
-inventory. Import the service definitions through Gateway Manager (validate first). Run each service
+report's recommended layout). Scripts take named arguments; playbooks target `all` and get their
+devices from Inventory Manager at run time. Import the service definitions through Gateway Manager (validate first). Run each service
 once on its own before any workflow uses it.
 
 ### Workflows

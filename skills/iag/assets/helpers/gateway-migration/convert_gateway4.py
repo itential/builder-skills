@@ -8,7 +8,8 @@ Reads Gateway4's scripts, playbooks (with their schemas and source) and built-in
                           POST /gateway_manager/v1/gateways/{clusterId}/configuration/import
   repo/                   the service repository layout: scripts/<service>/ and
                           playbooks/<service>/ with the original files (playbooks retargeted to
-                          `hosts: all`), a templated inventory.yaml, ansible.cfg and requirements.txt
+                          `hosts: all`), an inventory.py that turns the Inventory Manager nodes
+                          Gateway5 passes on stdin into Ansible hosts, ansible.cfg and requirements.txt
   inventory-nodes.json    body for POST /inventory_manager/v1/nodes/bulk: Gateway4 devices as
                           Inventory Manager nodes with broker attributes; passwords become
                           $SECRET references, never plain text
@@ -46,6 +47,63 @@ MAPPED_VARS = {"ansible_host", "ansible_user", "ansible_password", "ansible_ssh_
                "ansible_network_os", "ansible_port"}
 PASSWORD_VARS = ("ansible_password", "ansible_ssh_pass", "ansible_become_password",
                  "ansible_become_pass")
+
+# Written next to every device playbook. When a workflow calls runService with `inventory`,
+# Gateway5 passes the chosen Inventory Manager nodes on stdin; this turns them into hosts.
+INVENTORY_SCRIPT = '''#!/usr/bin/env python3
+"""Ansible inventory from the Inventory Manager nodes Gateway5 passes on stdin.
+
+When a workflow calls runService with `inventory`, Gateway5 hands this script
+{"inventory_nodes": [{"name", "attributes", "tags"}, ...]} on stdin. Each node becomes a
+host named after the node, its tags become groups, every attribute becomes a host
+variable, and the broker attributes (itential_host, itential_user, ...) fill in the
+matching Ansible connection variables when the node doesn't set them itself.
+"""
+import json
+import sys
+
+# Inventory Manager itential_platform -> Ansible network OS
+NETWORK_OS = {
+    "arista_eos": "arista.eos.eos", "cisco_ios": "cisco.ios.ios", "cisco_xe": "cisco.ios.ios",
+    "cisco_xr": "cisco.iosxr.iosxr", "cisco_nxos": "cisco.nxos.nxos",
+    "juniper_junos": "junipernetworks.junos.junos",
+}
+
+
+def host_vars(attrs):
+    hv = dict(attrs)
+    for ansible, itential in (("ansible_host", "itential_host"), ("ansible_user", "itential_user"),
+                              ("ansible_password", "itential_password")):
+        if ansible not in hv and itential in attrs:
+            hv[ansible] = attrs[itential]
+    port = ((attrs.get("itential_driver_options") or {}).get("netmiko") or {}).get("port")
+    if "ansible_port" not in hv and port:
+        hv["ansible_port"] = port
+    platform = attrs.get("itential_platform")
+    if "ansible_network_os" not in hv and platform:
+        hv["ansible_network_os"] = NETWORK_OS.get(platform, platform)
+    return hv
+
+
+def main():
+    raw = "" if sys.stdin.isatty() else sys.stdin.read().strip()
+    data = json.loads(raw) if raw else {}
+    inventory = {"_meta": {"hostvars": {}}, "all": {"hosts": []}}
+    for node in data.get("inventory_nodes") or []:
+        name = node["name"]
+        inventory["all"]["hosts"].append(name)
+        inventory["_meta"]["hostvars"][name] = host_vars(node.get("attributes") or {})
+        for tag in node.get("tags") or []:
+            inventory.setdefault(tag, {"hosts": []})["hosts"].append(name)
+    if "--host" in sys.argv:
+        print(json.dumps(inventory["_meta"]["hostvars"].get(sys.argv[-1], {})))
+    else:
+        print(json.dumps(inventory))
+
+
+if __name__ == "__main__":
+    main()
+'''
 
 
 # ---------------------------------------------------------------- sources
@@ -295,22 +353,13 @@ def convert_playbook(item, repo_dir, args, inventory_names, local_names=frozense
                             source, flags=re.M)
     if known:
         review.append(f"`hosts: {', '.join(known)}` (Gateway4 inventory) retargeted to `hosts: all` — the workflow "
-                      "now chooses the device and passes its details as parameters")
+                      "chooses the devices by passing Inventory Manager nodes in runService's `inventory`")
     others = sorted(t for t in targets if t not in inventory_names and t != "all")
     if others:
         review.append(f"`hosts: {', '.join(others)}` isn't a Gateway4 device or group — check the target")
 
     schema = effective_schema(item) or {}
-    props = {} if is_local else {
-        "device_host": {"type": "string", "description": "Device address (Inventory Manager itential_host)"},
-        "device_network_os": {"type": "string", "description": "Ansible network OS, e.g. arista.eos.eos"},
-        "device_connection": {"type": "string", "description": "Ansible connection plugin, e.g. network_cli or httpapi"},
-        "device_port": {"type": "string", "description": "SSH or API port"},
-        "device_username": {"type": "string"},
-        "device_password": {"type": "string", "description": "From the workflow (Inventory Manager itential_password) — never stored in the repo"},
-    }
-    required = [] if is_local else ["device_host", "device_network_os", "device_connection",
-                                    "device_username", "device_password"]
+    props, required = {}, []
     for k, v in (schema.get("properties") or {}).items():
         if k in ("hosts", "groups"):
             continue
@@ -326,23 +375,11 @@ def convert_playbook(item, repo_dir, args, inventory_names, local_names=frozense
     runtime = {"config-file": "ansible.cfg", "req-file": "requirements.txt",
                "env": {"ANSIBLE_HOST_KEY_CHECKING": "false"}}
     if not is_local:
-        runtime = {"inventory": ["inventory.yaml"]} | runtime
-        (folder / "inventory.yaml").write_text(
-        "# Gateway5 has no built-in inventory: the workflow reads the device from Inventory Manager and\n"
-        "# passes its details as service parameters, which fill this one-host inventory at run time.\n"
-        "all:\n  hosts:\n    device:\n"
-        '      ansible_host: "{{ device_host }}"\n'
-        '      ansible_network_os: "{{ device_network_os }}"\n'
-        '      ansible_connection: "{{ device_connection }}"\n'
-        '      ansible_port: "{{ device_port }}"\n'
-        '      ansible_httpapi_port: "{{ device_port }}"\n'
-        '      ansible_user: "{{ device_username }}"\n'
-        '      ansible_password: "{{ device_password }}"\n')
+        runtime = {"inventory": ["inventory.py"]} | runtime
+        (folder / "inventory.py").write_text(INVENTORY_SCRIPT)
+        (folder / "inventory.py").chmod(0o755)
     (folder / "ansible.cfg").write_text("[defaults]\nhost_key_checking = False\nstdout_callback = ansible.posix.json\n")
     (folder / "requirements.txt").write_text("# the full package: ansible-playbook plus vendor collections\nansible\n")
-    if not is_local:
-        review.append("check inventory.yaml carries every connection variable the playbook used on Gateway4 "
-                      "(e.g. ansible_httpapi_use_ssl) — add them as fixed values or parameters")
     service = {"name": name, "type": "ansible-playbook",
                "description": f"Migrated from the Gateway4 playbook {item['name']}",
                "repository": args.repo_name, "working-directory": f"playbooks/{name}",
