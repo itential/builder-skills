@@ -1,6 +1,6 @@
 ---
 name: gateway4-to-gateway5
-description: Assess how ready an environment is to move from Itential Automation Gateway 4 (IAG4) to Gateway 5 (IAG5). Use for phrases like "am I ready to move to IAG5", "assess my IAG4 to IAG5 migration", "what do I need to change to switch off gateway 4", "scan my workflows for automation gateway usage", "which workflows use IAG4", "IAG4 readiness report", or "evaluate my gateway migration". Does NOT perform the migration — analyzes IAP assets (workflows, JSON forms) and IAG4 assets (scripts, playbooks, roles, inventory), then writes a deterministic markdown guideline of manual actions. Strictly READ-ONLY; its only write is the report. Can also run LOCAL-FILES-ONLY with no API access. Report uses "Itential Gateway4"/"Gateway5" terms (never "IAG"). For building IAG5 services, use /iag.
+description: Assess how ready an environment is to move from Itential Automation Gateway 4 (IAG4) to Gateway 5 (IAG5). Use for phrases like "am I ready to move to IAG5", "assess my IAG4 to IAG5 migration", "what do I need to change to switch off gateway 4", "scan my workflows for automation gateway usage", "which workflows use IAG4", "IAG4 readiness report", or "evaluate my gateway migration". Does NOT perform the migration — analyzes IAP assets (workflows, JSON forms) and IAG4 assets (scripts, playbooks, roles, inventory), then writes a deterministic markdown guideline of manual actions. Strictly READ-ONLY; its only write is the report. Can also run LOCAL-FILES-ONLY with no API access. Report uses "Itential Gateway4"/"Gateway5" terms (never "IAG"). To deliver the migration, use /spec-agent with the Gateway4 → Gateway5 migration spec; for a single IAG5 service, /iag.
 argument-hint: "[working-directory]"
 ---
 
@@ -74,8 +74,11 @@ IAG4 and IAG5 are architecturally different:
 > `AGManager`; never flag `GatewayManager` — it is the migration target.
 
 **This skill only IDENTIFIES and RECOMMENDS.** It does not rewrite scripts, generate IAG5
-service YAML, or rewire workflows — that is future work. Its single output is the readiness
-report. Keep every recommendation to a **manual action the user performs themselves**.
+service YAML, or rewire workflows. Its single output is the readiness report. Keep every
+recommendation to a **manual action the user performs themselves**. Delivering the migration is a
+separate delivery through the normal lifecycle — `/spec-agent` with
+`spec-gateway4-to-gateway5-migration.md`, which takes this report as its input; the conversion
+patterns per code are in `assets/helpers/gateway-migration/conversion-guide.md`.
 
 ### Read-only guarantee (hard rule)
 
@@ -605,7 +608,9 @@ that `tmp/` is read-cache/scratch and safe to delete.
 user, STOP. Do not follow up with next-step suggestions, offers to convert/migrate/build anything,
 or any other proactive recommendation — not even "would you like me to start building the
 repository structure" or "I can convert script X now." If the user wants to act on the report,
-they will say so and start a new, separate request (e.g. `/iag`); this skill never volunteers it.
+they will say so and start a new, separate request — to deliver the migration, `/spec-agent` with the
+Gateway4 → Gateway5 migration spec (it reads this report); for one service, `/iag`. This skill never
+volunteers it.
 
 ---
 
@@ -646,12 +651,15 @@ they will say so and start a new, separate request (e.g. `/iag`); this skill nev
 - **Ask working dir + scope + data source first.** If not supplied, ask up front (Step 0). Warn that
   `--all` can overflow a small model's context on large platforms.
 - **Identification only.** Do not create Gateway5 services, edit workflows, or rewrite scripts here.
-  Route actual builds to `/iag`.
+  When the user asks to deliver the migration, route to `/spec-agent` (Gateway4 → Gateway5 migration
+  spec); for a single service, `/iag`.
 - **Done means done.** The skill's only deliverable is the report. Once it's written, stop — no
   follow-up suggestions, no offering to convert scripts, build the repo, or do anything else
   automatically, even if it seems helpful. Let the user initiate any next step explicitly.
 
 ## See also
+- `/spec-agent` → `spec-gateway4-to-gateway5-migration.md` — delivering the migration, using this report as input.
+- `assets/helpers/gateway-migration/conversion-guide.md` — how each code (WRAP/REVIEW/ARGS/INV), the inventory and forms convert.
 - `/iag` — building IAG5 service(s) (Python/Ansible/OpenTofu), service YAML, `runService` wiring.
 - `/itential-inventory` — Inventory Manager, the IAG5 replacement for gateway inventory.
 - `/itential-json-forms` — REST-bound dropdown structure and `bindingSchema`.

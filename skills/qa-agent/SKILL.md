@@ -162,6 +162,12 @@ For each `acceptance`-type case: `POST /operations-manager/jobs/start` with the 
 
 **Acceptance evidence must come from a job run of the actual delivered workflow, never a substitute.** Verifying that an underlying service works in isolation (e.g., curling an IAG5 service directly, or calling an adapter task standalone) is not acceptance evidence for the workflow that wraps it — it only proves the component works, not that the workflow wires it correctly. If you haven't started a job against the named workflow/automation itself and read back `data.status`, you don't have a passing acceptance case yet, regardless of how convincing the component-level result looked.
 
+**Migration deliveries (e.g. Gateway4 → Gateway5): parity cases.** For each migrated workflow, run the
+original and the migrated workflow with the same confirmed inputs against the same targets, and compare
+the agreed fields — not the raw output, whose shape changes by design. Record both job IDs and the
+field-by-field comparison as the case's evidence. Change-making workflows are parity-tested only on the
+lab devices or in the window the engineer confirmed. See `assets/helpers/gateway-migration/conversion-guide.md` → *Parity tests*.
+
 ### Step 7: Write `test-report.md`
 
 One row per case — static and acceptance — with a pass/fail verdict and cited evidence (job ID, exact field values, or the specific static-check output). See format below.

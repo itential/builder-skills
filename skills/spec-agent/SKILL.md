@@ -1,6 +1,6 @@
 ---
 name: spec-agent
-description: Use this skill to start any new automation delivery — when someone wants to automate something, build a new use case, figure out requirements, write up an HLD, or kick off a project on the Itential Platform. Trigger it for phrases like "I want to automate X", "help me build a workflow for Y", "we're starting a new automation project", "I need to define requirements for Z", "kick off a delivery", or "let's start with requirements". This is the entry point for the spec-driven delivery lifecycle. It picks from 22 built-in use case specs or starts from scratch, refines requirements with the engineer, and produces an approved customer-spec.md. Use it whenever someone is at the beginning of building something new and hasn't yet defined what they're building. For ad-hoc platform exploration, use /explore instead. Hands off to /solution-arch-agent after approval.
+description: Use this skill to start any new automation delivery — when someone wants to automate something, build a new use case, figure out requirements, write up an HLD, or kick off a project on the Itential Platform. Trigger it for phrases like "I want to automate X", "help me build a workflow for Y", "we're starting a new automation project", "I need to define requirements for Z", "kick off a delivery", or "let's start with requirements". This is the entry point for the spec-driven delivery lifecycle. It picks from 23 built-in use case specs or starts from scratch, refines requirements with the engineer, and produces an approved customer-spec.md. Use it whenever someone is at the beginning of building something new and hasn't yet defined what they're building. For ad-hoc platform exploration, use /explore instead. Hands off to /solution-arch-agent after approval.
 ---
 
 # Spec Agent
@@ -63,11 +63,17 @@ Present available specs from `assets/spec-files/`, grouped by category:
 | Category | Specs |
 |----------|-------|
 | **Networking** | Port Turn-Up, VLAN Provisioning, Circuit Provisioning, BGP Peer, VPN Tunnel, WAN Bandwidth |
-| **Operations** | Software Upgrade, Config Backup, Health Check, Device Onboarding, Device Decommissioning, Change Management, Incident Remediation |
+| **Operations** | Software Upgrade, Config Backup, Health Check, Device Onboarding, Device Decommissioning, Change Management, Incident Remediation, Gateway4 → Gateway5 Migration |
 | **Security** | Firewall Rules, Cloud Security Groups, SSL Certificates |
 | **Infrastructure** | DNS Records, IPAM Lifecycle, Load Balancer VIP, Config Drift Remediation, Compliance Audit |
 
 Or the engineer describes what they need and you recommend a spec.
+
+**Gateway4 → Gateway5 migration:** fork `spec-gateway4-to-gateway5-migration.md`. If the engineer has a
+readiness report from `/gateway4-to-gateway5` (`gateway4-to-gateway5-readiness.md` and its
+`tmp/analysis.json`), fill Section 5 (Scope) and the discovery answers from it — the workflows, forms,
+scripts, playbooks and devices it lists — instead of asking for them. No report yet? Ask the engineer to
+run `/gateway4-to-gateway5` first; it's read-only.
 
 ---
 

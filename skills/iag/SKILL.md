@@ -876,6 +876,7 @@ Verify:
 | Send ad-hoc CLI commands | `GatewayManager.sendCommand` (`AGManager.itential_cli` is Gateway4 — existing workflows only) |
 | Push config text to device | `GatewayManager.sendConfig` (`AGManager.itential_set_config` / `itential_cli` are Gateway4 — existing workflows only) |
 | Run MOP validation checks | `MOP.RunCommandTemplate` (separate from IAG) |
+| Migrate Gateway4 scripts, playbooks, inventory or `AGManager` tasks | `assets/helpers/gateway-migration/conversion-guide.md`; generate the services, repository layout and Inventory Manager nodes with `assets/helpers/gateway-migration/convert_gateway4.py` — the full delivery runs through `/spec-agent` with the Gateway4 → Gateway5 migration spec |
 
 ### AGManager vs GatewayManager
 
