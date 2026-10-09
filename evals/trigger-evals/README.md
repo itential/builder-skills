@@ -16,14 +16,14 @@ Trigger eval sets for the 5 high-conflict skills in the builder-skills plugin. U
 cd ~/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown/skills/skill-creator
 python -m scripts.run_eval \
   --eval-set /path/to/builder-skills/evals/trigger-evals/{skill}.json \
-  --skill-path /path/to/builder-skills/.claude/skills/{skill} \
+  --skill-path /path/to/builder-skills/skills/{skill} \
   --model claude-sonnet-4-6 \
   --verbose
 
 # Full optimization loop (requires ANTHROPIC_API_KEY)
 python -m scripts.run_loop \
   --eval-set /path/to/builder-skills/evals/trigger-evals/{skill}.json \
-  --skill-path /path/to/builder-skills/.claude/skills/{skill} \
+  --skill-path /path/to/builder-skills/skills/{skill} \
   --model claude-sonnet-4-6 \
   --max-iterations 5 \
   --verbose

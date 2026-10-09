@@ -121,10 +121,4 @@ venv/
 # custom/dev/ is personal by definition -- never commit it to a shared copy.
 # custom/org/ and custom/team/ are meant to be committed in a customer's copy.
 skills/*/custom/dev/*
-.claude/skills/*/custom/dev/*
-.agents/skills/*/custom/dev/*
-.github/skills/*/custom/dev/*
 !skills/*/custom/dev/.gitkeep
-!.claude/skills/*/custom/dev/.gitkeep
-!.agents/skills/*/custom/dev/.gitkeep
-!.github/skills/*/custom/dev/.gitkeep

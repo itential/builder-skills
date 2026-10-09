@@ -1,17 +1,14 @@
 name: PR Labeler
 
-# Auto-labels a PR from its branch-name prefix so Release Drafter (release-drafter.yml)
-# can resolve the next version without anyone applying labels by hand.
+# Auto-labels a PR from its branch-name prefix, so Release Drafter (release-drafter.yml)
+# can group the release notes without anyone applying labels by hand.
 #
 # Mapping (see .github/release-drafter.yml and CONTRIBUTING.md):
-#   feature/  -> feature   (minor)
-#   fix/      -> fix       (patch)
-#   refactor/ -> refactor  (patch)
-#   docs/     -> documentation + skip-changelog (excluded from versioning)
-#   chore/    -> chore + skip-changelog         (excluded from versioning)
-#
-# major/breaking bumps are NEVER inferred here — that requires a human to apply the
-# `breaking-change` label explicitly. See "what counts as breaking" in CONTRIBUTING.md.
+#   feature/  -> feature
+#   fix/      -> fix
+#   refactor/ -> refactor
+#   docs/     -> documentation + skip-changelog (left out of release notes)
+#   chore/    -> chore + skip-changelog         (left out of release notes)
 #
 # Uses pull_request_target, not pull_request: every PR in this repo comes from a fork
 # (see AGENTS.md/CONTRIBUTING.md's fork-only workflow), and the default GITHUB_TOKEN for

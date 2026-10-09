@@ -28,62 +28,14 @@ jobs:
           fi
           echo "Branch name '$branch' is valid."
 
-  commit-messages:
-    name: Commit Messages
+  skills-valid:
+    name: Skills Valid
     if: github.repository == 'itential/builder-skills'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Validate conventional commits
-        run: |
-          pattern="^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .{1,72}"
-          failed=0
-          count=0
-
-          while IFS= read -r msg; do
-            [[ -z "$msg" ]] && continue
-            count=$((count + 1))
-            if [[ "$msg" =~ ^Merge ]]; then
-              echo "::error::Merge commit found: '$msg'"
-              echo "  Merge commits are not allowed — use squash or rebase instead."
-              failed=1
-            elif [[ ! "$msg" =~ $pattern ]]; then
-              echo "::error::Non-conforming commit: '$msg'"
-              echo "  Expected: <type>[(scope)]: <description>"
-              echo "  Valid types: feat, fix, docs, style, refactor, test, chore, perf"
-              echo "  Example: feat(auth): add JWT token validation"
-              failed=1
-            else
-              echo "  OK: $msg"
-            fi
-          done < <(git log --format="%s" "origin/${{ github.base_ref }}..${{ github.event.pull_request.head.sha }}")
-
-          if [[ $count -eq 0 ]]; then
-            echo "No new commits found."
-            exit 0
-          fi
-
-          echo ""
-          if [[ $failed -eq 1 ]]; then
-            echo "One or more commits do not follow conventional commit format."
-            echo "See CONTRIBUTING.md for commit message guidelines."
-            exit 1
-          fi
-
-          echo "All $count commit(s) conform to conventional commits."
-
-  mirror-edits:
-    name: Generated Copies Untouched
-    if: github.repository == 'itential/builder-skills'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Fail if .claude/.agents/.github skills were edited instead of skills/
-        run: scripts/check-mirror-edits.sh "origin/${{ github.base_ref }}"
+      - name: Skills follow the Agent Skills format, references resolve, bundled assets are current
+        run: scripts/check-generated.sh
 
   manifest-versions:
     name: Manifest Versions

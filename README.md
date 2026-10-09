@@ -63,7 +63,7 @@ The result is infrastructure automation that is traceable, repeatable, and deliv
 | **Codex CLI** | `codex plugin marketplace add itential/builder-skills` then `codex plugin add itential-builder@itential-builder` (same install covers the VS Code extension) |
 | **GitHub Copilot in VS Code** | Command Palette → **Chat: Install Plugin From Source** → `itential/builder-skills` |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add itential/builder-skills` then `copilot plugin install itential-builder@itential-builder` |
-| **Cursor** | `gh skill install itential/builder-skills --agent cursor --all` in your project (or clone the repo and open it) |
+| **Cursor** | `gh skill install itential/builder-skills --agent cursor --all` in your project |
 
 How to check it worked, run skills, and update — per tool: [`docs/vendor-install.md`](docs/vendor-install.md).
 
@@ -130,7 +130,7 @@ Next: the full first-delivery walkthrough in [`docs/quickstart.md`](docs/quickst
 
 ## Skills
 
-This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical cross-vendor agent guide. Canonical skill content lives in [`skills/`](skills/). `.claude/skills/` (Claude Code), `.agents/skills/` (Codex CLI, Cursor), and `.github/skills/` (GitHub Copilot) are real-copy mirrors regenerated from `skills/` by CI (`.github/workflows/generate-mirrors.yml`) on every push to `main` — edit `skills/` only.
+This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical cross-vendor agent guide. Skill content lives in [`skills/`](skills/), and every tool installs from there through its plugin manifest — working from a clone, see the "Working from a clone" notes in [`docs/vendor-install.md`](docs/vendor-install.md).
 
 **Delivery**
 

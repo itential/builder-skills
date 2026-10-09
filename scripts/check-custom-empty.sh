@@ -11,9 +11,6 @@ cd "${ROOT_DIR}"
 
 found="$(git ls-files -- \
   ':(glob)skills/*/custom/**' \
-  ':(glob).claude/skills/*/custom/**' \
-  ':(glob).agents/skills/*/custom/**' \
-  ':(glob).github/skills/*/custom/**' \
   | grep -v '/\.gitkeep$' || true)"
 
 if [[ -n "${found}" ]]; then

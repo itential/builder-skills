@@ -10,7 +10,7 @@ Thank you for your interest in contributing to the builder-skills project! This 
 - [Development Setup](#development-setup)
 - [Contributing Process](#contributing-process)
 - [Pull Request Guidelines](#pull-request-guidelines)
-- [Pull Request Labels](#pull-request-labels-and-versioning)
+- [Pull Request Labels and Releases](#pull-request-labels-and-releases)
 - [Testing](#testing)
 - [Code Style](#code-style)
 - [Documentation](#documentation)
@@ -105,7 +105,7 @@ This project uses a fork and pull request model for contributions:
    git checkout -b feature/your-feature-name
    ```
 
-3. **Make your changes** in logical, atomic commits — every commit message must follow the [Commit Message Format](#commit-message-format) below; CI will reject the PR otherwise
+3. **Make your changes** in logical, atomic commits. PRs are squash-merged, so your **PR title** becomes the commit on `main` — write it in the [Commit Message Format](#commit-message-format) below
 4. **Test your changes** thoroughly
 5. **Push to your fork:**
    ```bash
@@ -116,7 +116,7 @@ This project uses a fork and pull request model for contributions:
 
 ### Branch Naming Conventions
 
-Branch names are validated by CI against this regex:
+Branch names are checked by CI (**Branch Naming** — reported on the PR, not a merge blocker) against this regex. The prefix sets the PR's label, which groups the release notes:
 
 ```
 ^(feature|fix|refactor|docs|chore)/[a-z][a-z0-9-]*$
@@ -153,7 +153,7 @@ Examples:
 
 ### Commit Message Format
 
-Every commit on a PR is validated by CI against the [Conventional Commits](https://www.conventionalcommits.org/) regex:
+PR titles and commit messages follow [Conventional Commits](https://www.conventionalcommits.org/). PRs are squash-merged, so the **PR title** is what lands on `main` and in the release notes:
 
 ```
 ^(feat|fix|docs|style|refactor|test|chore|perf)(\(.+\))?: .{1,72}
@@ -179,9 +179,9 @@ Type meanings (commit-side):
 - `chore` — build process, tooling, dependencies
 - `perf` — performance improvements
 
-**Merge commits are not allowed** on PR branches — the CI rejects them. Use squash or rebase to integrate updates from `main`.
+PRs are squash-merged, so merge commits on your branch never reach `main` — rebasing on `main` is still the cleaner way to pick up updates.
 
-**`git revert`'s default message never conforms** — it produces `Revert "<original message>"`, and `Revert` isn't a valid type. Reword it before pushing:
+**`git revert`'s default message doesn't conform** — it produces `Revert "<original message>"`, and `Revert` isn't a valid type. Reword it before pushing:
 
 ```bash
 git revert --no-edit <sha>
@@ -206,8 +206,7 @@ Examples:
 ### Before Submitting
 
 - [ ] Ensure your branch is up to date with `main`
-- [ ] Run the full test suite: `make test`
-- [ ] Run code quality checks: `make lint`
+- [ ] Run `scripts/check-generated.sh` — the same **Skills Valid** check CI runs — and commit any `skills/*/assets` changes it makes
 - [ ] Add tests for new functionality
 - [ ] Update documentation if needed
 - [ ] Sign the Contributor License Agreement (CLA)
@@ -243,37 +242,40 @@ Brief description of what this PR does.
 Closes #123
 ```
 
-## Pull Request Labels and Versioning
+## Pull Request Labels and Releases
 
-There are **two separate, deliberately decoupled version concepts** in this repo — don't assume they track each other.
+**Labels are applied automatically from your branch name** by `.github/workflows/pr-labeler.yml`. They group the release notes that [Release Drafter](https://github.com/release-drafter/release-drafter) keeps in a draft GitHub Release:
 
-**1. The plugin manifest version** (`.claude-plugin/plugin.json` / `marketplace.json`) — what Claude Code's `/plugin update` reads. `.github/workflows/version-bump.yml` bumps this by exactly **+0.0.1 on every single merge to `main`, no exceptions.** It does not look at labels, branch prefix, or PR content — every merge is a patch release of the manifest, whether it's a one-line typo fix or a new skill. This is intentionally dumb: no categorization logic to get wrong, no label to forget, no ambiguity about whether something "counts." If a change is significant enough to deserve a minor/major bump to the manifest, bump it by hand in that PR instead of relying on this workflow — it will only ever add 0.0.1.
-
-**2. The GitHub Release version** — [Release Drafter](https://github.com/release-drafter/release-drafter) (`.github/release-drafter.yml`) maintains a draft release with computed notes and a *suggested* next semver tag, based on PR labels. This is the "real," human-meaningful version number for release notes; publishing the draft (and its tag) is still a manual, deliberate step, independent of the manifest bumping above.
-
-**Labels are applied automatically from your branch name** by `.github/workflows/pr-labeler.yml` — you don't need to apply them yourself for the common cases. They only affect Release Drafter's changelog/tag suggestion (concept 2) — they have **no effect on the manifest version** (concept 1) anymore:
-
-| Branch prefix | Label(s) applied | Release Drafter category |
+| Branch prefix | Label(s) applied | Release notes |
 |---|---|---|
-| `feature/` | `feature` | minor |
-| `fix/` | `fix` | patch |
-| `refactor/` | `refactor` | patch |
-| `docs/` | `documentation`, `skip-changelog` | excluded from release notes |
-| `chore/` | `chore`, `skip-changelog` | excluded from release notes |
+| `feature/` | `feature` | 🚀 Features |
+| `fix/` | `fix` | 🐛 Bug Fixes |
+| `refactor/` | `refactor` | 🧰 Refactoring |
+| `docs/` | `documentation`, `skip-changelog` | left out |
+| `chore/` | `chore`, `skip-changelog` | left out |
 
-**Major version bumps for the GitHub Release are never inferred automatically** — apply the `breaking-change` label yourself when a change would break an existing consumer's setup. For this repo that means things like renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization-layer contract. Clarifying/correcting existing skill guidance is usually `fix`, not breaking — see the behavior-impact test above for the `fix` vs. `refactor` vs. `docs` line.
+Apply the `breaking-change` label yourself when a change would break an existing consumer's setup — renaming or removing a skill, changing a script's CLI (`scripts/platform_pull.py`, `scripts/use_case_init.py`), or changing the `custom/org/team/dev` customization contract — so the maintainer cutting the next release knows to bump the major version. Clarifying/correcting existing skill guidance is usually `fix`, not breaking — see the behavior-impact test above.
 
-**Expect the two version numbers to drift, and that's fine.** The manifest might read `1.9.3` (nine patch-bump merges) while Release Drafter's draft suggests the next real release should be `v2.0.0` (one of those merges was labeled `feature`) — the manifest number is just an ever-incrementing "something changed" counter for Claude Code's update mechanism, not a semver-meaningful release identity.
+**Don't change versions in a normal PR.** There is one version number: the one in the plugin manifests (`plugin.json`, `.claude-plugin/`, `.cursor-plugin/`). It's what every tool's update installs, and the draft release is named after it, so the release tag always matches it. **Manifest Versions** fails any PR where the manifests disagree.
 
-**How `version-bump.yml` actually lands its change:** it opens its own PR (branch `chore/bump-version-to-X-Y-Z`) rather than pushing to `main` directly — a direct push was tried first and rejected (`GH006`: unsigned commits, no PR, and required status checks that never ran on a bare push), and no branch-protection bypass fixes that, since a raw push can never satisfy "status checks must run on a pull request." Going through a PR means it gets reviewed and merged exactly like everything else, and GitHub signs the resulting squash-merge itself.
+### Releasing
 
-**Recommended (not required) for the version-bump workflow:** set a repo secret `VERSION_BUMP_TOKEN` to a fine-grained PAT with `contents`/`pull-requests` write on this repo. Without it, the workflow falls back to the default `GITHUB_TOKEN`, which works but won't trigger `pr-compliance.yml`/`pr-labeler.yml` on the PR it opens (GitHub deliberately blocks `GITHUB_TOKEN`-authored events from triggering other workflows) — its required status checks will show as permanently pending until someone pushes a trivial commit to nudge them, same workaround used elsewhere in this repo for out-of-date branches. See the comment at the top of `version-bump.yml`.
+A maintainer bumps the version by hand, in its own PR, when a release is wanted:
+
+```bash
+git checkout -b chore/release-1-7-0
+python3 scripts/bump_version.py --bump minor      # or patch / major — updates every manifest
+# rename "## Unreleased" in CHANGELOG.md to "## 1.7.0" and add a new empty "## Unreleased"
+git commit -am "chore: release v1.7.0"
+```
+
+After it merges, the draft release on GitHub is already named `v1.7.0` — review the notes and publish it (that creates the tag).
 
 ## Changelog
 
 `CHANGELOG.md` is hand-maintained, not auto-generated — nothing in CI writes to it. Format follows Claude Code's own `CHANGELOG.md`: a flat bullet list under each version heading, no subsections, no dates — each bullet leads with `Added`/`Fixed`/`Changed`/`Improved`/`Removed` inline. If your PR is user-facing (a new or changed skill, a fixed bug, a behavior change), add a bullet under `## Unreleased` in that style. Skip it for anything that would carry the `skip-changelog` label (docs, chore) — same exclusion Release Drafter already applies.
 
-Periodically, a maintainer renames `Unreleased` to whatever the current manifest version happens to be, and adds a new empty `Unreleased` heading above it — this is a manual snapshot, not tied to any single merge (the manifest version bumps on every merge, so a 1:1 mapping would defeat the point of batching entries).
+When cutting a release, the maintainer renames `Unreleased` to the new version in the release PR and adds a new empty `Unreleased` heading above it (see [Releasing](#releasing)).
 
 ## Testing
 

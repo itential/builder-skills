@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "Platform Documentation"
-  short_description: "Catalog the global assets on a platform, grouped by use case"
-  default_prompt: "Document everything on my platform and group it by use case"

@@ -1,9 +1,9 @@
 name: Release Drafter
 
-# Maintains a draft GitHub Release that accumulates notes from merged PRs and computes
-# the next semver tag from their labels (applied by pr-labeler.yml, or manually for
-# breaking-change). Publishing the release (and its tag) is a manual, deliberate step —
-# this workflow only keeps the draft current.
+# Maintains a draft GitHub Release that accumulates notes from merged PRs (grouped by the
+# labels pr-labeler.yml applies). The draft's version is the one in plugin.json, so the
+# release tag always matches the plugin version. Publishing the release (and its tag) is
+# a manual step -- see CONTRIBUTING.md -> Releasing.
 
 on:
   push:
@@ -22,6 +22,12 @@ jobs:
       contents: write
       pull-requests: read
     steps:
+      - uses: actions/checkout@v4
+      - name: Read the plugin version
+        id: manifest
+        run: echo "version=$(jq -r .version plugin.json)" >> "$GITHUB_OUTPUT"
       - uses: release-drafter/release-drafter@v6
+        with:
+          version: ${{ steps.manifest.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

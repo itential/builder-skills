@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "Explore"
-  short_description: "Connect to an Itential platform and browse what's there"
-  default_prompt: "Connect to my Itential platform and show me what's running"

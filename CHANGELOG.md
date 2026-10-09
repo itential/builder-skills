@@ -1,9 +1,14 @@
 # Changelog
 
-Versions correspond to the plugin manifest version in `.claude-plugin/plugin.json`
-— what `/plugin update` installs.
+Versions correspond to the plugin manifest version (`plugin.json`) and the GitHub
+release tag — what every tool's update installs.
 
 ## Unreleased
+
+- Added native installs for Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor alongside Claude Code, each reading the same `skills/` folder — no per-tool copies in the repo
+- Added per-skill `custom/org`, `custom/team` and `custom/dev` folders for an organization's own rules, kept separate from Itential's content so updates never overwrite them
+- Changed every skill to be self-contained: the templates, spec library and reference files it uses are bundled into its own `assets/` folder
+- Removed the automatic version-bump and mirror-regeneration workflows; versions are bumped by hand when releasing, and the release tag always matches the plugin version
 
 ## 1.6.5
 

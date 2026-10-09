@@ -34,9 +34,9 @@ Restart Claude Code once it finishes.
 
 **Update:** Claude Code updates plugins in the background. To update now: `/plugin update itential-builder@itential-builder`, then restart.
 
-<details><summary>Prefer working from a clone instead?</summary>
+<details><summary>Working from a clone?</summary>
 
-`git clone https://github.com/itential/builder-skills.git`, open Claude Code in that folder, and run `/spec-agent` (no prefix — skills load from `.claude/skills/`). Update with `git pull`.
+`git clone https://github.com/itential/builder-skills.git`, then start Claude Code with the clone loaded as a plugin: `claude --plugin-dir /path/to/builder-skills` (from inside the clone, `claude --plugin-dir .`). Same shortcuts (`/itential-builder:spec-agent`). Update with `git pull`.
 </details>
 
 ---
@@ -66,9 +66,9 @@ Both steps are needed — the first fetches the new version, the second installs
 
 **Remove:** `codex plugin remove itential-builder@itential-builder`, then `codex plugin marketplace remove itential-builder`.
 
-<details><summary>Prefer working from a clone instead?</summary>
+<details><summary>Working from a clone?</summary>
 
-`git clone https://github.com/itential/builder-skills.git`, run `codex` in that folder — skills load from `.agents/skills/`, with the same names (`$itential-builder:spec-agent`). Update with `git pull`.
+`git clone https://github.com/itential/builder-skills.git`, then use the clone as the marketplace: `codex plugin marketplace add /path/to/builder-skills` and `codex plugin add itential-builder@itential-builder`. After `git pull`, re-run the `plugin add` to pick up changes.
 </details>
 
 ---
@@ -81,11 +81,7 @@ itential/builder-skills
 ```
 VS Code reads the repo's `plugin.json`. Agent plugins are on by default (setting `chat.plugins.enabled`).
 
-**Install — option B, clone and open:**
-```bash
-git clone https://github.com/itential/builder-skills.git && code builder-skills
-```
-Copilot Chat reads skills straight from `.github/skills/` — no install step.
+**Install — option B, from a clone:** `git clone https://github.com/itential/builder-skills.git`, then **Chat: Install Plugin From Source** with the clone's path as a `file:///` URI (e.g. `file:///Users/you/builder-skills`).
 
 **Check it worked:** in Copilot Chat, type `/` — `spec-agent` and the other skills appear. Plugin installs also show under **Configure Skills**.
 
@@ -129,9 +125,9 @@ gh skill install itential/builder-skills --agent github-copilot --all
 Skills land in the project's `.agents/skills/`. Update by re-running with `--force`; pin a release with `--pin v1.6.7`.
 </details>
 
-<details><summary>Prefer working from a clone instead?</summary>
+<details><summary>Working from a clone?</summary>
 
-`git clone https://github.com/itential/builder-skills.git` and open that folder — Copilot reads `.github/skills/` directly, no install step. Update with `git pull`.
+`git clone https://github.com/itential/builder-skills.git`, then `copilot plugin marketplace add /path/to/builder-skills` and `copilot plugin install itential-builder@itential-builder`. Copilot loads the skills live from the clone, so `git pull` (or your own edits) take effect in the next session.
 </details>
 
 ---
@@ -144,11 +140,7 @@ gh skill install itential/builder-skills --agent cursor --all
 ```
 Skills land in the project's `.agents/skills/`, which Cursor reads.
 
-**Install — option B, clone:**
-```bash
-git clone https://github.com/itential/builder-skills.git
-```
-Open the folder in Cursor. Skills load from `.agents/skills/`.
+**Install — option B, from a clone:** `git clone https://github.com/itential/builder-skills.git`, then from your project: `gh skill install /path/to/builder-skills --from-local --agent cursor --all`.
 
 **For a whole org — Team Marketplace:** a Cursor admin can add the repo under **Dashboard → Plugins & MCPs → Team Marketplaces → Import from Repo** (needs the Cursor GitHub App). The repo ships `.cursor-plugin/` for this. *(From Cursor's docs; not yet tried by hand.)*
 
@@ -156,7 +148,7 @@ Open the folder in Cursor. Skills load from `.agents/skills/`.
 
 **Run a skill:** `/spec-agent`
 
-**Update:** option A → re-run the install command with `--force`. Option B → `git pull`. Team Marketplace → refreshes from the repo.
+**Update:** option A → re-run the install command with `--force`. Option B → `git pull`, then re-run the install with `--force`. Team Marketplace → refreshes from the repo.
 
 ---
 
@@ -185,7 +177,7 @@ Once your org has a customized copy (see [`customization.md`](customization.md))
 | Copilot CLI | `copilot plugin uninstall itential-builder@itential-builder`, `copilot plugin marketplace remove itential-builder`, then the install steps above with `acme/builder-skills` |
 | Copilot in VS Code (plugin) | Uninstall it from **Agent Plugins - Installed**, then **Chat: Install Plugin From Source** with `acme/builder-skills` |
 | `gh skill` installs (Cursor, Copilot) | Re-run the install command with `acme/builder-skills` and `--force` |
-| Any clone | `git remote set-url origin https://github.com/acme/builder-skills.git && git pull` |
+| Any clone | `git remote set-url origin https://github.com/acme/builder-skills.git && git pull`, then reinstall from the clone as in your tool's "Working from a clone" note |
 
 Nothing to migrate — your org's rules live in the copy, not on your machine.
 
@@ -203,4 +195,4 @@ Nothing to migrate — your org's rules live in the copy, not on your machine.
 
 (Every plugin install first needs its marketplace added — see the tool's section.)
 
-For maintainers: `.claude/skills/`, `.agents/skills/`, `.github/skills/` and each `skills/<name>/assets/` are generated by CI (`.github/workflows/generate-mirrors.yml`) — edit `skills/` and the shared library only. See [`multi-vendor-architecture.md`](multi-vendor-architecture.md).
+For maintainers: each `skills/<name>/assets/` is generated from the shared library by `scripts/check-generated.sh` — edit `skills/` and the library, then run it and commit the result. See [`multi-vendor-architecture.md`](multi-vendor-architecture.md).

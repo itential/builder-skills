@@ -21,7 +21,7 @@ Only files tracked by git are bundled.
 Fails if a SKILL.md mentions an `assets/...` library path that doesn't exist (placeholder
 paths containing <...>, {...}, * or ALL_CAPS names are skipped).
 
-Run by scripts/generate-vendor-wrappers.sh; usage: bundle_skill_assets.py [--list]
+Run by scripts/check-generated.sh (the Skills Valid PR check); usage: bundle_skill_assets.py [--list]
 """
 import json
 import re

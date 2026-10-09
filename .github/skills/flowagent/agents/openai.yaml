@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "FlowAgent"
-  short_description: "Create and run AI agents on the Itential Platform"
-  default_prompt: "Set up a FlowAgent that checks device health"

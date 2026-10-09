@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "QA Agent"
-  short_description: "Acceptance-test a delivered build and write the as-built record"
-  default_prompt: "The build is done — run the acceptance tests"

@@ -7,8 +7,8 @@ plugin.json (Agent Plugins format -- read by Codex, Copilot, VS Code), and
 its install cache by this version, so letting the root manifest drift means Codex users
 never see a new version.
 
-Used by .github/workflows/version-bump.yml after a PR merges to main. Not meant to be
-run against a dirty working tree -- reads the current version from
+Run by a maintainer when cutting a release (in a PR: --bump patch|minor|major). Not meant
+to be run against a dirty working tree -- reads the current version from
 .claude-plugin/plugin.json, refuses to bump if the manifests already disagree, computes
 the next semver value, and writes it to all of them.
 

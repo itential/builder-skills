@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "Command Templates (MOP)"
-  short_description: "Build pre/post checks that run show commands and evaluate output"
-  default_prompt: "Build a pre-check that verifies an interface is up"

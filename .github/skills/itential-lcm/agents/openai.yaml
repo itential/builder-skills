@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "Lifecycle Manager"
-  short_description: "Model services and run lifecycle actions on resource instances"
-  default_prompt: "Create a resource model for port turn-up"

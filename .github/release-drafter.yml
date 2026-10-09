@@ -16,18 +16,8 @@ categories:
 change-template: '- $TITLE (#$NUMBER)'
 change-title-escapes: '\<*_&'
 
-version-resolver:
-  major:
-    labels: ['breaking', 'breaking-change']
-  minor:
-    labels: ['feature']
-  patch:
-    labels: ['fix', 'refactor']
-  default: patch
-
-# docs/ and chore/ branches are auto-labeled with skip-changelog by pr-labeler.yml —
-# excluded entirely from both release notes and version resolution, matching the
-# "docs/chore = no bump" policy in CONTRIBUTING.md.
+# docs/ and chore/ branches are auto-labeled with skip-changelog by pr-labeler.yml and
+# left out of the release notes. The version comes from plugin.json (release-drafter.yml).
 exclude-labels:
   - 'skip-changelog'
 

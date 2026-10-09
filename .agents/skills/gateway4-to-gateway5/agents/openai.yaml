@@ -1,5 +1,0 @@
-# Codex skill metadata (display in /skills and the plugin UI).
-interface:
-  display_name: "Gateway 4 to 5 Readiness"
-  short_description: "Assess readiness to move from Gateway 4 to Gateway 5"
-  default_prompt: "Am I ready to move from Gateway 4 to Gateway 5?"
