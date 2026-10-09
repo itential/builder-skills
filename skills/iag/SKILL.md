@@ -49,6 +49,10 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 - **Ansible `network_cli` needs `paramiko` + `look_for_keys = False`** — add `paramiko` to `runtime.req-file` (requirements.txt), and in `ansible.cfg` add `[paramiko_connection]\nlook_for_keys = False`. Without `look_for_keys = False`, password auth fails with "No existing session". Use `cisco.iosxr.iosxr_command` (or `ansible.netcommon.cli_command`) for show commands — NOT `ansible.builtin.raw`
 - **OpenTofu CLI syntax differs** — `iagctl run service opentofu-plan apply <name> --set key=value` (the `apply`/`destroy` subcommand goes between the type and service name)
 - **OpenTofu results include `state_file`** — outputs are in `state_file.outputs`, not `result.stdout` like Python/Ansible
+- **JSON playbook output comes from `ansible.cfg`, not `runtime.env`** — on Gateway5 5.5.2, `ANSIBLE_STDOUT_CALLBACK` in `runtime.env` left the output as plain text (tested with `json` and `ansible.posix.json`). Put `stdout_callback = ansible.posix.json` in an `ansible.cfg` and reference it with `runtime.config-file`; `result.stdout` is then the playbook's JSON (`plays`, `stats`) as a string
+- **The gateway may have no Ansible at all** — an `ansible-playbook` service gets Ansible from its own `runtime.req-file`. A `requirements.txt` listing `ansible` (the full package, not `ansible-core`) brings `ansible-playbook` plus vendor collections such as `arista.eos`, `cisco.ios` and `ansible.netcommon`; the first run installs it (~40 s), later runs reuse it
+- **`runService`'s `inventory` reaches the service on stdin, not as an Ansible inventory file** — Gateway5 passes the chosen Inventory Manager nodes as `{"inventory_nodes": [{"name", "attributes", "tags"}, ...]}`. A `python-script` reads them with `json.load(sys.stdin)`. An `ansible-playbook` service needs an inventory script in `runtime.inventory` that turns them into hosts (node name → host, tags → groups, `itential_host`/`itential_user`/`itential_password` → `ansible_host`/`ansible_user`/`ansible_password`); with only a static `inventory.yaml` the run reports "No inventory was parsed". A one-host `inventory.yaml` templated from decorator params still works when the caller passes device details as `params` instead
+- **After a `force` import, wait for the platform to see the new service** — the platform keeps its own copy of each service; until `GET /gateway_manager/v1/services` shows the service's new `id` (a few seconds), runs fail with *"… found in the database has an Id that does not match what was provided with your request"*. Re-check the list; don't re-import
 
 ## How It Works
 
@@ -270,10 +274,9 @@ services:
     runtime:
       inventory:                           # REQUIRED for Ansible — inventory file(s)
         - inventory.yaml
-      config-file: ansible.cfg             # optional — custom ansible config
-      env:                                 # IMPORTANT — controls Ansible behavior
+      config-file: ansible.cfg             # set stdout_callback here for JSON output (see Gotchas)
+      env:
         ANSIBLE_HOST_KEY_CHECKING: "false"  # disable SSH host key checking
-        ANSIBLE_STDOUT_CALLBACK: json       # JSON output — critical for structured results
 ```
 
 **Ansible service with secrets (SSH key injection):**
@@ -296,7 +299,6 @@ services:
         - inventory.yaml
       env:
         ANSIBLE_HOST_KEY_CHECKING: "false"
-        ANSIBLE_STDOUT_CALLBACK: json
 ```
 
 The playbook writes the injected key to a temp file:
@@ -357,7 +359,7 @@ paramiko
 ```ini
 [defaults]
 host_key_checking = False
-stdout_callback = json
+stdout_callback = ansible.posix.json
 timeout = 30
 
 [persistent_connection]
@@ -427,7 +429,6 @@ services:
       req-file: requirements.txt
       env:
         ANSIBLE_HOST_KEY_CHECKING: "false"
-        ANSIBLE_STDOUT_CALLBACK: json
 ```
 
 **Key points** (paramiko/`look_for_keys` gotcha already covered above):
@@ -603,6 +604,13 @@ iagctl db export state.yaml
 iagctl db import --repository https://github.com/org/repo.git --reference main
 ```
 
+**Import through the platform (no gateway CLI access needed):**
+```
+POST /gateway_manager/v1/gateways/{clusterId}/configuration/import
+{"options": {"source": "content", "content": "<the services.yaml text>", "validate": true}}
+```
+`"validate": true` checks without changing anything; send it again with `"validate": false` to import (`"force": true` to replace existing resources). Returns `{added, replaced, skipped, summary}`. `"source": "git"` with `"git": {"url", "file", "reference"}` imports a service file straight from a repository. Export with `GET /gateway_manager/v1/gateways/{clusterId}/configuration/export/yaml`. Test a service without a workflow: `POST /gateway_manager/v1/services/run` with `{serviceName, clusterId, params, inventory}` — same body as the `runService` task.
+
 **Import behavior:**
 - New resources → **added**
 - Existing (same name) → **skipped** without `--force`, **replaced** with `--force`
@@ -765,6 +773,14 @@ runService(device-info)
 
 Each `query` extracts `result.stdout` from the JSON-RPC envelope. If the stdout is JSON, parse it before passing as params to the next service.
 
+**Output shapes differ by task** — check before wiring a `query`:
+
+| Task / service | Output |
+|---|---|
+| `runService` (python-script, ansible-playbook) | `result.stdout` (string — parse it), `result.stderr`, `result.return_code` |
+| `sendCommand` | `result.results[]` — one `{name, command, output, success, host, start_time, end_time}` per node and command |
+| Inventory Manager broker action (`run-command`, …) via `runService` | `result.stdout` (the device's output as text) |
+
 ### sendCommand Task Wiring
 
 ```json
@@ -806,6 +822,10 @@ Each `query` extracts `result.stdout` from the JSON-RPC envelope. If the stdout 
   }
 }
 ```
+
+- `config` is one string; `inventory` is an array of objects — build both in a `runCode` task and read them with Enable Query (`$var.<task>.result#/stdout_json/inventory`), since `$var` doesn't resolve inside an object.
+- The node needs `itential_driver_options.netmiko.become: true` (and `secret` if the device has an enable password) to enter config mode; without it the push fails with a `ReadTimeout` waiting for the config prompt.
+- The result is `result.results[]`, one `{name, host, output, success}` per node, with no overall state — check `success` on every node. See builder-agent's *Command Templates (MOP)* section for the full pattern.
 
 ### Testing IAG Services via Workflow
 
@@ -853,8 +873,8 @@ Verify:
 | Need | Use |
 |------|-----|
 | Run a Python/Ansible/OpenTofu service | `GatewayManager.runService` |
-| Send ad-hoc CLI commands | `GatewayManager.sendCommand` or `AGManager.itential_cli` |
-| Push config text to device | `GatewayManager.sendConfig` or `AGManager.itential_set_config` |
+| Send ad-hoc CLI commands | `GatewayManager.sendCommand` (`AGManager.itential_cli` is Gateway4 — existing workflows only) |
+| Push config text to device | `GatewayManager.sendConfig` (`AGManager.itential_set_config` / `itential_cli` are Gateway4 — existing workflows only) |
 | Run MOP validation checks | `MOP.RunCommandTemplate` (separate from IAG) |
 
 ### AGManager vs GatewayManager
@@ -863,7 +883,7 @@ Verify:
 |---|-----------|---------------|
 | **Tasks** | One per script/playbook (e.g., `itential_cli`) | Generic (`runService`, `sendCommand`) |
 | **Input style** | Task-specific variables | `serviceName` + `params` object |
-| **When to use** | Built-in IAG capabilities | Custom services built with iagctl |
+| **When to use** | Existing Gateway4 workflows only | Everything new — services, `sendCommand`, `sendConfig` |
 
 ---
 
