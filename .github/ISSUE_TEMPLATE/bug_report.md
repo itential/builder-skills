@@ -10,17 +10,21 @@ assignees: ''
 
 ## Reproduction Steps
 
+<!-- The prompt you gave, the skill that ran, and what it did -->
+
 ## Expected Behavior
 
 ## Environment
 
-- **OS:**
-- **Version:**
-- **Python/Node/Go Version (if applicable):**
+- **AI tool and version:** (Claude Code, Codex CLI, GitHub Copilot CLI / VS Code, Cursor)
+- **Skills version:** (`plugin.json` version, or the release tag you installed)
+- **Skill:** (e.g. `spec-agent`, `builder-agent`)
+- **Itential Platform version:**
+- **IAG version (if relevant):**
 
 ## Checklist
 
 - [ ] I have checked existing issues to avoid duplicates
 - [ ] I have provided a clear description of the issue
 - [ ] I have included steps to reproduce (if applicable)
-- [ ] I have included relevant environment details
+- [ ] I have removed credentials, tokens and hostnames from anything pasted above
