@@ -230,6 +230,11 @@ This pattern works for both standard Itential adapters (EmailOpensource, Slack) 
 
 ## Guides
 
+**Building a Gateway4 → Gateway5 migration?** Follow `assets/helpers/gateway-migration/conversion-guide.md`
+for each item's pattern (inventory with broker actions, services imported through Gateway Manager,
+task-by-task rewire, re-pointing every consumer of a Gateway4 output), and import the migrated
+workflows as a new project — never edit the originals.
+
 ### Guide 1: Build a workflow end-to-end
 
 Follow these steps in order. Do not skip any step.

@@ -216,6 +216,11 @@ Search `workflows.json` for existing workflows that match spec phases. Flag as *
 
 Produce the solution design from the approved spec + feasibility results.
 
+**Gateway4 → Gateway5 migration:** design each item from its readiness-report code (WRAP / REVIEW /
+ARGS / INV) using `assets/helpers/gateway-migration/conversion-guide.md` — the inventory mapping, the
+service per script/playbook, the task-by-task rewire, and a parity test per workflow for Section F.
+The migrated workflows are built as a new project alongside the originals.
+
 ### Produce `{use-case}/solution-design.md`
 
 **Write the file to disk** using the Write tool. Contents:

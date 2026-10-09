@@ -144,7 +144,7 @@ This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:spec-agent` | Refines a use case into an approved requirements spec (HLD). Picks from 22 built-in specs or starts from scratch. Produces `customer-spec.md` — the input to every downstream stage. |
+| `/itential-builder:spec-agent` | Refines a use case into an approved requirements spec (HLD). Picks from 23 built-in specs or starts from scratch. Produces `customer-spec.md` — the input to every downstream stage. |
 | `/itential-builder:solution-arch-agent` | Connects to your platform, assesses what it can support, and produces a feasibility decision and a concrete implementation plan. Outputs `feasibility.md` and `solution-design.md`. |
 | `/itential-builder:builder-agent` | Implements the approved solution design end-to-end — workflows, templates, configs, projects. Tests each component individually, then hands off to `/qa-agent`. |
 | `/itential-builder:qa-agent` | Drafts a test plan from the approved acceptance criteria (engineer approves before anything runs live), generates and runs static + acceptance test cases against the delivered build, and produces `test-report.md` and `as-built.md`. The last technical stage before customer sign-off. |
@@ -194,12 +194,12 @@ Step-by-step guide, with what to check at each step: [`docs/customization.md`](d
 
 ## Spec Library
 
-22 technology-agnostic HLD specs in [`spec-files/`](spec-files/). Each spec is ready to use with `/itential-builder:spec-agent` as the starting point for a delivery.
+23 technology-agnostic HLD specs in [`spec-files/`](spec-files/). Each spec is ready to use with `/itential-builder:spec-agent` as the starting point for a delivery.
 
 | Category | Specs |
 |----------|-------|
 | **Networking** | [Port Turn-Up](spec-files/spec-port-turn-up.md) · [VLAN Provisioning](spec-files/spec-vlan-provisioning.md) · [Circuit Provisioning](spec-files/spec-circuit-provisioning.md) · [BGP Peer Provisioning](spec-files/spec-bgp-peer-provisioning.md) · [VPN Tunnel Provisioning](spec-files/spec-vpn-tunnel-provisioning.md) · [WAN Bandwidth Modification](spec-files/spec-wan-bandwidth-modification.md) |
-| **Operations** | [Software Upgrade](spec-files/spec-software-upgrade.md) · [Config Backup & Compliance](spec-files/spec-config-backup-compliance.md) · [Network Health Check](spec-files/spec-network-health-check.md) · [Device Onboarding](spec-files/spec-device-onboarding.md) · [Device Decommissioning](spec-files/spec-device-decommissioning.md) · [Change Management](spec-files/spec-change-management.md) · [Incident Auto-Remediation](spec-files/spec-incident-auto-remediation.md) |
+| **Operations** | [Software Upgrade](spec-files/spec-software-upgrade.md) · [Config Backup & Compliance](spec-files/spec-config-backup-compliance.md) · [Network Health Check](spec-files/spec-network-health-check.md) · [Device Onboarding](spec-files/spec-device-onboarding.md) · [Device Decommissioning](spec-files/spec-device-decommissioning.md) · [Change Management](spec-files/spec-change-management.md) · [Incident Auto-Remediation](spec-files/spec-incident-auto-remediation.md) · [Gateway4 → Gateway5 Migration](spec-files/spec-gateway4-to-gateway5-migration.md) |
 | **Security** | [Firewall Rule Lifecycle](spec-files/spec-firewall-rule-lifecycle.md) · [Cloud Security Groups](spec-files/spec-cloud-security-groups.md) · [SSL Certificate Lifecycle](spec-files/spec-ssl-certificate-lifecycle.md) |
 | **Infrastructure** | [DNS Record Management](spec-files/spec-dns-record-management.md) · [IPAM Lifecycle](spec-files/spec-ipam-lifecycle.md) · [Load Balancer VIP](spec-files/spec-load-balancer-vip.md) · [Config Drift Remediation](spec-files/spec-config-drift-remediation.md) · [Network Compliance Audit](spec-files/spec-network-compliance-audit.md) · [AWS Webserver Deploy](spec-files/spec-aws-webserver-deploy.md) |
 

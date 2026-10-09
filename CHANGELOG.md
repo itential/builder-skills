@@ -5,6 +5,8 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Added a Gateway4 → Gateway5 migration delivery: a new spec (`spec-gateway4-to-gateway5-migration`) that takes the `gateway4-to-gateway5` readiness report as input, and a conversion guide covering the inventory move to Inventory Manager with broker actions, services imported through Gateway Manager, the task-by-task rewire, and parity tests — proven on a live Gateway4 and Gateway5 against a real device
+
 - Fixed `scripts/use_case_init.py` writing an `.auth.json` without `platform_url`/`auth_method`, which made solution-arch-agent's `pull-platform-data.py` crash; it now also starts `use-case-memory.md` from the template
 - Fixed solution-arch-agent's platform pull recording only the first page of workflows (100) and devices (1,000) — it now fetches all of them, so reuse searches see every workflow
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere
