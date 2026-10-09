@@ -49,4 +49,5 @@ services:
       req-file: requirements.txt              # paramiko for network_cli
       env:
         ANSIBLE_HOST_KEY_CHECKING: "false"
-        ANSIBLE_STDOUT_CALLBACK: json
+      # JSON output: set stdout_callback = ansible.posix.json in ansible.cfg (config-file above) —
+      # ANSIBLE_STDOUT_CALLBACK in env does not change the output

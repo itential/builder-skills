@@ -218,6 +218,17 @@ POST /inventory_manager/v1/nodes/bulk
 }
 ```
 
+**Broker actions:** create the inventory with `"createBrokerActions": true` (and `"defaultClusterId"`) on `POST /inventory_manager/v1/inventories` to get the platform's standard device actions — `run-command`, `set-config`, `get-config`, `is-alive` — added automatically. They run on the Gateway5 cluster against any node whose attributes follow the broker convention below. Verified against an Arista EOS device over SSH (with a lab password; use a secret reference as shown in production):
+
+```json
+{"name": "ceos1", "attributes": {
+  "itential_host": "10.0.0.5", "itential_user": "admin", "itential_password": "$SECRET.network_devices.password",
+  "itential_platform": "arista_eos", "itential_driver": "netmiko",
+  "itential_driver_options": {"netmiko": {"port": 22, "conn_timeout": 60}},
+  "cluster_id": "cluster_1"}, "tags": ["arista"]}
+```
+`run-command` takes `{"command": "show version"}`; `GatewayManager.sendCommand` takes `{"commands": [...]}` and the same `inventory` reference. Moving devices off a Gateway4 built-in inventory: `ansible_host` → `itential_host`, `ansible_user` → `itential_user`, `ansible_password` → `itential_password` (as a secret reference), `ansible_network_os` (`arista.eos.eos`) → `itential_platform` (`arista_eos`), SSH `ansible_port` → `itential_driver_options.netmiko.port`, groups → tags.
+
 **Node attributes:** Arbitrary key-value pairs. Common patterns:
 - `itential_host` — device IP or hostname
 - `itential_platform` — OS type (iosxr, ios, eos, etc.)

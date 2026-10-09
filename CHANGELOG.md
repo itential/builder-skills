@@ -13,8 +13,15 @@ release tag — what every tool's update installs.
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere
 - Fixed `explore` treating the `environments/*.env` templates as real credentials, and `gateway4-to-gateway5` naming the username/password mode `login` instead of `password`
 
+- Fixed the `iag` Ansible examples: JSON playbook output is set with `stdout_callback` in `ansible.cfg` — `ANSIBLE_STDOUT_CALLBACK` in `runtime.env` is ignored by Gateway5. Added gateway gotchas found on a live Gateway5: importing services through Gateway Manager, waiting for the new service id after a `force` import, getting Ansible onto the gateway via `requirements.txt`, and how `runService` hands Inventory Manager nodes to a service on stdin
+- Added broker-action inventories to `itential-inventory`: `createBrokerActions`, the `itential_*` attribute convention, and how Gateway4 inventory variables map to it
+
 - Removed the repo-wide `customizations/` folder: each skill's own `custom/org`, `custom/team` and `custom/dev` folders are the one place for an organization's rules, and they travel with every install. Move any rules from `customizations/` into the matching skills' `custom/` folders
 - Removed `scripts/use-skill`; install the plugin or load a clone with `claude --plugin-dir .` instead
+
+- Changed the config-push examples in the asset library from `AGManager.itential_cli` (Gateway4) to `GatewayManager.sendConfig`: "Push Configuration" (`itential-platform-configuration-management.json`), "Push Configuration to Device - IAG" (`vendor-arista-eos.json`) and the three VXLAN Fabric Services LCM action workflows. Each takes `inventoryName` and `clusterId` and checks success per device. In the push workflows a `runCode` task replaces the "Process Push Configuration Data" transformation and returns the config, inventory target and messages in one result (`pushData`, replacing the `configurationToPush` output). Both push workflows were run against a live Arista EOS device, when the push lands and when it can't
+- Changed builder-agent and iag to recommend `sendConfig` for config push, and `runCode` instead of JST transformations for reshaping data; `itential_cli` is called out as Gateway4, for existing workflows only, with two ways to move the tasks that read its output
+- Fixed transformation tasks in `itential-platform-configuration-management.json` and `vendor-arista-eos.json` that pointed at transformations outside their project, so 8 workflows imported as drafts that couldn't start; all 8 now start. Command Template Runner_v2's missing "Command Template Response Processor" and its four "Standard Output" transformations are now `runCode` tasks writing one `standardOutput` result (`success`, `reason`, `errorMessage`), replacing the separate `success`/`reason` outputs; it needs a `clusterId` input. Also fixed the LCM workflows' success check, which only looked at Gateway4's `icode` — that reports success even when the device rejects the configuration
 
 ## 2.0.0
 
