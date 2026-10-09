@@ -11,7 +11,7 @@ Usage: $(basename "$0") [agent] [scope] [--update] [--version <ref>] [--repo <ow
   agent      github-copilot | claude-code | cursor | codex (prompts if omitted)
   scope      project (default) | user
   --update   force re-fetch even if already installed (same as re-running install)
-  --version  pin to a tag or commit SHA instead of latest (e.g. v1.6.7)
+  --version  pin to a tag or commit SHA instead of latest (e.g. v2.0.0)
   --repo     install from your own copy instead (e.g. acme/builder-skills)
 EOF
   exit 1

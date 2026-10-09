@@ -5,7 +5,9 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
-- Added native installs for Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor alongside Claude Code, each reading the same `skills/` folder — no per-tool copies in the repo
+## 2.0.0
+
+- Added native installs for Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor alongside Claude Code, each reading the same `skills/` folder — no per-tool copies in the repo. Working from a clone, load it as a plugin (e.g. `claude --plugin-dir .`); skills are invoked with the plugin prefix (`/itential-builder:spec-agent`)
 - Added per-skill `custom/org`, `custom/team` and `custom/dev` folders for an organization's own rules, kept separate from Itential's content so updates never overwrite them
 - Changed every skill to be self-contained: the templates, spec library and reference files it uses are bundled into its own `assets/` folder
 - Removed the automatic version-bump and mirror-regeneration workflows; versions are bumped by hand when releasing, and the release tag always matches the plugin version
