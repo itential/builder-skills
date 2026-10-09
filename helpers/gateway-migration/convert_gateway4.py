@@ -128,7 +128,14 @@ def fetch_live(url, verify_tls):
     out = {}
     for kind in ("scripts", "playbooks", "devices", "groups"):
         detail = "?detail=full" if kind in ("scripts", "playbooks") else ""
-        out[kind] = call("GET", f"/{kind}{detail}", token=token).get("data", [])
+        resp = call("GET", f"/{kind}{detail}", token=token)
+        out[kind] = resp.get("data", [])
+        total = (resp.get("meta") or {}).get("total_count")
+        if total is not None and len(out[kind]) < total:
+            sys.exit(f"Gateway4 returned {len(out[kind])} of {total} {kind} in one response (it is paging). "
+                     f"Save all of them with GET /api/v2.0/{kind}{detail or '?'}{'&' if detail else ''}offset=N&limit=N "
+                     f"page by page into {kind}.json as one JSON array, and run with --from-dir.")
+        print(f"Read {len(out[kind])} {kind} from Gateway4", file=sys.stderr)
     return out
 
 
