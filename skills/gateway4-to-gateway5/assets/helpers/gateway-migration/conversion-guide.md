@@ -11,6 +11,30 @@ Wording: customer-facing documents say "Gateway4" / "Gateway5", like the readine
 
 ---
 
+## Start with the converter
+
+`convert_gateway4.py` (next to this guide in the builder-agent and iag skills) generates the Gateway5
+side from Gateway4 itself — read-only against Gateway4, it only writes files:
+
+```bash
+GW4_USERNAME=... GW4_PASSWORD=... python3 convert_gateway4.py --gw4-url https://gateway4:8083 \
+  --out migration/ --repo-url <service repo URL> --cluster-id <Gateway5 cluster> --inventory-name <inventory>
+# or, from exported JSON (GET /api/v2.0/{scripts,playbooks}?detail=full, /devices, /groups):
+python3 convert_gateway4.py --from-dir exports/ --out migration/ ...
+```
+
+| Output | What it is | Next step |
+|---|---|---|
+| `services.yaml` | A decorator and a service for every script and playbook. Script inputs come from the script's Gateway4 schema, or — for Gateway4's generic `argument_list` — from the script's own `argparse` flags | Import through Gateway Manager (`validate: true` first) |
+| `repo/` | `scripts/<service>/` and `playbooks/<service>/` with the original files, playbooks retargeted, plus `inventory.yaml`, `ansible.cfg`, `requirements.txt` | Push to the service repository |
+| `inventory-nodes.json` | Gateway4 devices as Inventory Manager nodes with broker attributes; passwords as `$SECRET.` references; groups as tags | Create the inventory (`createBrokerActions: true`), then `POST /inventory_manager/v1/nodes/bulk` |
+| `conversion-report.md` | What converted automatically and what a person must review, per item | Resolve every review item before import |
+
+The same input always produces the same files. Everything below explains what the converter does and
+how to finish the items it flags.
+
+---
+
 ## Rules for every migration
 
 1. **Build alongside, cut over later.** Never edit the Gateway4 workflows in place. Build the migrated
@@ -140,13 +164,27 @@ The playbook usually needs one change, and the service needs an inventory:
 
 ### ARGS — scripts (`AutomationGateway.runScript`, `AGManager.<script>`)
 
-1. **Script:** inputs become named flags (`--device_ip`, not `sys.argv[1]`) whose names match the
-   decorator's property names exactly, underscores included. Print one JSON object to stdout.
-   Scripts that took credentials as arguments read them from environment variables instead (gateway
-   secrets).
-2. **Service:** `type: python-script`, decorator, `runtime.req-file`.
-3. **Workflow:** `GatewayManager.runService` with `params` built from the Gateway4 task's
-   `argument_list` / `args`; downstream consumers re-pointed to `result.stdout` (a string — parse it).
+On Gateway4 a script's inputs are described by a schema stored in Gateway4's database (`GET
+/api/v2.0/scripts/{name}/schema`); Gateway4 builds the command line by walking
+`script_argument_order` and putting each argument's `prefix` + value + `suffix` on it. On Gateway5
+the inputs are a **decorator in `services.yaml`**, and every property is passed as
+`--<property> <value>`. So:
+
+1. **Schema → decorator.** A Gateway4 argument whose prefix is a flag (`--hosts ` or `--hosts=`)
+   becomes a Gateway5 property named after that flag. A script that only has Gateway4's generic
+   `argument_list` gets its properties from its own `argparse` flags (name, type, default, required,
+   help). Positional arguments (no flag) need a code change — add an `argparse` flag (code ARGS).
+2. **Optional numbers and booleans:** Gateway5 passes an unset property as an empty string — the
+   decorator's `default` is not applied — so `--timeout ""` fails `argparse`'s `type=float`. Have
+   workflows always pass such properties, or let the script accept an empty value. `store_true`
+   switches don't fit `--flag <value>` either.
+3. **Credentials and environment:** credential arguments move to gateway secrets injected as
+   environment variables. Gateway4's per-run `env_vars` have no Gateway5 equivalent — static values go
+   in `runtime.env`, per-run values become flags.
+4. **Service:** `type: python-script`, the decorator, `runtime.req-file` for third-party imports.
+5. **Workflow:** `GatewayManager.runService` with `params` built from the Gateway4 task's
+   `argument_list` / `args`; downstream consumers re-pointed to `result.stdout` (a string). When the
+   script prints JSON, Gateway5 also returns it parsed as `result.stdout_json`.
 
 ### INV — device and group management
 

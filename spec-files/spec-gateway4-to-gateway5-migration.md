@@ -22,14 +22,14 @@ item by item, and cut over without disrupting the automations already running.
 ## 2. High-Level Flow
 
 ```
-Assess  →  Inventory  →  Services  →  Workflows  →  Parity Test  →  Cutover
-   |           |            |             |               |             |
-Readiness   Gateway4     Scripts and   Rewire tasks    Same inputs    Switch
-report      devices to   playbooks     to Gateway5,    through old    triggers,
-(read-only) Inventory    to a git      as a NEW        and new,       retire
-            Manager,     repo; import  project next    compare        Gateway4
-            broker       via Gateway   to the
-            actions      Manager       originals
+Assess  →  Generate  →  Inventory  →  Services  →  Workflows  →  Parity Test  →  Cutover
+   |          |            |             |            |              |              |
+Readiness  Service      Gateway4      Scripts and  Rewire tasks   Same inputs    Switch
+report     files,       devices to    playbooks    to Gateway5,   through old    triggers,
+(read-     inventory    Inventory     to a git     as a NEW       and new,       retire
+only)      nodes and    Manager,      repo;        project next   compare        Gateway4
+           a review     broker        import via   to the
+           list         actions       Gateway Mgr  originals
 ```
 
 ---
@@ -40,6 +40,12 @@ report      devices to   playbooks     to Gateway5,    through old    triggers,
 Run `/gateway4-to-gateway5` (read-only) for the agreed scope. Its remediation codes — WRAP, REVIEW,
 ARGS, INV — drive every later phase. Anything it lists as unresolved must be resolved or explicitly
 excluded before design.
+
+### Generate
+Run `helpers/gateway-migration/convert_gateway4.py` against Gateway4 (read-only) or its exports. It
+writes the Gateway5 service definitions with their input schemas, the service repository layout, the
+Inventory Manager nodes, and a report of everything that needs a person. Resolve the report's review
+items before going further.
 
 ### Inventory
 Create an Inventory Manager inventory with broker actions (`createBrokerActions: true`) and move the
