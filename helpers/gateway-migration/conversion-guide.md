@@ -113,11 +113,23 @@ Gateway4's built-in device tasks map to Gateway5's broker actions on the Invento
 | `netmikoSendCommand` (`host`, `command_string`, …) | `GatewayManager.sendCommand` | `host` → a node name in `inventory` |
 | `netmikoSendConfigSet` (`host`, `config_commands`, …) | `GatewayManager.sendConfig` | `config_commands` joined into `config` |
 
-`_groups` becomes the nodes carrying that group's tag. `inventory` is an array of objects, so build it
-with `merge` (`inventory`, `nodeNames` from job variables) and wrap it with `arrayPush` — `$var` doesn't
-resolve inside it. For `sendConfig` the node needs `itential_driver_options.netmiko.become: true` (the
-converter maps it from Gateway4's `ansible_become`); without it every push times out waiting for the
-config prompt. Worked, tested examples: the "Push Configuration" workflows in the asset library.
+`_groups` becomes the nodes carrying that group's tag. `inventory` is an array of objects and `$var`
+doesn't resolve inside it, so build it — and the config text, from `renderJinjaTemplate`'s
+`{renderedTemplate: "..."}` object — in one `runCode` task before the push, and have `sendConfig` read
+them with Enable Query (`config: "$var.<task>.result#/stdout_json/config"`):
+
+```python
+import sys, json
+data = json.load(sys.stdin)  # {"renderedTemplate": "$var.<render>.renderedTemplate", "device": ..., "inventoryName": ...}
+config = data.get("renderedTemplate")
+if isinstance(config, dict):
+    config = config.get("renderedTemplate", "")
+devices = data["device"] if isinstance(data.get("device"), list) else [data.get("device")]
+print(json.dumps({"config": config, "inventory": [{"inventory": data.get("inventoryName"), "nodeNames": devices}]}))
+```
+
+For `sendConfig` the node needs `itential_driver_options.netmiko.become: true` (the converter maps it
+from Gateway4's `ansible_become`); without it every push times out waiting for the config prompt.
 
 Output shapes differ, so re-point every task in the report's `referenced_by`:
 
@@ -132,11 +144,17 @@ Two ways to move the tasks that read the old output:
 
 1. **Re-point each one** — e.g. a success check becomes `query: "result.results"` `!=` `[]` and
    `query: "result.results[*].success"` `!contains` `false`. Best when few tasks read it.
-2. **Rebuild the old shape** with one `runCode` task after `sendConfig` (`data: {"result":
-   "$var.<task>.result"}`) that prints `{"completed": [{"icode": "AD.200", "response": [{"host",
-   "status": "SUCCESS"|"FAILURE", "stdout"}]}]}`; point the consumers at it and prefix their queries
-   with `stdout_json.` (its `result` is flat — no JSON-RPC envelope). Best when many tasks or
-   transformations parse the Gateway4 shape. builder-agent has the script.
+2. **Rebuild the old shape** with one `runCode` task after `sendConfig`, then point the consumers at
+   it and prefix their queries with `stdout_json.` (its `result` is flat — no JSON-RPC envelope). The
+   query logic itself stays as it was. Best when many tasks or transformations parse the Gateway4 shape:
+   ```python
+   import sys, json
+   data = json.load(sys.stdin)  # {"result": "$var.<sendConfig task>.result"}
+   nodes = ((data.get("result") or {}).get("result") or {}).get("results") or []
+   print(json.dumps({"completed": [{"icode": "AD.200", "response": [
+       {"host": n.get("name"), "status": "SUCCESS" if n.get("success") else "FAILURE",
+        "stdout": n.get("output", "")} for n in nodes]}]}))
+   ```
 
 Either way, run the migrated check once against a push that can't land: a check like "not empty and
 doesn't contain FAILURE" also passes when its query path resolves to nothing. And Gateway4's
