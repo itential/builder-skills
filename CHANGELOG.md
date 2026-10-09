@@ -5,30 +5,30 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+## 2.1.0
+
 - Added a Gateway4 → Gateway5 migration delivery: a new spec (`spec-gateway4-to-gateway5-migration`) that takes the `gateway4-to-gateway5` readiness report as input, and a conversion guide covering the inventory move to Inventory Manager with broker actions, services imported through Gateway Manager, the task-by-task rewire, and parity tests — proven on a live Gateway4 and Gateway5 against a real device
 - Added `convert_gateway4.py` (bundled with builder-agent and iag): reads Gateway4 read-only, or its exported JSON, and generates the Gateway5 `services.yaml` (decorators built from each script's Gateway4 schema or its own `argparse` flags), the service repository layout with playbooks reading their devices from the Inventory Manager nodes passed to `runService`, Inventory Manager nodes with broker attributes (including enable mode from `ansible_become`, which config pushes need) and secret references, and a report of what still needs review
+- Added broker-action inventories to `itential-inventory`: `createBrokerActions`, the `itential_*` attribute convention, and how Gateway4 inventory variables map to it
+- Added builder-agent guidance for Enable Query edge cases: array indexes (`#/items/0` shown as `.items[0]`), keys containing `/`, `~` or `.` (dotted keys need `.["a.b"]`), and what a path that doesn't exist does (error transition; on `evaluation`, the failure transition)
+- Added `helpers/enable_query.py` to generate and check Enable Query decorators (`check` / `fix` / `apply_decorators`); it also flags `$var` references placed inside a static object, which are sent as literal text
+
+- Changed the config-push examples in the asset library from `AGManager.itential_cli` (Gateway4) to `GatewayManager.sendConfig`: "Push Configuration" (`itential-platform-configuration-management.json`), "Push Configuration to Device - IAG" (`vendor-arista-eos.json`) and the three VXLAN Fabric Services LCM action workflows. Each takes `inventoryName` and `clusterId` and checks success per device. In the push workflows a `runCode` task replaces the "Process Push Configuration Data" transformation and returns the config, inventory target and messages in one result (`pushData`, replacing the `configurationToPush` output). Both push workflows were run against a live Arista EOS device, when the push lands and when it can't
+- Changed builder-agent and iag to recommend `sendConfig` for config push, and `runCode` instead of JST transformations for reshaping data; `itential_cli` is called out as Gateway4, for existing workflows only, with two ways to move the tasks that read its output
 
 - Fixed `scripts/use_case_init.py` writing an `.auth.json` without `platform_url`/`auth_method`, which made solution-arch-agent's `pull-platform-data.py` crash; it now also starts `use-case-memory.md` from the template
 - Fixed solution-arch-agent's platform pull recording only the first page of workflows (100) and devices (1,000) — it now fetches all of them, so reuse searches see every workflow
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere
 - Fixed `explore` treating the `environments/*.env` templates as real credentials, and `gateway4-to-gateway5` naming the username/password mode `login` instead of `password`
-
 - Fixed the `iag` Ansible examples: JSON playbook output is set with `stdout_callback` in `ansible.cfg` — `ANSIBLE_STDOUT_CALLBACK` in `runtime.env` is ignored by Gateway5. Added gateway gotchas found on a live Gateway5: importing services through Gateway Manager, waiting for the new service id after a `force` import, getting Ansible onto the gateway via `requirements.txt`, and how `runService` hands Inventory Manager nodes to a service on stdin
-- Added broker-action inventories to `itential-inventory`: `createBrokerActions`, the `itential_*` attribute convention, and how Gateway4 inventory variables map to it
-
-- Removed the repo-wide `customizations/` folder: each skill's own `custom/org`, `custom/team` and `custom/dev` folders are the one place for an organization's rules, and they travel with every install. Move any rules from `customizations/` into the matching skills' `custom/` folders
-- Removed `scripts/use-skill`; install the plugin or load a clone with `claude --plugin-dir .` instead
-
-- Changed the config-push examples in the asset library from `AGManager.itential_cli` (Gateway4) to `GatewayManager.sendConfig`: "Push Configuration" (`itential-platform-configuration-management.json`), "Push Configuration to Device - IAG" (`vendor-arista-eos.json`) and the three VXLAN Fabric Services LCM action workflows. Each takes `inventoryName` and `clusterId` and checks success per device. In the push workflows a `runCode` task replaces the "Process Push Configuration Data" transformation and returns the config, inventory target and messages in one result (`pushData`, replacing the `configurationToPush` output). Both push workflows were run against a live Arista EOS device, when the push lands and when it can't
-- Changed builder-agent and iag to recommend `sendConfig` for config push, and `runCode` instead of JST transformations for reshaping data; `itential_cli` is called out as Gateway4, for existing workflows only, with two ways to move the tasks that read its output
 - Fixed transformation tasks in `itential-platform-configuration-management.json` and `vendor-arista-eos.json` that pointed at transformations outside their project, so 8 workflows imported as drafts that couldn't start; all 8 now start. Command Template Runner_v2's missing "Command Template Response Processor" and its four "Standard Output" transformations are now `runCode` tasks writing one `standardOutput` result (`success`, `reason`, `errorMessage`), replacing the separate `success`/`reason` outputs; it needs a `clusterId` input. Also fixed the LCM workflows' success check, which only looked at Gateway4's `icode` — that reports success even when the device rejects the configuration
-
 - Fixed builder-agent's Enable Query guidance: it only showed the plain-field decorator, so workflows with a `#/path` but a missing or wrong decorator ran correctly yet showed no query in Studio, and opening then saving them silently dropped the query. It now gives the verified `pointer` for every field shape — top-level fields, whole object fields, `runCode` `data` and `transformation` `variableMap` keys, `merge` items, `childJob` variables and `childJob` loop `data_array`
 - Fixed builder-agent telling builders to put `query` inside an `evaluation` operand, which never applied; the query goes on each evaluation item (`query` / `rightQuery`)
 - Fixed builder-agent saying a `merge` item reading a `childJob` output must use `value`; on 6.5.2 `value` resolves to null with no error and `variable` is correct
-- Added builder-agent guidance for Enable Query edge cases: array indexes (`#/items/0` shown as `.items[0]`), keys containing `/`, `~` or `.` (dotted keys need `.["a.b"]`), and what a path that doesn't exist does (error transition; on `evaluation`, the failure transition)
-- Added `helpers/enable_query.py` to generate and check Enable Query decorators (`check` / `fix` / `apply_decorators`); it also flags `$var` references placed inside a static object, which are sent as literal text
 - Fixed the push-config workflows' error-view decorator: its `displayPath` used `.results.0.output` where Studio writes `.results[0].output`, so Studio showed the query wrong and could strip it on save. `enable_query.py check` now passes on every file in the asset library
+
+- Removed the repo-wide `customizations/` folder: each skill's own `custom/org`, `custom/team` and `custom/dev` folders are the one place for an organization's rules, and they travel with every install. Move any rules from `customizations/` into the matching skills' `custom/` folders
+- Removed `scripts/use-skill`; install the plugin or load a clone with `claude --plugin-dir .` instead
 
 ## 2.0.0
 

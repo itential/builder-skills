@@ -122,7 +122,7 @@ With GitHub CLI 2.90 or later (`gh skill --help` should work), from inside your 
 ```bash
 gh skill install itential/builder-skills --agent github-copilot --all
 ```
-Skills land in the project's `.agents/skills/`. Update by re-running with `--force`; pin a release with `--pin v2.0.0`.
+Skills land in the project's `.agents/skills/`. Update by re-running with `--force`; pin a release with `--pin v2.1.0`.
 </details>
 
 <details><summary>Working from a clone?</summary>
@@ -160,7 +160,7 @@ Skills land in the project's `.agents/skills/`, which Cursor reads.
 scripts/install-for-agent.sh                                  # asks which tool
 scripts/install-for-agent.sh cursor                           # install into this project
 scripts/install-for-agent.sh cursor --update                  # update
-scripts/install-for-agent.sh cursor --version v2.0.0          # pin a release (tag or commit SHA)
+scripts/install-for-agent.sh cursor --version v2.1.0          # pin a release (tag or commit SHA)
 scripts/install-for-agent.sh cursor --repo acme/builder-skills # install from your org's copy
 ```
 

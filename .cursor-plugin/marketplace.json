@@ -8,7 +8,7 @@
       "name": "itential-builder",
       "source": "./",
       "description": "Itential Builder — spec-driven network automation skills for the Itential Platform",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "author": {
         "name": "Itential"
       }
