@@ -5,6 +5,9 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Fixed the `iag` Ansible examples: JSON playbook output is set with `stdout_callback` in `ansible.cfg` — `ANSIBLE_STDOUT_CALLBACK` in `runtime.env` is ignored by Gateway5. Added gateway gotchas found on a live Gateway5: importing services through Gateway Manager, waiting for the new service id after a `force` import, getting Ansible onto the gateway via `requirements.txt`, and passing devices to playbook services as parameters
+- Added broker-action inventories to `itential-inventory`: `createBrokerActions`, the `itential_*` attribute convention, and how Gateway4 inventory variables map to it
+
 - Fixed `scripts/use_case_init.py` writing an `.auth.json` without `platform_url`/`auth_method`, which made solution-arch-agent's `pull-platform-data.py` crash; it now also starts `use-case-memory.md` from the template
 - Fixed solution-arch-agent's platform pull recording only the first page of workflows (100) and devices (1,000) — it now fetches all of them, so reuse searches see every workflow
 - Fixed skills disagreeing on where a use case lives: `{use-case}` is `use-cases/<use-case-name>/` everywhere
