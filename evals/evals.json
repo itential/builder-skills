@@ -969,6 +969,105 @@
               "type": "structural"
             }
           ]
+        },
+        {
+          "id": 36,
+          "prompt": "My workflow has an adapter task b1b3 (getDevices) that either succeeds (output `response`) or errors (output `error`), and the job input `deviceName`. A `runCode` Python task must receive `{deviceName, nb, err}` on stdin, where nb is the adapter response and err is its error. Write the `runCode` task's `data` field. I'd rather not add merge tasks if I don't need them.",
+          "expected_output": "`\"data\": {\"deviceName\": \"$var.job.deviceName\", \"nb\": \"$var.b1b3.response\", \"err\": \"$var.b1b3.error\"}` - one `$var` per key, wired straight to the producing task and job variable, no merge. Does not use a whole-object string ref such as `\"$var.<mergeId>.merged_object\"`, and says why: Studio renders that string as one Static row per character, and editing a row then saving writes the character keys into data.",
+          "assertions": [
+            {
+              "text": "`data` is an object with one `$var` per key (deviceName, nb, err), not a string",
+              "type": "critical"
+            },
+            {
+              "text": "nb references `$var.b1b3.response` and err references `$var.b1b3.error` directly, with no intermediate merge task",
+              "type": "critical"
+            },
+            {
+              "text": "Does not recommend `\"data\": \"$var.<mergeId>.merged_object\"`",
+              "type": "critical"
+            },
+            {
+              "text": "Explains the Studio hazard of the whole-object string form (one row per character; a saved edit writes character keys)",
+              "type": "structural"
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "prompt": "I built a merge task m1m1 that produces {interfacePrefix, interfaceConcatenator} and set my `transformation` task's `variableMap` to \"$var.m1m1.merged_object\". The job now won't even start and says `Cannot assign to read only property '0' of string '$var.m1m1.merged_object'`. Fix the task's `variableMap`.",
+          "expected_output": "`\"variableMap\": {\"interfacePrefix\": \"$var.job.interfacePrefix\", \"interfaceConcatenator\": \"$var.job.interfaceConcatenator\"}` (or task refs for those values) - one `$var` per key. Explains that `variableMap` must be an object with a `$var` per key; a whole-object string ref makes `jobs/start` fail. The merge task is not needed.",
+          "assertions": [
+            {
+              "text": "`variableMap` is an object with one `$var` per transformation input",
+              "type": "critical"
+            },
+            {
+              "text": "Identifies the whole-object string ref as the cause of the job-start failure",
+              "type": "critical"
+            },
+            {
+              "text": "Does not keep `\"$var.m1m1.merged_object\"` as the `variableMap` value",
+              "type": "critical"
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "prompt": "My `runAgent` task (AgentSessionManager) runs an agent whose input schema is `first_string` and `second_string`. I have a merge task a4a1 that builds both, so I set `inputs` to \"$var.a4a1.merged_object\". Someone then opened the task in Studio, typed a value into first_string and saved, and now the job fails with `must have required property 'second_string'`. What do I do and how do I wire `inputs` correctly?",
+          "expected_output": "Explains that Studio builds the `inputs` rows from the agent's input schema and hides a whole-object string ref; saving from that view rewrote `inputs` as one key per character plus the edited key, losing the ref and the other input. Fix: `\"inputs\": {\"first_string\": \"$var.job.first\", \"second_string\": \"$var.job.second\"}` (one `$var` per key named as the agent's schema), and re-create or repair the corrupted task.",
+          "assertions": [
+            {
+              "text": "Wires `inputs` as an object with one `$var` per agent input key, named as the agent's schema",
+              "type": "critical"
+            },
+            {
+              "text": "Does not keep the whole-object string ref `\"$var.a4a1.merged_object\"` for `inputs`",
+              "type": "critical"
+            },
+            {
+              "text": "Explains the saved task's `inputs` was corrupted into one key per character by the Studio save",
+              "type": "structural"
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "prompt": "I'm calling the Gateway service `run-command` from a `runService` task. The service declares a parameter schema with a required string `command`, and my workflow has a job variable `command`. Write the task's `params` value.",
+          "expected_output": "`\"params\": {\"command\": \"$var.job.command\"}` - one `$var` per schema property, because a service with a declared schema is edited in Studio as a Key/Value Form with one row per property (each with its own Static/Job/Task source). Not a whole-object string ref, which Studio does not show in that form.",
+          "assertions": [
+            {
+              "text": "`params` is an object with `command` set to `$var.job.command`",
+              "type": "critical"
+            },
+            {
+              "text": "Does not wire `params` as a whole-object string ref such as `$var.<mergeId>.merged_object`",
+              "type": "critical"
+            },
+            {
+              "text": "Ties the per-key form to the service declaring a parameter schema (decorator)",
+              "type": "structural"
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "prompt": "I'm calling the Gateway python-script service `hello-python` from a `runService` task. It has no declared parameter schema (its decorator is null). A merge task a4a1 already builds `{first_string, second_string}`. Wire the task's `params`.",
+          "expected_output": "`\"params\": \"$var.a4a1.merged_object\"` - a ref to the merge output, because a service with no declared schema is edited in Studio as one object with a single Static/Job/Task source (shown as Variable Source = Task). Does not author per-key `$var` strings inside `params` for this service: they resolve at runtime but Studio shows them as a Static JSON value with literal text.",
+          "assertions": [
+            {
+              "text": "`params` is the string `$var.a4a1.merged_object`",
+              "type": "critical"
+            },
+            {
+              "text": "Does not build `params` as an object of per-key `$var` strings for this schema-less service",
+              "type": "critical"
+            },
+            {
+              "text": "Ties the whole-object ref to the service having no declared schema",
+              "type": "structural"
+            }
+          ]
         }
       ]
     },

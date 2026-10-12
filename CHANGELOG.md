@@ -5,6 +5,10 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Fixed builder-agent guidance for the object-typed fields that take `$var` references, which treated them all the same. `runCode` `data` is now authored one `$var` per key (a whole-object string ref runs, but Studio shows it as one row per character and can't add keys, and editing a row then saving writes the character keys into `data`, so the script gets them instead of the object and the job still completes). `runAgent` `inputs` is also one `$var` per key: Studio hides a whole-object string ref and a save turns it into one key per character. `runService` `params` follows the service: one `$var` per key when the service declares a parameter schema (Studio shows bound rows), a ref to a `merge` output when it doesn't (Studio shows per-key strings there as literal JSON). `transformation` `variableMap` must be per key, since a string ref makes `jobs/start` fail. Added a pre-flight check for each
+- Fixed the flowagent skill's "Using Agents in Workflows" example, which wired `runAgent` `inputs` as one whole-object `$var`; it is now an object with one `$var` per key of the agent's input schema, with a note on why
+- Added builder-agent evals 36–40 for the per-field `$var` shapes above
+
 ## 2.1.0
 
 - Added a Gateway4 → Gateway5 migration delivery: a new spec (`spec-gateway4-to-gateway5-migration`) that takes the `gateway4-to-gateway5` readiness report as input, and a conversion guide covering the inventory move to Inventory Manager with broker actions, services imported through Gateway Manager, the task-by-task rewire, and parity tests — proven on a live Gateway4 and Gateway5 against a real device

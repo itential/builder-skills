@@ -1479,6 +1479,14 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **Workaround:** Use `merge`, `makeData`, or `query` to build the nested object, then reference the task's output with `$var.taskId.merged_object`.
 
+> **Exception — for the object-typed fields in the exception table below, don't just apply this workaround; the right shape depends on how Studio edits each field (Platform 6.5.2, 2026-10):**
+> - **`runCode.data`** (keyed rows, each with its own Static/Job/Task source): one `$var` per key, e.g. `"data": {"deviceName": "$var.job.deviceName", "nb": "$var.b1b3.response"}`. Studio shows these as bound rows. A whole-object string ref (`"data": "$var.a1a1.merged_object"`) runs, but Studio renders it as one Static row per character (`data.0 = $`, `data.1 = v`, ...) and "Add Input Data Key" throws `TypeError: Cannot use 'in' operator to search for 'input_N' in $var...`. Editing a row there (changing its value or source, or deleting one) and saving writes the character keys into the stored `data` (`{"0": "$", "1": "v", ...}`), so the script receives those one-character keys instead of the object, and the job still completes with no error. Opening and saving without touching the data panel leaves the string intact. No validator flags it.
+> - **`runAgent.inputs`** (rows built from the agent's `inputSchema`, each with its own Static/Job/Task source): one `$var` per key, named exactly as the agent's input schema, e.g. `"inputs": {"first_string": "$var.job.first", "second_string": "$var.job.second"}`. Studio shows these as bound rows. A whole-object string ref (`"inputs": "$var.x.merged_object"`) is not shown in the panel at all; editing any row there and saving stores one key per character beside the edited key (`{"0": "$", "1": "v", ..., "first_string": "abc"}`), loses the ref and the other inputs, and the session then fails with `must have required property ...`.
+> - **`runService.params`** (depends on whether the service declares a parameter schema; check `service_metadata.decorator` in `GET /gateway_manager/v1/services`):
+>   - **Service with a declared schema** (e.g. `run-command`): Studio shows a Key/Value Form with one row per schema property, each with its own Static/Job/Task source. Write one `$var` per key, `"params": {"command": "$var.job.command"}`; Studio shows it as bound rows. A whole-object string ref is not shown in that form (empty Static rows), and editing a row then saving replaces it with the typed values (`{"command": "abc123"}`), silently dropping the ref.
+>   - **Service without a schema** (e.g. a bare `python-script`): Studio shows `params` as one object with a single Static/Job/Task source. Wire it to a `merge` output, `"params": "$var.<mergeId>.merged_object"`; Studio shows Variable Source = Task. Per-key `$var` strings in that object resolve at runtime, but Studio shows them as a Static JSON value with literal text, so don't author them.
+> - **`transformation.variableMap`**: one `$var` per key. A whole-object string ref makes `jobs/start` fail with `Cannot assign to read only property '0' of string '$var...'`. Studio shows the per-key form as bound rows, each with its own Static/Job/Task source.
+
 **Task ID validation:** `$var.taskId.x` only resolves when `taskId` matches `[0-9a-f]{1,4}`. Non-hex IDs silently fail.
 
 **Prefer task-to-task wiring:** When a task's output feeds directly into the next task's input, wire it as `$var.<taskId>.<outVar>` instead of bouncing through `$var.job.x`. Only use job variables when: (a) values cross non-adjacent tasks, (b) values need to be visible in job output, or (c) multiple downstream tasks need the same value. Direct task-to-task wiring reduces clutter and makes data flow easier to trace.
@@ -1516,6 +1524,8 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 | `WorkFlowEngine` | `transformation` | `variableMap` |
 
 Everywhere else — including plain adapter `body` fields — a `$var` inside an object or array is passed through as a literal string and never substituted; build the object with `merge`/`makeData`/`query` first instead.
+
+**Pre-flight check for the exception table:** before saving, flag any `runCode.data`, `runAgent.inputs` or `transformation.variableMap` whose value is a string (a whole-object `$var...` ref, with or without a `#/path` suffix) and rewrite it per key; flag a `runService.params` that doesn't match its service: an object of `$var` strings for a service with no declared schema (use a ref to a `merge` output), or a string for a service that has one (use one `$var` per key). Also avoid feeding one consumer from both a success-branch `merge` and an error-branch `merge` while it reads only one of them: on the other path that reference points at a task that never ran (reasoned from the wiring, not run).
 
 ---
 
@@ -1566,7 +1576,7 @@ jq '[.components[].document.tasks // {} | to_entries[] | select(.value.variables
 | `clusterId` | yes | Gateway5 cluster ID to execute on |
 | `language` | yes | Enum — currently only `"python"` |
 | `code` | yes | The Python source as a plain string |
-| `data` | yes | Object passed to the script as JSON on stdin |
+| `data` | yes | Object passed to the script as JSON on stdin. **Author it per key** — `{"k": "$var.<task>.<out>", ...}` — not as a whole-object string ref to a `merge` output, which Studio can't edit (see `$var Resolution Rules`). Reference the producing task directly (e.g. `$var.b1b3.response` / `$var.b1b3.error`) so no `merge` is needed |
 | `safety.timeout` | yes | Seconds, 1-1000 |
 | `packages` | no | Array of pip requirement strings (e.g. `"requests==2.31.0"`), installed before execution — omit if stdlib-only |
 

@@ -11,11 +11,13 @@
 |-------|-------|------------|----------|------------|----------|
 | spec-agent | 5 | 18 | 6 | 11 | 1 |
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
-| builder-agent | 35 | 112 | 57 | 51 | 4 |
+| builder-agent | 40 | 128 | 69 | 55 | 4 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
 | flowagent | 1 | 1 | 0 | 0 | 1 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **63** | **207** | **92** | **105** | **11** |
+| **Total** | **68** | **223** | **104** | **109** | **11** |
+
+**2026-10-12 update:** Added builder-agent evals 36–40 for how a `$var` has to be written on object-typed task fields so Studio can edit them (`builder-agent/SKILL.md` `$var Resolution Rules`, `AGENTS.md` Rule 8): 36 `runCode` `data` wired per key straight to the producing tasks (no merge, no whole-object string ref), 37 `transformation` `variableMap` as an object after a whole-object string ref made `jobs/start` fail, 38 `runAgent` `inputs` per key after a Studio save turned a whole-object string ref into one key per character, 39 `runService` `params` per key for a service with a declared schema, 40 `runService` `params` as a `merge` output ref for a service without one. Fresh sub-agent runs before (`main` at v2.1.0) and after: 36 and 38 each missed one structural assertion before (the Studio hazard for `runCode`; the one-key-per-character corruption for `runAgent`) and passed all after; 39 and 40 passed their critical assertions before as well, but missed the structural one (that the shape depends on whether the service declares a parameter schema, and in 40 offered per-key `params` as an "equivalent" form) and passed all after; 37 passes on both, so it guards against regression only.
 
 **2026-10-09 update:** Added builder-agent evals 30–35 for the Enable Query fixes (`builder-agent/SKILL.md` Enable Query section, "Where `pointer` goes"): 30 `merge` item with an inline query, 31 `childJob` variable with an inline query, 32 query inside an `evaluation` operand (move it to the evaluation item), 33 a `#/path` with no decorator is not safe to open and save in Studio, 34 `merge` reading a `childJob` output uses `variable`, 35 `childJob` loop `data_array` with an inline query. Ran the skill-creator executor→grader pipeline (`evals/workspace/enable-query/iteration-1/`), one run per configuration, old skill (upstream `507b92c`) vs new skill: **new skill 100% pass rate, old skill 65.3%**. Per eval (new / old): 30 4/4 vs 1/4, 31 4/4 vs 2/4, 32 4/4 vs 3/4, 33 4/4 vs 3/4, 34 3/3 vs 2/3, 35 3/3 vs 3/3. Eval 35 does not discriminate (the old generic `/incoming/<field>` rule already answers it). The graders flagged three assertions as loosely worded — eval 32 "operand_1 stays a plain reference", eval 33 "mentions the helper or verifying decorators", eval 34 "silently null" — candidates for tightening; tightening would only lower the old skill's score. The skill changes themselves were verified separately with live jobs and Automation Studio saves on Itential Platform 6.5.2 (see the PR).
 
