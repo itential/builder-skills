@@ -5,6 +5,8 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Fixed builder-agent guidance to require `canvasVersion` on every workflow document and to keep it when updating a workflow
+
 ## 2.1.1
 
 - Fixed invalid task IDs in builder-agent and itential-lcm examples and in the `runcode-taskquery-reference` asset (all now 1-4 hex characters), and added guidance for naming a new or inserted task, so generated workflows are less likely to fail project import with `must NOT have additional properties`

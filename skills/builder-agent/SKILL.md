@@ -439,6 +439,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 **Step 9: Pre-submit checklist.**
 - [ ] Every task has a non-empty `description` field — schema-required on every task, easy to forget, and `POST /workflow_engine/workflows/validate` will reject a document missing it
 - [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`) — verify with `python3 -c "import json,re; d=json.load(open('workflow.json')); bad=[k for k in d['tasks'] if k not in ('workflow_start','workflow_end') and not re.match(r'^[0-9a-f]{1,4}$', k)]; print(bad or 'OK')"` rather than eyeballing the task list. A non-hex ID (e.g. `g007`, using a letter outside `a`–`f`) doesn't error at creation time — it causes intermittent, hard-to-diagnose `$var` resolution failures later (evaluation operands silently drilling into the wrong value, string references passing through as unresolved literal text) that look like unrelated wiring bugs.
+- [ ] Every workflow document has `"canvasVersion": 3` at the top level. Copy the value from `assets/helpers/create/create-workflow.json`; do not guess. This applies to new workflows, updates and imports. Leaving it out does not stop an import, but the platform's schema lists it as required, and one save path can crash at job start when it is missing together with `scenarios`, `errors` and `warnings`.
 - [ ] `app` and `locationType` values come from apps.json `.name`, NOT tasks.json and NOT the adapter instance name (e.g., `EmailOpensource` not `email`)
 - [ ] `adapter_id` is the adapter **instance** name (e.g., `email`), NOT the type name
 - [ ] `adapter_id` values come from `adapters.json` `.results[].id` — NEVER from the spec's adapter identity table. The spec is a design document; `adapters.json` is the source of truth for the target environment.
@@ -1352,7 +1353,7 @@ Sending the bare name (`"name": "My Workflow"`) returns `{"error": {"message": "
 
 Asymmetry: workflow **CREATE** (`POST /automation-studio/automations`) does NOT require the prefix — the platform applies it when the workflow is added to a project. But **PUT-update** always requires it for project-member workflows.
 
-Always read the workflow before updating (`GET /automation-studio/workflows/detailed/{name}` or export the project) to get the current scoped name. See [Rule 24](#) and [issue #55](https://github.com/itential/builder-skills/issues/55).
+Always read the workflow before updating (`GET /automation-studio/workflows/detailed/{name}` or export the project) to get the current scoped name. See [Rule 24](#) and [issue #55](https://github.com/itential/builder-skills/issues/55). Build the update body from the workflow you just read, so fields such as `canvasVersion` are kept.
 
 ### Task Fields
 
@@ -2720,6 +2721,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
 13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a missing success path.
 14. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, route error to an intermediate `newVariable` task first.
+14a. **Every workflow document needs `"canvasVersion": 3`** — see the Step 9 checklist. Omitting it together with `scenarios`, `errors` and `warnings` passes validation but can crash at job start.
 
 ### Utility Tasks
 15. **merge uses `"variable"`, childJob uses `"value"`** — don't mix them. Using `"variable"` in childJob causes `undefined.indexOf()` at job start (P6.4.0+).
