@@ -769,7 +769,7 @@ Run an agent from inside an Itential workflow using the `run-agent` cog task, wh
   "variables": {
     "incoming": {
       "agent": "$var.job.agentId",
-      "inputs": "$var.job.agentInputs"
+      "inputs": {"deviceName": "$var.job.deviceName"}
     },
     "outgoing": {
       "sessionId": "$var.job.sessionId",
@@ -778,6 +778,8 @@ Run an agent from inside an Itential workflow using the `run-agent` cog task, wh
   }
 }
 ```
+
+Write `inputs` as an object with one `$var` per key of the agent's `inputSchema` (above, the `device-checker` agent's `deviceName`) — never a single `$var` to a whole object. Studio builds the `inputs` rows from the agent's schema and hides a whole-object string ref, and editing any row then saving rewrites it as one key per character, which fails the session with `must have required property ...`.
 
 The exact task name and available FlowAI workflow tasks depend on what's registered as a `tools`-app on your platform — look it up with `jq '.[] | select(.app == "FlowAI")' tasks.json` before wiring, since task names may not map 1:1 to the raw REST operation names shown in this skill (`runAgent` above mirrors the `POST /agent-session-manager/sessions/run-agent` operation, but the literal task name is platform-specific — check your platform's `tasks.json`).
 
