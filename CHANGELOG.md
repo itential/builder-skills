@@ -5,6 +5,8 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+Fixed invalid task IDs in builder-agent and itential-lcm examples and in the `runcode-taskquery-reference` asset (all now 1-4 hex characters), and added guidance for naming a new or inserted task, so generated workflows no longer fail project import with `must NOT have additional properties`
+
 ## 2.1.0
 
 - Added a Gateway4 → Gateway5 migration delivery: a new spec (`spec-gateway4-to-gateway5-migration`) that takes the `gateway4-to-gateway5` readiness report as input, and a conversion guide covering the inventory move to Inventory Manager with broker actions, services imported through Gateway Manager, the task-by-task rewire, and parity tests — proven on a live Gateway4 and Gateway5 against a real device
