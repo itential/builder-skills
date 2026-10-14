@@ -5,7 +5,7 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
-Fixed invalid task IDs in builder-agent and itential-lcm examples and in the `runcode-taskquery-reference` asset (all now 1-4 hex characters), and added guidance for naming a new or inserted task, so generated workflows are less likely to fail project import with `must NOT have additional properties`
+- Fixed invalid task IDs in builder-agent and itential-lcm examples and in the `runcode-taskquery-reference` asset (all now 1-4 hex characters), and added guidance for naming a new or inserted task, so generated workflows are less likely to fail project import with `must NOT have additional properties`
 
 ## 2.1.0
 
