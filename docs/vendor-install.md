@@ -4,6 +4,15 @@ Find your tool below. Each section is self-contained: install, check it worked, 
 
 Every install path gets the **complete** skills: each skill carries its own templates, spec library and reference files inside its folder, so nothing depends on a clone or on which tool you use.
 
+The native FlowAI agent-tool guidance is shared by **Claude Code, Codex, GitHub
+Copilot (CLI and VS Code), and Cursor**. The incorrect delegation restriction
+in 2.1.1 came from the shared skill source, not a Codex adaptation. All installs
+of that source inherit it, including pinned tags and copied skill folders.
+After the correction is released, update/reinstall using your tool's steps below
+and remove any old version pin. A plugin-cache edit is temporary and does not
+update the repository or other harnesses. See the
+[native-agent audit](native-agent-tools-audit.md) for evidence and test limits.
+
 **Which repo to install from?**
 - Using the skills as Itential ships them → `itential/builder-skills` (what the commands below show).
 - Your org has its own copy with customizations → use your copy's name instead (e.g. `acme/builder-skills`) in every command. Setting up a copy: [`customization.md`](customization.md).

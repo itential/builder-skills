@@ -24,7 +24,7 @@ rules or put credentials in committed files.
 
 ## The Core Idea
 
-A FlowAgent proves a use case works. The LLM figured out which tools to call in what order to accomplish an objective. Now you want to productionize it — remove the LLM from the execution path and replace it with a deterministic workflow that does the same thing reliably every time.
+A FlowAgent's sessions provide evidence of a use case's behavior, including failures and halts. This skill applies when the engineer wants a deterministic equivalent: remove the LLM from the execution path and specify a workflow implementing the verified behavior. Native agents can also be production designs; conversion is a user choice, not a workaround for an assumed lack of delegation.
 
 ```
 FlowAgent (agentic)          →    Deterministic Workflow
@@ -62,7 +62,7 @@ Extract:
 - **`provider`** — `{profile, model}` UUIDs (not needed for the spec, but useful context on which LLM ran it)
 - **`operators`** — who could invoke this agent (informational, not usually spec-relevant)
 
-The agent definition doesn't declare what platform identity its tool calls run as — if you need to know what permissions the agent's tool calls actually exercised, infer it from which adapters/apps the tools in `tools[]` touch.
+The agent definition alone does not establish the runtime identity or effective permissions of its tool calls. Record observed calls and verify authorization separately; an accessible parent does not prove access to every child's definition or history.
 
 Save to `{use-case}/agent-config.json`.
 
@@ -99,6 +99,15 @@ Messages contain the full execution trace, now with a formal type taxonomy:
 
 Save representative sessions to `{use-case}/session-samples.json`.
 
+For a native `agent:` tool call, follow the actual returned `data.output.sessionId`
+and inspect that child's definition, inputs, metadata, and full message history.
+Read `assets/helpers/flowagent/native-agent-tools.md` (relative to this skill's
+folder) for discovery, correlation, truncation, and failure handling; the minimal
+bodies are in `assets/helpers/flowagent/native-agent-example.json`. Preserve
+independent child responsibilities and human approvals in the derived spec.
+Outer tool `succeeded`, a returned session ID, or child `COMPLETE` does not prove
+the requested task succeeded; a child can complete while reporting a halt.
+
 ---
 
 ## Step 3: Analyze the Pattern
@@ -116,7 +125,7 @@ Example from session messages (category: TOOL_CALLED):
   3. Infoblox//updateHostRecord     (input: hostname, ipv4addr)
   4. ServiceNow//updateChangeRequest (input: changeId, work_notes)
 ```
-(Tool names here are shown resolved from `referenceId` via `GET /tools/{referenceId}` — the raw session message will reference the structured `referenceId`/`toolId` string (`<type>:<source>:<method>`, e.g. `adapter:Servicenow:ServiceNow:createChangeRequest`), not a plain readable name. Resolve every distinct tool call in the sequence before presenting it.)
+(The labels above are illustrative, not tool IDs. Resolve bindings with `GET /tools/{referenceId}`; reference structure varies by type, including `agent:<child-agent-id>`. Session messages can contain `toolName` and `toolType` rather than a reference ID. Correlate with bindings, the returned child session, and its snapshot instead of inventing a reference from the name.)
 
 This becomes your deterministic workflow task sequence.
 
@@ -157,7 +166,8 @@ Convert each observed agent behavior to a workflow construct:
 
 | Agent behavior | Deterministic equivalent |
 |----------------|--------------------------|
-| Tool call | Adapter task |
+| Adapter/app tool call | Verified native task for that adapter/app |
+| Native `agent:` child call | Inspect the child's real session; specify an independent child workflow and explicit result/error mapping when deterministic conversion is requested |
 | LLM extracts a field from tool result | `query` task |
 | LLM decides which path to take | `evaluation` task |
 | LLM builds a request body | `merge` task |
@@ -275,7 +285,7 @@ Then offer next steps:
 
 **One-off sessions aren't reliable:** Look for the pattern across 5+ sessions. A single session may show unusual branching.
 
-**Tool identity is a colon-separated `<type>:<source>:<method>` string.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest` (adapter instance + app type + method) or `application:ConfigurationManager:runCompliancePlan` (app + method). Resolve each `referenceId` via `GET /tools/{referenceId}` to confirm its exact name/description, and map the `<source>` segment(s) back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow.
+**Tool identity has a type-specific structure.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest`, `application:ConfigurationManager:runCompliancePlan`, or `agent:<child-agent-id>`. Resolve each `referenceId` through Tools Service. Map adapter/app calls to verified task names and schemas; native child calls require reading the child's behavior, not inventing an adapter mapping.
 
 **Decorators change what the agent actually sent.** If a tool reference has a `decoratorId`, the decorator's `toolInputSchema` — not the tool's native schema — is what the LLM populated. Fetch `GET /tools/decorators/{decoratorId}` to see the real, narrowed input contract the agent was working with.
 
@@ -283,4 +293,4 @@ Then offer next steps:
 
 **Stateful reasoning:** If an `AGENT_REASONING` message said "I checked earlier and the device was reachable" — that's stateful context the LLM maintained. In the deterministic version, that check must be an explicit task that stores its result in a job variable.
 
-**Sub-agents / delegation is not a supported field.** There's no way for an agent to call another agent by name in the Agent Project Service schemas. If session messages show what looks like delegation (a `sessionType: child` session, or tool calls that look like they're invoking another agent), treat each as its own candidate deterministic workflow and confirm with the engineer how the two were actually being orchestrated — don't assume a direct agent-to-agent call pattern exists.
+**Native delegation is represented by tool bindings.** `agent:<child-agent-id>` on a parent is a native child-agent tool where available, not a coding-harness subagent or proof of external A2A protocol support. Follow actual session references recursively, tracking visited session IDs to avoid repeated traversal. If a child/history is inaccessible or a capability is unverified, record the missing evidence and the deployment-specific discovery/fallback path; do not replace it with an unsupported-delegation claim.

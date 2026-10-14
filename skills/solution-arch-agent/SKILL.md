@@ -210,6 +210,16 @@ For each row in the spec's Integrations table:
 
 Search `workflows.json` for existing workflows that match spec phases. Flag as **↻ Reuse** candidates.
 
+For FlowAI requirements, consult `/flowagent` and
+`assets/helpers/flowagent/native-agent-tools.md` and the minimal bodies in
+`assets/helpers/flowagent/native-agent-example.json`. Check the deployment's schemas,
+operable agents, and active `agent:` tools before deciding native delegation is
+feasible. Record child input contracts, access/availability constraints, and
+parent/child session evidence. A missing delegation field is not evidence of
+missing capability: native children are tool bindings. If capability is absent
+or unverified, explicitly document discovery and the proposed fallback; do not
+silently replace requested agents with workflow orchestration.
+
 ---
 
 ## Design
@@ -250,14 +260,17 @@ The migrated workflows are built as a new project alongside the originals.
 
 **D. Modular Design — Decompose First**
 
-Before listing components, decide the parent/child split. Ask for each phase in the spec:
+Before listing components, decide the parent/child split. For native-agent
+designs, keep separate child agents with their own responsibilities and verified
+`agent:<child-agent-id>` bindings; include failure, pending human approval, and
+real session correlation in Section F. For workflow designs, ask for each phase:
 
 - Can it be run and tested independently? → **Child workflow**
 - Does it make sense to reuse it in other use cases? → **Child workflow**
 - Does it loop over multiple items? → **Child workflow with `loopType`**
 - Is it a one-off step that only makes sense in this flow? → **Task in orchestrator**
 
-**Rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built.
+**Workflow rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built. This rule does not mandate a workflow for native FlowAI parent/child designs.
 
 **Example decomposition:**
 ```

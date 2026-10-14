@@ -1,0 +1,428 @@
+{
+  "_provenance": {
+    "kind": "schema-extract",
+    "inspected": "2026-10-14",
+    "source": "GET /help/openapi",
+    "note": "Exact selected request schemas; info.version is not a deployment release."
+  },
+  "agentCreate": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^\\S(.*\\S)?$"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "instructions": {
+        "type": "string",
+        "minLength": 1
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "type",
+          "additionalProperties",
+          "required",
+          "properties"
+        ],
+        "properties": {
+          "type": {
+            "const": "object"
+          },
+          "additionalProperties": {
+            "const": false
+          },
+          "required": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "array",
+                        "boolean",
+                        "integer",
+                        "null",
+                        "number",
+                        "object",
+                        "string"
+                      ]
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "enum": [
+                          "array",
+                          "boolean",
+                          "integer",
+                          "null",
+                          "number",
+                          "object",
+                          "string"
+                        ]
+                      },
+                      "minItems": 1,
+                      "uniqueItems": true
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "provider": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "model": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "profile",
+          "model"
+        ],
+        "additionalProperties": false
+      },
+      "tools": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            },
+            "decoratorId": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            },
+            "lastKnownName": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "referenceId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "skills": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "latest": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "skillId",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "operators": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$"
+        }
+      }
+    }
+  },
+  "agentUpdate": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100,
+        "pattern": "^\\S(.*\\S)?$"
+      },
+      "description": {
+        "type": "string",
+        "maxLength": 500
+      },
+      "prompt": {
+        "type": "object",
+        "properties": {
+          "instructions": {
+            "type": "string",
+            "minLength": 1
+          },
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "additionalProperties",
+              "required",
+              "properties"
+            ],
+            "properties": {
+              "type": {
+                "const": "object"
+              },
+              "additionalProperties": {
+                "const": false
+              },
+              "required": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "uniqueItems": true
+              },
+              "properties": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": [
+                    "type"
+                  ],
+                  "properties": {
+                    "type": {
+                      "anyOf": [
+                        {
+                          "enum": [
+                            "array",
+                            "boolean",
+                            "integer",
+                            "null",
+                            "number",
+                            "object",
+                            "string"
+                          ]
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "enum": [
+                              "array",
+                              "boolean",
+                              "integer",
+                              "null",
+                              "number",
+                              "object",
+                              "string"
+                            ]
+                          },
+                          "minItems": 1,
+                          "uniqueItems": true
+                        }
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "instructions",
+          "inputSchema"
+        ],
+        "additionalProperties": false
+      },
+      "provider": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "model": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "profile",
+          "model"
+        ],
+        "additionalProperties": false
+      },
+      "addTools": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            },
+            "decoratorId": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          },
+          "required": [
+            "referenceId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "decorateTools": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            },
+            "decoratorId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-fA-F]{24}$"
+            }
+          },
+          "required": [
+            "referenceId",
+            "decoratorId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "authorizeTools": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "referenceId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "removeTools": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "referenceId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "referenceId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "addSkills": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "latest": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "required": [
+            "skillId",
+            "version"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "removeSkills": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "skillId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "operators": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F]{24}$"
+        }
+      }
+    }
+  },
+  "sessionStart": {
+    "type": "object",
+    "properties": {
+      "agentDefinitionId": {
+        "title": "agentDefinitionId",
+        "type": "string",
+        "description": "The id of the agent to be executed"
+      },
+      "inputs": {
+        "title": "inputs",
+        "type": "object",
+        "description": "Key-value pairs to pass as inputs to the agent session. Must match the agent's input schema."
+      }
+    }
+  },
+  "sessionStatus": {
+    "type": "string",
+    "description": "Current session status",
+    "enum": [
+      "PENDING",
+      "RUNNING",
+      "PAUSING",
+      "PAUSED",
+      "COMPLETE",
+      "FAILED",
+      "CANCELING",
+      "CANCELED"
+    ]
+  }
+}

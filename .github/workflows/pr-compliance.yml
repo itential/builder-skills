@@ -34,8 +34,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Skills follow the Agent Skills format, references resolve, bundled assets are current
         run: scripts/check-generated.sh
+      - name: Install offline regression dependencies
+        run: python3 -m pip install -r tests/requirements.txt
+      - name: Native agent-tool schema and distribution regressions
+        run: python3 -m unittest discover -s tests -v
 
   manifest-versions:
     name: Manifest Versions

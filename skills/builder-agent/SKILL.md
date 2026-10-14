@@ -48,6 +48,18 @@ Build implements the approved plan. The builder never re-pulls discovery data �
 
 This skill covers everything needed to build and test Itential automation assets: projects, workflows, templates, and command templates.
 
+**FlowAI/native agent delivery:** consult `/flowagent` and
+`assets/helpers/flowagent/native-agent-tools.md` before building agents. Preserve
+the approved independent child responsibilities; discover each active
+`agent:<child-agent-id>` tool, use its input schema, and attach it to the parent.
+Use `assets/helpers/flowagent/native-agent-example.json` for the minimal bodies.
+The workflow/childJob lifecycle below applies to workflow components, not a
+requirement to wrap native delegation in a workflow or runCode. Where native
+capability is absent or unverified, record the discovery evidence and resolve
+the fallback design before substituting it. Test a child and its parent handoff
+only within authorized scope; record real session IDs and inspect child status,
+result, and history rather than equating outer success with task success.
+
 ## Workspace Contract
 
 **The builder receives a complete workspace. All discovery data is already present.** Solution-design (or setup for explore mode) has already pulled everything.
@@ -89,6 +101,10 @@ This skill covers everything needed to build and test Itential automation assets
 - **Test** — POST jobs/start, GET job status
 - **Schema fetch** — task schemas not yet in `task-schemas.json` (append to file after fetching)
 - **Re-auth** — if token expires, use `.env` to refresh `.auth.json`
+- **FlowAI components** — the verified agent create/update, tool-schema reads,
+  and authorized session tests/history reads described by `/flowagent`; existing
+  discovery data remains the starting point. These are not restricted to the
+  workflow endpoints above. Human work items remain human approval boundaries.
 
 ### Bootstrap Authentication
 

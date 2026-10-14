@@ -1,0 +1,58 @@
+{
+  "_provenance": {
+    "kind": "sanitized-live-projection",
+    "inspected": "2026-10-14",
+    "note": "IDs and customer text replaced; observed outcome fields/status values retained. Not an executed example transcript."
+  },
+  "parentEvent": {
+    "sessionId": "<parent-session-id>",
+    "eventId": "<parent-event-id>",
+    "type": "tool-execution",
+    "category": "TOOL_CALLED",
+    "data": {
+      "toolCallId": "<tool-call-id>",
+      "outcomeEventId": "<tool-outcome-event-id>",
+      "toolType": "agent",
+      "status": "succeeded",
+      "isInputTruncated": false,
+      "isOutputTruncated": false,
+      "input": {
+        "context": "Compare the supplied evidence."
+      },
+      "output": {
+        "sessionId": "<child-session-id>",
+        "sessionStatus": "COMPLETE",
+        "lastMessage": "STOPPED: required evidence is unavailable; task not completed."
+      },
+      "errorMessage": null,
+      "errorCategory": null
+    }
+  },
+  "childSession": {
+    "sessionId": "<child-session-id>",
+    "agentDefinitionId": "<child-agent-id>",
+    "status": "COMPLETE",
+    "trigger": {
+      "type": "session",
+      "source": "<trigger-source>",
+      "name": "<trigger-name>"
+    }
+  },
+  "childConclusion": "STOPPED: required evidence is unavailable; task not completed.",
+  "rawOutcome": {
+    "sessionId": "<parent-session-id>",
+    "eventId": "<tool-outcome-event-id>",
+    "type": "tool-execution-succeeded",
+    "data": {
+      "toolCallId": "<tool-call-id>",
+      "toolOutput": {
+        "kind": "resolved",
+        "payload": {
+          "sessionId": "<child-session-id>",
+          "sessionStatus": "COMPLETE",
+          "lastMessage": "STOPPED: required evidence is unavailable; task not completed."
+        }
+      }
+    }
+  }
+}

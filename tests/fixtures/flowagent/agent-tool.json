@@ -1,0 +1,26 @@
+{
+  "_provenance": {
+    "kind": "sanitized-live-projection",
+    "inspected": "2026-10-14",
+    "note": "Identity replaced; inputSchema and catalog type/activity retained verbatim."
+  },
+  "tool": {
+    "referenceId": "agent:<child-agent-id>",
+    "type": "agent",
+    "active": true,
+    "parentType": "agentProject",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "context"
+      ],
+      "properties": {
+        "context": {
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema"
+    }
+  }
+}

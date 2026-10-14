@@ -1,7 +1,7 @@
 # Skill Evaluation Coverage Report
 
 **Date:** 2026-03-25
-**Skills:** spec-agent, solution-arch-agent, builder-agent, itential-mop, flowagent, iag
+**Skills:** spec-agent, solution-arch-agent, builder-agent, itential-mop, flowagent, flowagent-to-spec, iag
 
 ---
 
@@ -13,9 +13,35 @@
 | solution-arch-agent | 6 | 23 | 8 | 13 | 2 |
 | builder-agent | 40 | 128 | 69 | 55 | 4 |
 | itential-mop | 6 | 15 | 5 | 9 | 1 |
-| flowagent | 1 | 1 | 0 | 0 | 1 |
+| flowagent | 4 | 14 | 13 | 0 | 1 |
+| flowagent-to-spec | 1 | 4 | 4 | 0 | 0 |
 | iag | 10 | 38 | 16 | 21 | 2 |
-| **Total** | **68** | **223** | **104** | **109** | **11** |
+| **Total** | **72** | **240** | **121** | **109** | **11** |
+
+**2026-10-14 native agent-tool correction:** Added FlowAgent cases 2–4 and
+FlowAgent-to-spec case 1. Two independent offline assistant runs (one per skill
+version, each answering the four cases) compared the 2.1.1 source at `5402282`
+with the corrected guidance. The updated run passed **17/17 assertions**; the
+baseline passed **15/17**. Grading was performed against the saved responses,
+not inferred from wording changes.
+
+| Case | Updated | 2.1.1 baseline | Finding |
+|---|---|---|---|
+| Native binding / direct child arguments | 4/4 | 4/4 | Supplied registry evidence let the baseline override the false restriction; guards regression, does not discriminate here |
+| Child halt, FAILED, ID-only, approval, truncated result | 5/5 | 4/5 | Baseline misidentified `outcomeEventId` as a reasoning event; live read confirmed a tool outcome event with resolved `toolOutput` |
+| Unknown capability / 403 / fallback | 4/4 | 3/4 | Baseline checked access and version but omitted application/subscription availability |
+| Reverse-engineer native child responsibility | 4/4 | 4/4 | Both followed the supplied native evidence and preserved the halt |
+
+This is a single paired evaluation, not a statistical benchmark or a guarantee
+of future model behavior. Timings/token counts were not supplied by the runner
+and are not reported. Claude Code, Codex CLI, Copilot and Cursor inference
+runtimes were **not** launched or certified by these assistant evaluations.
+Separately, actual local `gh skill install --from-local` smoke tests passed for
+all four agent choices, installing all 17 skills with matching changed bodies
+and bundled assets. Eleven offline unit tests validate schema contracts,
+negative payloads, evidence projections and packaging. No Itential execution
+was performed; platform verification used GETs of existing schemas, tools,
+definitions and histories. See `docs/native-agent-tools-audit.md`.
 
 **2026-10-12 update:** Added builder-agent evals 36–40 for how a `$var` has to be written on object-typed task fields so Studio can edit them (`builder-agent/SKILL.md` `$var Resolution Rules`, `AGENTS.md` Rule 8): 36 `runCode` `data` wired per key straight to the producing tasks (no merge, no whole-object string ref), 37 `transformation` `variableMap` as an object after a whole-object string ref made `jobs/start` fail, 38 `runAgent` `inputs` per key after a Studio save turned a whole-object string ref into one key per character, 39 `runService` `params` per key for a service with a declared schema, 40 `runService` `params` as a `merge` output ref for a service without one. Fresh sub-agent runs before (`main` at v2.1.0) and after: 36 and 38 each missed one structural assertion before (the Studio hazard for `runCode`; the one-key-per-character corruption for `runAgent`) and passed all after; 39 and 40 passed their critical assertions before as well, but missed the structural one (that the shape depends on whether the service declares a parameter schema, and in 40 offered per-key `params` as an "equivalent" form) and passed all after; 37 passes on both, so it guards against regression only.
 

@@ -1191,6 +1191,79 @@
               "type": "negative"
             }
           ]
+        },
+        {
+          "id": 2,
+          "prompt": "Offline design exercise. Use the flowagent skill. We have an approved design with an existing independent Observation Summarizer child; preserve that responsibility. The editable/operable child declares inputSchema {\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"context\"],\"properties\":{\"context\":{\"type\":\"string\"}}}. Tools Service returned {\"referenceId\":\"agent:<child-agent-id>\",\"type\":\"agent\",\"active\":true,\"parentType\":\"agentProject\",\"inputSchema\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"context\"],\"properties\":{\"context\":{\"type\":\"string\"}}}}. Produce the minimal parent creation binding, existing-parent update body, and the tool-call arguments for the text \"The scheduled check completed.\" Explain what evidence establishes the child outcome and which IDs must be retained. No platform calls, network access, or execution; placeholders only.",
+          "expected_output": "Native agent tool binding on create and addTools on update; direct context argument; real returned child session reference and child result/history checks. No unnecessary workflow or code wrapper.",
+          "assertions": [
+            {
+              "text": "Uses tools:[{referenceId:\"agent:<child-agent-id>\"}] for creation and addTools for updating an existing parent.",
+              "type": "critical"
+            },
+            {
+              "text": "Supplies context as a direct string tool argument, without an inputs wrapper or a nested object.",
+              "type": "critical"
+            },
+            {
+              "text": "Preserves the independent child and does not replace native delegation with workflow orchestration, runCode or shell wrappers.",
+              "type": "critical"
+            },
+            {
+              "text": "Preserves the actual returned child session ID and checks child terminal status, result and history rather than declaring success from a receipt.",
+              "type": "critical"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "prompt": "Offline acceptance review using flowagent. Decide whether each parent may continue its dependent action, and identify the next read-only evidence step. A: tools event status succeeded; output {sessionId:\"<child-a>\",sessionStatus:\"COMPLETE\",lastMessage:\"STOPPED: required evidence unavailable; no action taken.\"}; child GET agrees COMPLETE. B (synthetic): tools event succeeded; output {sessionId:\"<child-b>\",sessionStatus:\"FAILED\",lastMessage:\"\"}; child GET FAILED with errorMessage \"model unavailable\". C (synthetic): output has only sessionId:\"<child-c>\". D (synthetic): child RUNNING, latest view tool pending with output null; work item awaiting human approval. E (synthetic): parent event succeeded and COMPLETE but isOutputTruncated true, outcomeEventId:\"<outcome-event>\"; child history is not supplied. Do not call any platform APIs, complete work items, retry tools, or invent results. Write the review only.",
+          "expected_output": "A halt, B failed, C unresolved, D pending real human approval, E unresolved until full output/history verified. None permits dependent action.",
+          "assertions": [
+            {
+              "text": "Treats A as a task halt despite outer succeeded and child COMPLETE; preserves its actual session reference.",
+              "type": "critical"
+            },
+            {
+              "text": "Treats B as child failure despite outer success and reports its error.",
+              "type": "critical"
+            },
+            {
+              "text": "Treats C as unresolved and requests child metadata/history instead of manufacturing success.",
+              "type": "critical"
+            },
+            {
+              "text": "Leaves D pending for the human and neither completes nor recommends auto-completing the approval to pass the test.",
+              "type": "critical"
+            },
+            {
+              "text": "Treats E as unresolved; fetches full output using outcomeEventId and correlates it with the call/session, then inspects child history.",
+              "type": "critical"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "prompt": "Offline feasibility review using flowagent. The platform version is unknown. Fresh OpenAPI exposes tools GET and agent-session-manager sessions/run-agent. Paginated GET /tools?type=agent exhausted all pages and returned no agent tools for our caller. GET /agent-project-service/agents/<expected-child> returned HTTP 403. No operable-agent check has been performed. Only read-only investigation is authorized. What can we conclude, what should we inspect next, and what fallback can we propose? Explain whether changing from Codex to Claude Code, Copilot or Cursor, or enabling an external A2A protocol client, establishes native Itential capability. Do not execute anything.",
+          "expected_output": "Native support remains unverified for this caller/deployment; inspect documented operable endpoint, permissions and application availability. No discovery POST or access widening in read-only scope. Workflow fallback conditional on verified task/schema and acceptable design. Separate harness subagents and external A2A.",
+          "assertions": [
+            {
+              "text": "Does not infer universal lack of native support from the empty catalog or 403; calls out unverified capability for this deployment/caller.",
+              "type": "critical"
+            },
+            {
+              "text": "Checks the documented operable-agent route and access/application availability without granting access or running POST /tools/discover in read-only scope.",
+              "type": "critical"
+            },
+            {
+              "text": "Offers a conditional verified run-agent/termination-callback workflow fallback or an explicit blocked dependency, not an automatic replacement.",
+              "type": "critical"
+            },
+            {
+              "text": "Distinguishes native Itential agent tools, coding-harness subagents and external A2A protocol support.",
+              "type": "critical"
+            }
+          ]
         }
       ]
     },
@@ -1424,6 +1497,34 @@
             {
               "text": "Skill is not triggered for generic Terraform/OpenTofu tasks outside IAG context",
               "type": "negative"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "skill_name": "flowagent-to-spec",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Offline analysis using flowagent-to-spec. The user wants a deterministic equivalent of an existing parent. Its binding is {\"tools\":[{\"referenceId\":\"agent:<child-agent-id>\"}]}; Tools Service confirms an active type agent entry with context:string. The parent tool event is succeeded with output {sessionId:\"<child-session-id>\",sessionStatus:\"COMPLETE\",lastMessage:\"STOPPED: missing evidence\"}. Child metadata/history has not yet been read. Describe the necessary evidence reads and how to represent this responsibility and outcome in the derived specification. Do not execute any API calls or invent successful behavior.",
+          "expected_output": "Recognizes native child-agent invocation; follows actual returned child session metadata/history and snapshot; preserves the halt and independent child responsibility in a proposed deterministic child workflow. Does not claim delegation unsupported.",
+          "assertions": [
+            {
+              "text": "Recognizes the agent: binding as native delegation, not an invented adapter method or unsupported mechanism.",
+              "type": "critical"
+            },
+            {
+              "text": "Follows the actual returned child session ID to metadata/history and verifies identity and inputs.",
+              "type": "critical"
+            },
+            {
+              "text": "Preserves STOPPED as a halt and does not infer successful child behavior from COMPLETE or outer succeeded.",
+              "type": "critical"
+            },
+            {
+              "text": "Keeps the child responsibility separate in the requested deterministic conversion and marks unobserved behavior as missing evidence.",
+              "type": "critical"
             }
           ]
         }
