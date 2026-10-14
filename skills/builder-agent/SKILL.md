@@ -649,11 +649,11 @@ Query uses flat variable names — `"taskStatus"`, NOT `"variables.job.taskStatu
 
 **If the query returns null even though the childJob succeeded** — the `$var` form in `obj` is a stale `incomingRefs` entry (see the `incomingRefs` table under [$var Resolution Rules](#var-resolution-rules) — this is a caching issue, not a platform-version issue). Use the merge+taskRef workaround:
 ```
-a1a1 (childJob) → m1m1 (merge: captures job_details via taskRef) → b2b2 (query: reads merged_object)
+a1a1 (childJob) → c3c3 (merge: captures job_details via taskRef) → b2b2 (query: reads merged_object)
 ```
 ```json
 {
-  "m1m1": {
+  "c3c3": {
     "name": "merge",
     "variables": {
       "incoming": {
@@ -671,7 +671,7 @@ a1a1 (childJob) → m1m1 (merge: captures job_details via taskRef) → b2b2 (que
       "incoming": {
         "pass_on_null": false,
         "query": "taskStatus",
-        "obj": "$var.m1m1.merged_object"
+        "obj": "$var.c3c3.merged_object"
       },
       "outgoing": {"return_data": "$var.job.childStatus"}
     }
@@ -734,7 +734,7 @@ Each element in `data_array` becomes the child's input variables for that iterat
   }
 }
 ```
-If the query returns null (platform-version-specific `$var` resolution issue), use the same merge+taskRef workaround described above (Mode A) — capture `job_details` via `{"task": "a1a1", "variable": "job_details"}` in merge, then query `$var.m1m1.merged_object`.
+If the query returns null (platform-version-specific `$var` resolution issue), use the same merge+taskRef workaround described above (Mode A) — capture `job_details` via `{"task": "a1a1", "variable": "job_details"}` in merge, then query `$var.c3c3.merged_object`.
 
 **Loop element completeness — required fields must be in each element (not in `variables`).**
 
@@ -1408,6 +1408,8 @@ The `groups` field on a task definition is **task-level GBAC** — group-based a
 
 Task IDs must be **hex-only**: `[0-9a-f]{1,4}`, plus the two reserved names `workflow_start` and `workflow_end`. Non-hex IDs (e.g., `apush`) cause `$var` references to silently fail. **This includes the start/end tasks themselves** — do not key them as `"start"`/`"end"` (a natural-sounding but invalid shortcut); the reserved keys are the literal strings `workflow_start` and `workflow_end`, not any descriptive substitute. Using `"start"`/`"end"` (or any other non-hex, non-reserved key) produces a generic `"must NOT have additional properties"` import error that looks unrelated to task naming — if you see that error and your task keys include anything other than hex IDs or the two reserved names, fix the keys first before investigating any other field.
 
+**Naming a new or inserted task:** give it a new, unused ID of 1 to 4 hex characters (`0-9`, `a-f`). Do not make up readable or numbered IDs with a prefix (`p100`, `step2`), and do not build the ID from a neighbor's by adding a letter or suffix (`c002b`, `a1b2_new`). A key longer than 4 characters, or with a non-hex character, is rejected on import with a generic `must NOT have additional properties` error. IDs do not need to sort in task order.
+
 ### Transitions
 
 ```json
@@ -1417,12 +1419,12 @@ Task IDs must be **hex-only**: `[0-9a-f]{1,4}`, plus the two reserved names `wor
   },
   "a1b2": {
     "c3d4": {"type": "standard", "state": "success"},
-    "err1": {"type": "standard", "state": "error"}
+    "e5f6": {"type": "standard", "state": "error"}
   },
   "c3d4": {
     "workflow_end": {"type": "standard", "state": "success"}
   },
-  "err1": {
+  "e5f6": {
     "workflow_end": {"type": "standard", "state": "success"}
   },
   "workflow_end": {}
@@ -1447,9 +1449,9 @@ Task IDs must be **hex-only**: `[0-9a-f]{1,4}`, plus the two reserved names `wor
 "transitions": {
   "a1b2": {
     "c3d4": {"type": "standard", "state": "success"},
-    "err1": {"type": "standard", "state": "error"}
+    "e5f6": {"type": "standard", "state": "error"}
   },
-  "err1": {
+  "e5f6": {
     "workflow_end": {"type": "standard", "state": "success"}
   }
 }
@@ -1495,7 +1497,7 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **`POST /workflow_builder/workflows/save`-created workflows are missing structural fields that `jobs/start` requires but `workflows/validate` doesn't check.** A workflow document built with only the fields shown in the `### Workflow Structure` example above (tasks, transitions, inputSchema, etc.) — omitting `scenarios`, `errors`, `warnings`, and `canvasVersion` — validates cleanly (`errors: []`) and displays correctly in Studio, but `jobs/start` crashes with an opaque, task-unattributed `"Cannot convert undefined or null to object"` (confirmed root cause: `Object.keys(undefined)` on one of these fields server-side). Always include `"scenarios": []`, `"errors": []`, `"warnings": []`, and `"canvasVersion": 3` explicitly when building a workflow document for this endpoint from scratch — the officially-documented `POST /automation-studio/automations` creation flow already includes `canvasVersion` in its example body, so prefer that endpoint when creating a new workflow; reach for `workflow_builder/workflows/save` only for updates to an existing (already-complete) document.
 
-**Constant-holder workaround (API-only, no Studio save needed):** store `operand_2` literal values in a `newVariable` task and reference via `{"task": "k_const", "variable": "value"}` — taskRef resolution bypasses the cache.
+**Constant-holder workaround (API-only, no Studio save needed):** store `operand_2` literal values in a `newVariable` task and reference via `{"task": "ca5c", "variable": "value"}` — taskRef resolution bypasses the cache.
 
 **`makeData` static `input` strings do NOT resolve after API create/PUT.** The `input` and `outputType` fields are backed by `job_data` (type `static`). Workaround: use `newVariable` with `value: [...]` (array literal) — `newVariable.value` resolves correctly after API create without a Studio save.
 
@@ -1969,7 +1971,7 @@ forEach --state:success--> nextTaskAfterLoop
 
 1. **`incoming` must only contain `data_array`** — do NOT include `job_id` or any other field. Adding `job_id` causes errors at runtime.
 
-2. **`$var.<taskId>.<output>` does NOT resolve inside the loop body** — string references like `$var.n01.current_item` silently resolve to `null` inside a forEach body. Use `$var.job.<varName>` instead (bind the forEach's outgoing to a job variable and reference that). This applies to ALL reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body.
+2. **`$var.<taskId>.<output>` does NOT resolve inside the loop body** — string references like `$var.a01.current_item` silently resolve to `null` inside a forEach body. Use `$var.job.<varName>` instead (bind the forEach's outgoing to a job variable and reference that). This applies to ALL reference styles — even taskRef objects `{"task": "outerTask", "variable": "current_item"}` are unreliable inside a nested body.
 
 3. **Loop body tasks cannot transition to tasks outside the loop** — no error transitions from loop body tasks to external error handlers. The `forEach` task itself handles exit via `state: "error"` on the forEach transition. Handle errors within the loop body, then let the forEach's error transition route out.
 

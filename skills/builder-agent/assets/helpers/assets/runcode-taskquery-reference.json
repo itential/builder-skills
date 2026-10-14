@@ -124,7 +124,7 @@
               "y": -316
             }
           },
-          "tagCreate": {
+          "5a1c": {
             "name": "extras_tags_create",
             "canvasName": "extras_tags_create",
             "summary": "extras_tags_create",
@@ -174,7 +174,7 @@
           },
           "workflow_end": {},
           "3c0b": {
-            "tagCreate": {
+            "5a1c": {
               "state": "success",
               "type": "standard"
             }
@@ -185,7 +185,7 @@
               "type": "standard"
             }
           },
-          "tagCreate": {
+          "5a1c": {
             "workflow_end": {
               "state": "success",
               "type": "standard"
