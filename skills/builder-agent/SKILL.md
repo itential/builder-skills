@@ -48,6 +48,15 @@ Build implements the approved plan. The builder never re-pulls discovery data �
 
 This skill covers everything needed to build and test Itential automation assets: projects, workflows, templates, and command templates.
 
+**FlowAI agents:** load `/flowagent` before building agents. When the design has
+a parent agent that calls child agents, build each child as its own agent, then
+attach it to the parent as an `agent:<child-id>` tool, following "Agents as tools"
+in `/flowagent`. Don't wrap the agents in a
+workflow or `runCode` unless the design says to. The workflow and childJob steps
+below apply to workflow components only. When you test, run the child on its own
+and then through the parent. Record both session IDs, and check the child's
+answer, not just the parent's tool status.
+
 ## Workspace Contract
 
 **The builder receives a complete workspace. All discovery data is already present.** Solution-design (or setup for explore mode) has already pulled everything.
@@ -89,6 +98,7 @@ This skill covers everything needed to build and test Itential automation assets
 - **Test** — POST jobs/start, GET job status
 - **Schema fetch** — task schemas not yet in `task-schemas.json` (append to file after fetching)
 - **Re-auth** — if token expires, use `.env` to refresh `.auth.json`
+- **FlowAI agents** — create and update agents, read tools (`GET /tools/...`), start test sessions, and read sessions and their messages. Never complete a WorkCenter work item; that's the assigned person's job.
 
 ### Bootstrap Authentication
 
@@ -439,7 +449,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 **Step 9: Pre-submit checklist.**
 - [ ] Every task has a non-empty `description` field — schema-required on every task, easy to forget, and `POST /workflow_engine/workflows/validate` will reject a document missing it
 - [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`) — verify with `python3 -c "import json,re; d=json.load(open('workflow.json')); bad=[k for k in d['tasks'] if k not in ('workflow_start','workflow_end') and not re.match(r'^[0-9a-f]{1,4}$', k)]; print(bad or 'OK')"` rather than eyeballing the task list. A non-hex ID (e.g. `g007`, using a letter outside `a`–`f`) doesn't error at creation time — it causes intermittent, hard-to-diagnose `$var` resolution failures later (evaluation operands silently drilling into the wrong value, string references passing through as unresolved literal text) that look like unrelated wiring bugs.
-- [ ] Every workflow document has `"canvasVersion": 3` at the top level. Copy the value from `assets/helpers/create/create-workflow.json`; do not guess. This applies to new workflows, updates and imports. Leaving it out does not stop an import, but the platform's schema lists it as required, and one save path can crash at job start when it is missing together with `scenarios`, `errors` and `warnings`.
+- [ ] Every workflow document has `"canvasVersion": 3` at the top level. Copy the value from `assets/helpers/create/create-workflow.json`; do not guess. This applies to new workflows, updates and imports. Without it, `POST /workflow_engine/workflows/validate` returns `isValid: false` ("Task has nodeLocation but canvasVersion is not 3"), and an import still succeeds but stores the workflow as canvas version 1 (the old canvas).
 - [ ] `app` and `locationType` values come from apps.json `.name`, NOT tasks.json and NOT the adapter instance name (e.g., `EmailOpensource` not `email`)
 - [ ] `adapter_id` is the adapter **instance** name (e.g., `email`), NOT the type name
 - [ ] `adapter_id` values come from `adapters.json` `.results[].id` — NEVER from the spec's adapter identity table. The spec is a design document; `adapters.json` is the source of truth for the target environment.
@@ -1504,7 +1514,7 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 | Evaluation silently returns `false` after PUT | Stale operand cache | Constant-holder workaround below, or Studio save |
 | Workflow hangs at `workflow_start` (status: running forever) after PUT | Any task's incomingRefs stale | Recreate via fresh POST — more PUTs won't fix it |
 
-**`POST /workflow_builder/workflows/save`-created workflows are missing structural fields that `jobs/start` requires but `workflows/validate` doesn't check.** A workflow document built with only the fields shown in the `### Workflow Structure` example above (tasks, transitions, inputSchema, etc.) — omitting `scenarios`, `errors`, `warnings`, and `canvasVersion` — validates cleanly (`errors: []`) and displays correctly in Studio, but `jobs/start` crashes with an opaque, task-unattributed `"Cannot convert undefined or null to object"` (confirmed root cause: `Object.keys(undefined)` on one of these fields server-side). Always include `"scenarios": []`, `"errors": []`, `"warnings": []`, and `"canvasVersion": 3` explicitly when building a workflow document for this endpoint from scratch — the officially-documented `POST /automation-studio/automations` creation flow already includes `canvasVersion` in its example body, so prefer that endpoint when creating a new workflow; reach for `workflow_builder/workflows/save` only for updates to an existing (already-complete) document.
+**Include `scenarios`, `errors`, `warnings` and `canvasVersion` when you build a workflow document for `POST /workflow_builder/workflows/save`.** Leaving out `canvasVersion` fails validation: `POST /workflow_engine/workflows/validate` returns `isValid: false` with "Task has nodeLocation but canvasVersion is not 3" on every task, both save endpoints still accept the workflow and store those warnings on it, and an import succeeds but stores it as `canvasVersion: 1` (the old canvas). A job still starts without any of the four fields (tested on a lab platform), so a `jobs/start` crash with `"Cannot convert undefined or null to object"` is not explained by them — check the adapter list/search tasks note (every declared query parameter must be present in `incoming`) first. Always include `"scenarios": []`, `"errors": []`, `"warnings": []`, and `"canvasVersion": 3` explicitly when building a workflow document for this endpoint from scratch — the officially-documented `POST /automation-studio/automations` creation flow already includes `canvasVersion` in its example body, so prefer that endpoint when creating a new workflow; reach for `workflow_builder/workflows/save` only for updates to an existing (already-complete) document.
 
 **Constant-holder workaround (API-only, no Studio save needed):** store `operand_2` literal values in a `newVariable` task and reference via `{"task": "ca5c", "variable": "value"}` — taskRef resolution bypasses the cache.
 
@@ -2514,6 +2524,16 @@ childJob -> query (extract taskStatus from job_details) -> evaluation (== "succe
 
 ### Manual Tasks (Human-in-the-Loop)
 
+**Pick the task by what the person has to do:**
+
+| Use case | Task | Outgoing |
+|---|---|---|
+| Approve/reject one thing, or acknowledge | WorkFlowEngine `ViewData` | none — the button sets the finish state (`success`/`failure`) for the next transition |
+| A custom form: choose options, tick items, type values | WorkCenter `InteractiveHTML` | `export`: each form input's value, keyed by its `name` |
+| Act on each row of a list | WorkCenter `QuickForm` | `rows`: the rows, each with the person's input under `actionColumnKey` |
+
+`ViewHTML` only displays HTML and returns nothing; use `InteractiveHTML` when you need values back. `InteractiveHTML` and `QuickForm` are `type: "manual"`, `app: "WorkCenter"`, with `view` `/work-center/task/InteractiveHTML` and `/work-center/task/QuickForm`. Take their other fields from `GET /workflow_builder/tasks/list` (or `multipleTaskDetails`) rather than copying the ViewData shape below, and validate before saving. Their inputs and examples are under "Human approval" in `/flowagent`.
+
 **ViewHTML** — renders an HTML string in a modal for operator review. Requires specific fields or it becomes a draft workflow:
 ```json
 {
@@ -2721,7 +2741,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
 13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a missing success path.
 14. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, route error to an intermediate `newVariable` task first.
-14a. **Every workflow document needs `"canvasVersion": 3`** — see the Step 9 checklist. Omitting it together with `scenarios`, `errors` and `warnings` passes validation but can crash at job start.
+14a. **Every workflow document needs `"canvasVersion": 3`** — see the Step 9 checklist. Without it, validation fails and import stores the workflow as canvas version 1.
 
 ### Utility Tasks
 15. **merge uses `"variable"`, childJob uses `"value"`** — don't mix them. Using `"variable"` in childJob causes `undefined.indexOf()` at job start (P6.4.0+).
@@ -2781,7 +2801,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 61. **NEVER wire a Configuration Manager remediation task** — see `assets/AGENTS.md` Rule 25 for the full prohibited-task list and the config-push alternative.
 
 ### API / Endpoints (continued)
-62. **`POST /workflow_builder/workflows/save` needs `scenarios: []`, `errors: []`, `warnings: []`, `canvasVersion` set explicitly on a from-scratch document** — omitting them validates fine but crashes `jobs/start` with a generic `"Cannot convert undefined or null to object"`. Prefer `POST /automation-studio/automations` for creation. See `### Workflow Structure`.
+62. **`POST /workflow_builder/workflows/save`: set `scenarios: []`, `errors: []`, `warnings: []` and `canvasVersion: 3` explicitly on a from-scratch document** — without `canvasVersion`, validation returns `isValid: false` and import stores the workflow as canvas version 1; jobs still start. A `jobs/start` crash with `"Cannot convert undefined or null to object"` has another cause (see the adapter list/search tasks note). Prefer `POST /automation-studio/automations` for creation. See `### Workflow Structure`.
 63. **Admin-bypass project PATCH (`/automation-studio/admin/projects/{id}`) silently drops components not listed in the same request** — even a members-only PATCH can delete an unrelated asset outright. Always diff `components` after using this endpoint. See `### Update membership`.
 64. **Adapter list/search tasks need every declared query parameter present (even as `""`)** — partial `incoming` validates but crashes `jobs/start` the same generic way. Copy the full block from a wired example. See `### Get Full Task Schemas`.
 65. **Check each query parameter's declared `type` before assigning a plain string** — some are `array`-typed even when they read like single-value filters (e.g. NetBox `ipam_ip_addresses_list`'s `parent`). See `### Get Full Task Schemas`.

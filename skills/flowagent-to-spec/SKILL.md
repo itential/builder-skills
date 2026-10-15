@@ -24,7 +24,7 @@ rules or put credentials in committed files.
 
 ## The Core Idea
 
-A FlowAgent proves a use case works. The LLM figured out which tools to call in what order to accomplish an objective. Now you want to productionize it — remove the LLM from the execution path and replace it with a deterministic workflow that does the same thing reliably every time.
+A FlowAgent proves a use case works. The LLM figured out which tools to call in what order, and its sessions record that, including where it failed or stopped. Use this skill when the engineer wants the same outcome as a deterministic workflow, with no LLM in the execution path. Keeping the agent is also a valid production choice; converting it is the engineer's decision.
 
 ```
 FlowAgent (agentic)          →    Deterministic Workflow
@@ -62,7 +62,7 @@ Extract:
 - **`provider`** — `{profile, model}` UUIDs (not needed for the spec, but useful context on which LLM ran it)
 - **`operators`** — who could invoke this agent (informational, not usually spec-relevant)
 
-The agent definition doesn't declare what platform identity its tool calls run as — if you need to know what permissions the agent's tool calls actually exercised, infer it from which adapters/apps the tools in `tools[]` touch.
+The agent definition doesn't say which platform identity its tool calls run as. If you need to know what permissions they used, infer it from the adapters and apps its tools touch. Being able to read the parent doesn't mean you can read each child agent or its history.
 
 Save to `{use-case}/agent-config.json`.
 
@@ -89,8 +89,9 @@ From each session extract:
 
 Then read the session's activity log to see the actual tool call sequence:
 ```
-GET /agent-session-manager/sessions/{sessionId}/messages?sortBy=timestamp&sortOrder=asc
+GET /agent-session-manager/sessions/{sessionId}/messages?limit=100&sortBy=timestamp&sortOrder=asc
 ```
+This returns a bare JSON array, and small page sizes can return short, empty or out-of-order pages. Use `limit=100`, de-duplicate by `eventId`, and sort by `timestamp` yourself (see `/flowagent`).
 
 Messages contain the full execution trace, now with a formal type taxonomy:
 - `category: AGENT_REASONING` (`type: inference-succeeded`/`inference-failed`) — the LLM's reasoning and decisions (`text` field)
@@ -98,6 +99,12 @@ Messages contain the full execution trace, now with a formal type taxonomy:
 - `category: AGENT_STATUS` — lifecycle transitions (paused/resumed/completed/failed/canceled)
 
 Save representative sessions to `{use-case}/session-samples.json`.
+
+If the agent calls another agent (a tool call with `toolType: "agent"`), read
+the child too: take the `sessionId` from that call's output and read the child's
+session and messages the same way. A child's `COMPLETE` status, and the parent's
+`succeeded` tool status, don't mean the child's task worked; read its
+`lastMessage`. See "Agents as tools" in `/flowagent`.
 
 ---
 
@@ -116,7 +123,7 @@ Example from session messages (category: TOOL_CALLED):
   3. Infoblox//updateHostRecord     (input: hostname, ipv4addr)
   4. ServiceNow//updateChangeRequest (input: changeId, work_notes)
 ```
-(Tool names here are shown resolved from `referenceId` via `GET /tools/{referenceId}` — the raw session message will reference the structured `referenceId`/`toolId` string (`<type>:<source>:<method>`, e.g. `adapter:Servicenow:ServiceNow:createChangeRequest`), not a plain readable name. Resolve every distinct tool call in the sequence before presenting it.)
+(These labels are for readability, not tool IDs. Session messages show `toolName` and `toolType`; match them to the agent's `tools[]` and resolve each `referenceId` with `GET /tools/{referenceId}`. An agent tool's reference is `agent:<agent-id>`. Don't build a reference ID from a display name.)
 
 This becomes your deterministic workflow task sequence.
 
@@ -157,12 +164,15 @@ Convert each observed agent behavior to a workflow construct:
 
 | Agent behavior | Deterministic equivalent |
 |----------------|--------------------------|
-| Tool call | Adapter task |
+| Adapter or app tool call | The matching adapter or app task (look it up in `tasks.json`) |
+| Call to another agent (`agent:` tool) | A child workflow that does the child agent's job, with explicit result and error handling. Base it on the child's own sessions. |
 | LLM extracts a field from tool result | `query` task |
 | LLM decides which path to take | `evaluation` task |
 | LLM builds a request body | `merge` task |
 | LLM formats output | `makeData` or `renderJinjaTemplate` |
-| LLM asks for approval | `ViewData` manual task |
+| LLM asks for approval or acknowledgement | `ViewData` manual task |
+| LLM asks a person to fill a form (choices, values) | WorkCenter `InteractiveHTML` manual task |
+| LLM asks a person to act on each item of a list | WorkCenter `QuickForm` manual task |
 | LLM calls multiple tools for each item in a list | `childJob` with `loopType: parallel` |
 | LLM retries a failed call | `revert` transition |
 | Agent conclusion | workflow `outputSchema` variables |
@@ -275,7 +285,7 @@ Then offer next steps:
 
 **One-off sessions aren't reliable:** Look for the pattern across 5+ sessions. A single session may show unusual branching.
 
-**Tool identity is a colon-separated `<type>:<source>:<method>` string.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest` (adapter instance + app type + method) or `application:ConfigurationManager:runCompliancePlan` (app + method). Resolve each `referenceId` via `GET /tools/{referenceId}` to confirm its exact name/description, and map the `<source>` segment(s) back to `app` (apps.json) and `adapter_id` (adapters.json) for the deterministic workflow.
+**Tool identity is a colon-separated string whose structure depends on the type.** E.g. `adapter:Servicenow:ServiceNow:createChangeRequest` (adapter instance + app type + method), `application:ConfigurationManager:runCompliancePlan` (app + method), or `agent:<agent-id>`. Resolve each `referenceId` via `GET /tools/{referenceId}`, and map adapter and app tools back to `app` (apps.json) and `adapter_id` (adapters.json) for the workflow. For an agent tool, read the child agent's own sessions instead.
 
 **Decorators change what the agent actually sent.** If a tool reference has a `decoratorId`, the decorator's `toolInputSchema` — not the tool's native schema — is what the LLM populated. Fetch `GET /tools/decorators/{decoratorId}` to see the real, narrowed input contract the agent was working with.
 
@@ -283,4 +293,4 @@ Then offer next steps:
 
 **Stateful reasoning:** If an `AGENT_REASONING` message said "I checked earlier and the device was reachable" — that's stateful context the LLM maintained. In the deterministic version, that check must be an explicit task that stores its result in a job variable.
 
-**Sub-agents / delegation is not a supported field.** There's no way for an agent to call another agent by name in the Agent Project Service schemas. If session messages show what looks like delegation (a `sessionType: child` session, or tool calls that look like they're invoking another agent), treat each as its own candidate deterministic workflow and confirm with the engineer how the two were actually being orchestrated — don't assume a direct agent-to-agent call pattern exists.
+**Agents can call other agents.** An `agent:<agent-id>` entry in a parent's tools is a child agent the parent can call (FlowAI's sub-agent model, not the external A2A protocol). Follow each child session the parent started, and any children those start, keeping a list of session IDs you've already read. If you can't read a child or its history, say so in the spec and ask the engineer; don't guess what it did.
