@@ -48,6 +48,15 @@ Build implements the approved plan. The builder never re-pulls discovery data �
 
 This skill covers everything needed to build and test Itential automation assets: projects, workflows, templates, and command templates.
 
+**FlowAI agents:** load `/flowagent` before building agents. When the design has
+a parent agent that calls child agents, build each child as its own agent, then
+attach it to the parent as an `agent:<child-id>` tool, following "Agents as tools"
+in `/flowagent`. Don't wrap the agents in a
+workflow or `runCode` unless the design says to. The workflow and childJob steps
+below apply to workflow components only. When you test, run the child on its own
+and then through the parent. Record both session IDs, and check the child's
+answer, not just the parent's tool status.
+
 ## Workspace Contract
 
 **The builder receives a complete workspace. All discovery data is already present.** Solution-design (or setup for explore mode) has already pulled everything.
@@ -89,6 +98,7 @@ This skill covers everything needed to build and test Itential automation assets
 - **Test** — POST jobs/start, GET job status
 - **Schema fetch** — task schemas not yet in `task-schemas.json` (append to file after fetching)
 - **Re-auth** — if token expires, use `.env` to refresh `.auth.json`
+- **FlowAI agents** — create and update agents, read tools (`GET /tools/...`), start test sessions, and read sessions and their messages. Never complete a WorkCenter work item; that's the assigned person's job.
 
 ### Bootstrap Authentication
 
@@ -2512,6 +2522,16 @@ childJob -> query (extract taskStatus from job_details) -> evaluation (== "succe
 ```
 
 ### Manual Tasks (Human-in-the-Loop)
+
+**Pick the task by what the person has to do:**
+
+| Use case | Task | Outgoing |
+|---|---|---|
+| Approve/reject one thing, or acknowledge | WorkFlowEngine `ViewData` | none — the button sets the finish state (`success`/`failure`) for the next transition |
+| A custom form: choose options, tick items, type values | WorkCenter `InteractiveHTML` | `export`: each form input's value, keyed by its `name` |
+| Act on each row of a list | WorkCenter `QuickForm` | `rows`: the rows, each with the person's input under `actionColumnKey` |
+
+`ViewHTML` only displays HTML and returns nothing; use `InteractiveHTML` when you need values back. `InteractiveHTML` and `QuickForm` are `type: "manual"`, `app: "WorkCenter"`, with `view` `/work-center/task/InteractiveHTML` and `/work-center/task/QuickForm`. Take their other fields from `GET /workflow_builder/tasks/list` (or `multipleTaskDetails`) rather than copying the ViewData shape below, and validate before saving. Their inputs and examples are under "Human approval" in `/flowagent`.
 
 **ViewHTML** — renders an HTML string in a modal for operator review. Requires specific fields or it becomes a draft workflow:
 ```json

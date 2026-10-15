@@ -210,6 +210,14 @@ For each row in the spec's Integrations table:
 
 Search `workflows.json` for existing workflows that match spec phases. Flag as **↻ Reuse** candidates.
 
+**FlowAI agents:** load `/flowagent` for agent requirements. An agent can call
+another agent as an `agent:<agent-id>` tool on Platform 6.5+ and Itential Cloud,
+so a design can be a parent agent with child agents (see "Agents as tools" in
+`/flowagent`). Confirm on the target
+platform with `GET /tools/agent%3A<id>` for an existing agent. If it's not
+supported, say so in the feasibility assessment and propose chaining the agents
+in a workflow; don't switch to a workflow design without the engineer agreeing.
+
 ---
 
 ## Design
@@ -250,14 +258,17 @@ The migrated workflows are built as a new project alongside the originals.
 
 **D. Modular Design — Decompose First**
 
-Before listing components, decide the parent/child split. Ask for each phase in the spec:
+Before listing components, decide the parent/child split. For a parent agent
+with child agents, list each child as its own agent with its own job and inputs,
+and cover in Section F how the parent handles a child that fails or stops and
+any step that waits for a person. For workflow designs, ask for each phase:
 
 - Can it be run and tested independently? → **Child workflow**
 - Does it make sense to reuse it in other use cases? → **Child workflow**
 - Does it loop over multiple items? → **Child workflow with `loopType`**
 - Is it a one-off step that only makes sense in this flow? → **Task in orchestrator**
 
-**Rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built.
+**Workflow rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built. It doesn't apply to parent and child agents.
 
 **Example decomposition:**
 ```

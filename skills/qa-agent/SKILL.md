@@ -82,6 +82,17 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 - **Static checks** — `POST /workflow_engine/workflows/validate` (6.5.2+ deep validation), `GET` the built workflow/template JSON to run local `jq` checks
 - **Acceptance checks** — `POST /operations-manager/jobs/start`, `GET /operations-manager/jobs/{jobId}` for status and output
 - **Re-auth** — if the token expires, refresh from `.env` exactly as builder-agent does
+- **FlowAI agents** — read agents and tools for static checks; start sessions and read sessions and their messages for the test cases in the approved test plan. No agent create or update, and never complete a WorkCenter work item.
+
+**Agents that call other agents:** read "Agents as tools" in `/flowagent`
+first. For each parent, check
+that every `agent:` tool resolves (`GET /tools/{referenceId}`, `active: true`)
+and that the parent sends the inputs the child's schema declares. In each test
+record, link the parent session to the child session it started, and judge the
+child's answer, not its status. A child session ID, the parent's `succeeded`
+tool status or the child's `COMPLETE` status alone can't pass a criterion. Include
+test cases for a child that stops or fails while the parent still succeeds, and
+for a pending approval. Don't complete a work item to make a test pass.
 
 ---
 

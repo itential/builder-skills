@@ -1,12 +1,14 @@
 ---
 name: flowagent
-description: Create and run AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including other agents. Use when setting up agents, parent and child agents, configuring LLM provider profiles, managing tools and decorators, or running/tracking agent sessions.
+description: Design, build and test AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including other agents. Use when designing or building agents, parent and child agents, LLM provider profiles, tools, decorators or human approval steps, or when running test sessions to check an agent.
 argument-hint: "[action or agent-name]"
 ---
 
 # FlowAI - Agent Skills Guide
 
-FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to operate the Itential Platform. Agents call adapters, workflows, IAG services, app methods and other agents as tools, driven by natural-language instructions and a typed input contract.
+FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to carry out tasks on the Itential Platform. Agents call adapters, workflows, IAG services, app methods and other agents as tools, driven by natural-language instructions and a typed input contract.
+
+This skill is for designing, building and testing agents. Running delivered agents day to day (monitoring sessions, handling failures, approving production work items) belongs to the Operator skill pack.
 
 ## Customization
 
