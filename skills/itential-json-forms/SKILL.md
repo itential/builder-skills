@@ -41,6 +41,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 | GET | `/json-forms/forms` | List all JSON forms |
 | GET | `/json-forms/forms/{id}` | Fetch a single form |
 | POST | `/json-forms/forms` | Create a JSON form |
+| POST | `/json-forms/validate` | Validate a form without saving it — body `{"asset": {<the form>}}` (see Validate below) |
 | PUT | `/json-forms/forms/{id}` | Update a JSON form (full replacement — see Update below) |
 | DELETE | `/json-forms/forms` | Bulk delete — body `{"ids":["...","..."]}`. There is no per-id DELETE endpoint; per-id calls 404. |
 | GET | `/automation-studio/json-forms/method-options` | Canonical list of bindable endpoints (same list Studio shows in its dropdown picker) |
@@ -58,6 +59,7 @@ Choose the helper that matches your form's dropdown needs:
 | Static-enum dropdowns only (hardcoded option lists) | `assets/helpers/create/create-json-form.json` | `assets/helpers/assets/json-form-example-static-enum.json` — real Cisco IOS "Port Turn Up" form, 8 fields incl. static dropdown, number `updown` widgets, `ipv4` format validation |
 | REST-bound dropdowns (live data from IAP endpoints) | `assets/helpers/create/create-json-form-rest-bound.json` | `assets/helpers/assets/json-form-example-rest-bound.json` — real Cisco IOS "Compliance" form, one REST-bound dropdown pulling tree names live from `GET /configuration_manager/configs` |
 | Cascading dropdowns (field dependency) | `assets/helpers/create/create-json-form-rest-bound.json` (Inventory Manager Site/Device cascade worked example) | *(no real cascading export on hand yet — the scaffold is hand-built but follows the same field shapes as the two real exports above)* |
+| Array-of-objects field (a list of rows, each with its own fields) | `assets/helpers/create/create-json-form-array-field.json` | *(no real export on hand yet — hand-built; every field, including the nested ones, has its own `nodeId`)* |
 
 The scaffolds are annotated with `_comment_*` fields to fill in; the real exports are genuine `POST /json-forms/forms` payloads pulled from a live platform (IDs/timestamps/`createdBy` stripped since the server assigns those on create) — read one when you want to see exactly what a working form looks like end-to-end, not just the shape.
 
@@ -111,6 +113,14 @@ The Studio UI labels this pattern **field dependency**; the form JSON calls it c
   - `bindingSchema.properties.<dependentKey>.binding:hyperSchema.links[0].variables`
 - **Both the source and the dependent field need `ui:widget: "DependencyWidget"`** in `uiSchema` — without it, the runtime will not re-fetch when the source changes.
 
+## Validate a form before saving
+
+```
+POST /json-forms/validate
+```
+
+Body: `{"asset": {<the form>}}`. Returns `{"isValid": true|false, "errors": [], "warnings": []}`. It changes nothing, so call it as often as needed. It works with or without the read-only fields (`id`, `created`, `createdBy`, `lastUpdated`, `lastUpdatedBy`). Check both `errors` and `warnings`. It does **not** check for missing `nodeId`s on nested fields (see Common Gotchas).
+
 ## Update a JSON Form
 
 ```
@@ -151,6 +161,7 @@ Helper for the wired-up trigger: `assets/helpers/create/create-ops-manager-trigg
 - **`DependencyWidget` required on BOTH ends of a cascade.** Easy to remember to set it on the dependent field and forget the source — without the source-side widget the dependent won't re-fetch.
 - **`labelKeyPointer` is a red herring.** Don't bother setting it; both label and value come from `sourceKeyPointer`.
 - **Bulk DELETE has no per-id alternative.** Always send `{"ids":[...]}` to `/json-forms/forms`.
+- **Every field needs its own `nodeId`, including fields nested inside an array field's `items`.** Use a unique UUID per field. With `nodeId`s missing on nested fields, the create and update calls and `POST /json-forms/validate` all accept the form, but saving it in the form designer fails with `Invalid form struct: must NOT have additional properties`. The validator does not catch this, so check it yourself.
 
 ## See Also
 
@@ -158,6 +169,7 @@ Helper for the wired-up trigger: `assets/helpers/create/create-ops-manager-trigg
 - Helper files in `assets/helpers/`:
   - `assets/helpers/create/create-json-form.json` — static-enum scaffold
   - `assets/helpers/create/create-json-form-rest-bound.json` — REST-bound + cascading scaffold (Inventory Manager Site/Device cascade worked example)
+  - `assets/helpers/create/create-json-form-array-field.json` — array-of-objects scaffold (every field, including nested ones, has a `nodeId`)
   - `assets/helpers/create/create-ops-manager-trigger-manual.json` — manual trigger that consumes a form
   - `assets/helpers/assets/json-form-example-static-enum.json` — real export, static-enum (Cisco IOS Port Turn Up)
   - `assets/helpers/assets/json-form-example-rest-bound.json` — real export, REST-bound (Cisco IOS Compliance)
