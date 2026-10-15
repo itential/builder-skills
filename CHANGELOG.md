@@ -5,6 +5,8 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Fixed `itential-inventory` guidance, which never mentioned that an Inventory Manager adapter instance must exist and be running before inventory nodes appear in Configuration Manager or command templates. Added a Device Broker Adapter section (check, create, start, verify) and a pointer in the gotchas and the create-inventory scenario, plus notes that broker actions are a separate requirement for operating on those devices and that the Gateway host's Python must be 3.10 to 3.14 for the built-in broker services
+
 ## 2.1.1
 
 - Fixed invalid task IDs in builder-agent and itential-lcm examples and in the `runcode-taskquery-reference` asset (all now 1-4 hex characters), and added guidance for naming a new or inserted task, so generated workflows are less likely to fail project import with `must NOT have additional properties`

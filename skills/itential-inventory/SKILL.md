@@ -6,7 +6,7 @@ argument-hint: "[action or inventory-name]"
 
 # Inventory Manager - Developer Skills Guide
 
-Inventory Manager provides centralized device and endpoint inventory for the Itential Platform. It maintains inventories of nodes (devices/targets), with actions that can be executed against them via IAG5 services. Required for IAG5 and Configuration Manager Enterprise.
+Inventory Manager provides centralized device and endpoint inventory for the Itential Platform. It maintains inventories of nodes (devices/targets), with actions that can be executed against them via IAG5 services. Required for IAG5 and Configuration Manager Enterprise. Configuration Manager and command templates only see inventory nodes once an Inventory Manager adapter instance is running (see [Device Broker Adapter](#device-broker-adapter)).
 
 ## Customization
 
@@ -38,6 +38,7 @@ rules or put credentials in committed files.
 - Tag names are stored lowercase — `"Core"` becomes `"core"`
 - Identifiers accept both MongoDB ObjectId and name strings — auto-detected
 - `createBrokerActions: true` auto-creates 4 standard actions (get-config, set-config, run-command, is-alive) — requires `defaultClusterId`
+- **Inventory nodes only appear in Configuration Manager and command templates once an Inventory Manager *adapter instance* is running.** Creating an inventory and nodes (even with broker actions) is not enough — Device Broker only sees them through that adapter, so without it `POST /configuration_manager/devices` returns no devices and `GET /adapters/brokers/mapping` shows an empty `device` list. See [Device Broker Adapter](#device-broker-adapter) and check it **before** reporting an inventory task done
 
 ## API Reference
 
@@ -291,6 +292,58 @@ POST /inventory_manager/v1/tags/search
 - Field is `tagIdentifiers`, NOT `tags`
 - Returns `{inventories: [...], nodes: [...]}` matching the specified tags
 
+## Device Broker Adapter
+
+Configuration Manager (device list, device groups, backups, golden configuration, compliance) and command templates reach inventory nodes through the **Inventory Manager adapter**, not through the `/inventory_manager/v1` API. The adapter is an instance you create once per platform; it is separate from the Inventory Manager application (which is already running if `GET /health/applications` lists `InventoryManager` as `RUNNING`). Nodes are exposed as `<inventory-name>::<node-name>` (for example `Main::AWS-IOS-XE`) unless `prepend_inventory_name` is `false`.
+
+**Check first** — do this whenever a task adds inventories or nodes that Configuration Manager should see:
+
+```
+GET /health/adapters                 → is there an adapter whose properties.type is InventoryManager, state RUNNING, connection ONLINE?
+GET /adapters/brokers/mapping        → "device" should list that adapter's name
+```
+(`GET /automation-studio/apps/list` shows the model: `@itential/adapter-inventory_manager`, name `InventoryManager`.) If one is already `RUNNING`, do not create a second one.
+
+**Create and start it** if none exists (verified on Itential Platform; the adapter instance has no connection settings to supply):
+```
+POST /adapters
+```
+```json
+{
+  "properties": {
+    "name": "inventory-manager-adapter",
+    "model": "@itential/adapter-inventory_manager",
+    "type": "Adapter",
+    "isEncrypted": false,
+    "description": "Exposes Inventory Manager inventories to Device Broker",
+    "properties": {
+      "id": "inventory-manager-adapter",
+      "type": "InventoryManager",
+      "brokers": ["device"],
+      "groups": [],
+      "properties": {"inventories": "all", "prepend_inventory_name": true}
+    }
+  }
+}
+```
+```
+PUT /adapters/inventory-manager-adapter/start
+```
+- `inventory-manager-adapter` is the recommended name. `properties.id` must equal `name`.
+- A newly created adapter shows `DEAD`/`OFFLINE` until you start it. Re-check `GET /health/adapters` (it can take a few seconds to show `RUNNING`/`ONLINE`).
+- `properties.properties.inventories` is `"all"` (default) or a list of inventory names to expose; `prepend_inventory_name` controls the `inventory::node` naming. Keep the defaults unless the request says otherwise.
+- The adapter instance is platform-wide configuration, not a per-inventory one, so say in the report that you created it.
+
+**Verify:**
+```
+POST /configuration_manager/devices   {"options": {"start": 0, "limit": 50}}
+```
+The response `list` should contain the node as `<inventory>::<node>` with `host` set to the adapter name and `totalByAdapter` counting it. If you added nodes after the adapter was already running and they do not show, `POST /configuration_manager/devices/refresh`.
+
+**Actions are a separate requirement.** The adapter makes devices *visible*; Configuration Manager operations on them (backup, `get-config`, compliance, command templates) additionally need the inventory's broker actions (`createBrokerActions: true` with a `defaultClusterId`, or the actions added afterwards). A node listed with `"actions": []` is visible but cannot be operated on yet.
+
+**Gateway prerequisite for the actions.** The built-in broker services run on the Gateway host's Python. If an action such as `is-alive` fails with `Failed to find compatible interpreter ... Version matches <3.15,>=3.10`, the Gateway host's Python is outside that range (3.9 was seen). This cannot be fixed through the platform API — ask a Gateway administrator to install a compatible Python, then re-run the action.
+
 ## How It Connects to IAG
 
 Inventory Manager is the bridge between device inventory and IAG5 services:
@@ -330,11 +383,13 @@ Users must be in a group with the required role. The Pronghorn internal account 
 
 ### 1. Create an inventory with devices and test an action
 ```
+0. Make sure the Inventory Manager adapter is running (see Device Broker Adapter) — otherwise nothing below shows in Configuration Manager
 1. POST /inventory_manager/v1/inventories        → create with groups + createBrokerActions
 2. POST /inventory_manager/v1/nodes/bulk          → populate with device nodes
 3. GET  /inventory_manager/v1/inventories/{name}  → verify inventory + actions
 4. In a workflow: InventoryManager.runInventoryAction on a node
 5. Or via GatewayManager.runService with inventory parameter
+6. If Configuration Manager should see the nodes: POST /configuration_manager/devices → expect "<inventory>::<node>"
 ```
 
 ### 2. Organize with tags
