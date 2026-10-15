@@ -2523,6 +2523,16 @@ childJob -> query (extract taskStatus from job_details) -> evaluation (== "succe
 
 ### Manual Tasks (Human-in-the-Loop)
 
+**Pick the task by what the person has to do:**
+
+| Use case | Task | Outgoing |
+|---|---|---|
+| Approve/reject one thing, or acknowledge | WorkFlowEngine `ViewData` | none — the button sets the finish state (`success`/`failure`) for the next transition |
+| A custom form: choose options, tick items, type values | WorkCenter `InteractiveHTML` | `export`: each form input's value, keyed by its `name` |
+| Act on each row of a list | WorkCenter `QuickForm` | `rows`: the rows, each with the person's input under `actionColumnKey` |
+
+`ViewHTML` only displays HTML and returns nothing; use `InteractiveHTML` when you need values back. `InteractiveHTML` and `QuickForm` are `type: "manual"`, `app: "WorkCenter"`, with `view` `/work-center/task/InteractiveHTML` and `/work-center/task/QuickForm`. Take their other fields from `GET /workflow_builder/tasks/list` (or `multipleTaskDetails`) rather than copying the ViewData shape below, and validate before saving. Their inputs and examples are under "Human approval" in `/flowagent`.
+
 **ViewHTML** — renders an HTML string in a modal for operator review. Requires specific fields or it becomes a draft workflow:
 ```json
 {
