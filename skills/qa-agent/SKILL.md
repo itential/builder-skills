@@ -83,6 +83,19 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 - **Acceptance checks** — `POST /operations-manager/jobs/start`, `GET /operations-manager/jobs/{jobId}` for status and output
 - **Re-auth** — if the token expires, refresh from `.env` exactly as builder-agent does
 
+**Native agent-tool acceptance:** read
+`assets/helpers/flowagent/native-agent-tools.md`; use
+`assets/helpers/flowagent/native-agent-example.json` to recognize the binding and
+input contracts. Verify parent bindings resolve
+to active `agent:` tools and inputs match the actual child's schema. The test
+record must link the actual parent call to its returned child session ID and
+check the child's metadata, full history, and task result. Include cases for
+outer success with child failure/halt, missing or truncated evidence, and a
+pending human approval. A returned ID, outer `succeeded`, or child `COMPLETE`
+alone cannot pass an acceptance criterion. Report unavailable/unverified native
+capability and its discovery/fallback path explicitly. Do not complete human
+work items or bypass the approved live-execution scope to make tests pass.
+
 ---
 
 ## Test Lifecycle

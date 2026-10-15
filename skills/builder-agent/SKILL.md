@@ -48,6 +48,18 @@ Build implements the approved plan. The builder never re-pulls discovery data â€
 
 This skill covers everything needed to build and test Itential automation assets: projects, workflows, templates, and command templates.
 
+**FlowAI/native agent delivery:** consult `/flowagent` and
+`assets/helpers/flowagent/native-agent-tools.md` before building agents. Preserve
+the approved independent child responsibilities; discover each active
+`agent:<child-agent-id>` tool, use its input schema, and attach it to the parent.
+Use `assets/helpers/flowagent/native-agent-example.json` for the minimal bodies.
+The workflow/childJob lifecycle below applies to workflow components, not a
+requirement to wrap native delegation in a workflow or runCode. Where native
+capability is absent or unverified, record the discovery evidence and resolve
+the fallback design before substituting it. Test a child and its parent handoff
+only within authorized scope; record real session IDs and inspect child status,
+result, and history rather than equating outer success with task success.
+
 ## Workspace Contract
 
 **The builder receives a complete workspace. All discovery data is already present.** Solution-design (or setup for explore mode) has already pulled everything.
