@@ -5,6 +5,7 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Removed `evals/` from the repository; evals are run and maintained locally, not in the repo
 - builder-agent, solution-arch-agent and qa-agent now cover agents that call other agents: design them as a parent with child agents instead of forcing a workflow, let builder create agents and run test sessions, let QA run sessions in the approved test plan, and judge a child by its answer rather than its status
 - Reworded `flowagent`'s description, README row and Codex metadata around designing, building and testing agents; running delivered agents belongs to the Operator pack
 - builder-agent's manual-task section now says when to use ViewData, InteractiveHTML or QuickForm, with each task's output
