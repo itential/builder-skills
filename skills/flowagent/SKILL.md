@@ -53,7 +53,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 - **Session** — one run of an agent, with a status and a message log. Calling another agent creates a child session.
 - **Operators** — accounts or groups allowed to run one agent without a project role.
 - **Builder groups** — groups allowed to build agents with a given profile.
-- **Work item** — a task for a person, created when an agent calls a `view` tool; lives in WorkCenter Service.
+- **Work item** — a task for a person (approve, fill a form, act on rows), created when an agent calls a `view` tool such as ViewData, InteractiveHTML or QuickForm; lives in WorkCenter Service.
 
 ## Rules
 
@@ -216,14 +216,47 @@ In the parent's messages this is a `tool-execution` with `data.toolType: "agent"
 
 ## Human approval (work items)
 
-An agent asks a person for input by calling a `view` tool, e.g. `view:WorkCenter:QuickForm` (attached like any tool) or `view:WorkFlowEngine:ViewHTML`.
+An agent asks a person for a decision or input by calling a `view` tool. Pick the tool by what the person has to do:
 
-1. Add the view tool to `tools[]` and describe its exact input fields in `instructions`.
-2. When the agent calls it, the `tool-execution` message shows `status: "pending"`, `output: null`, and the session stays `RUNNING` (rule 14) for however long the person takes.
+| Use case | Tool | The person sees | The agent gets back |
+|---|---|---|---|
+| Approve or reject one thing, or acknowledge | `view:WorkFlowEngine:ViewData` | A header, a message, a body of runtime data and up to two buttons | Which button was pressed |
+| A custom form: choose options, tick items, type values | `view:WorkCenter:InteractiveHTML` | Your HTML/CSS with form inputs, and up to two buttons | Each input's value, keyed by its `name`, under `export` |
+| Act on each row of a list: a decision or value per item | `view:WorkCenter:QuickForm` | A table with an action column (dropdown, text or selection) | `rows`: the same rows, each with the person's input under `actionColumnKey` |
+
+ViewData returns no values, only the button: in a workflow it sets the task's finish state (`success` or `failure`) for the next transition. The `export` and `rows` outputs come from the task definitions, and `export` was confirmed in a live agent session.
+
+Use ViewData for a plain yes/no. Use QuickForm when the person acts on each row of a table, and InteractiveHTML for any other form layout. `view:WorkFlowEngine:ViewHTML` only displays HTML with buttons and returns no input, so use InteractiveHTML whenever you need values back. The same three exist as workflow manual tasks (WorkFlowEngine `ViewData`, WorkCenter `InteractiveHTML` and `QuickForm`).
+
+**How it runs:**
+1. Add the view tool to `tools[]` and tell the agent in `instructions` when to call it and what to put in each field.
+2. When the agent calls it, the `tool-execution` message shows `status: "pending"` and `output: null`, and the session stays `RUNNING` (rule 14) for however long the person takes.
 3. A work item is created in WorkCenter Service. Find it with `GET /work-center-service/work-items?rootExecutionId=<sessionId>`; `GET .../work-items/{id}/variables/incoming` shows what was presented.
-4. The assigned person completes it in WorkCenter (rule 18). The session then resumes and finishes on its own. An agent can call several view tools in sequence, each creating its own work item.
+4. The assigned person completes it in WorkCenter (rule 18). The session resumes and the agent continues with the result. An agent can call several view tools in sequence, each creating its own work item.
 
-**QuickForm input fields:**
+**ViewData** — required `header`, `message`, `body`, `btn_success`; optional `variables`, `btn_failure`. `body` is the runtime data to show (text or HTML); `variables` fills placeholders in it. `btn_success` means yes/continue and `btn_failure` means no/decline; leave `btn_failure` empty for acknowledge-only.
+```json
+{
+  "header": "Approve change CHG0039299",
+  "message": "Review the planned change and approve or reject it.",
+  "body": "<table><tr><td>Device</td><td>CORE-CDG-2</td></tr><tr><td>Action</td><td>Upgrade to 17.9.4</td></tr></table>",
+  "btn_success": "Approve",
+  "btn_failure": "Reject"
+}
+```
+
+**InteractiveHTML** — required `body` (an HTML5 document; CSS inline or in a `<style>` block) and `btn_success`; optional `header`, `variables` (each key fills a `<!name!>` placeholder in `body` as plain text) and `btn_failure`. Give every input a `name`; its value comes back under `export`. For example, three checkboxes named `approve_a49cf3f1`, `approve_c14a2b3d` and `approve_e36c4d5f` that were ticked returned `{"export": {"approve_a49cf3f1": true, "approve_c14a2b3d": true, "approve_e36c4d5f": true}}`.
+```json
+{
+  "header": "Circuit upgrade approval",
+  "body": "<style>td{padding:4px}</style><p>Choose the new rate for <b><!circuit!></b> (now <!rate!> Mbps):</p><select name=\"increase\"><option value=\"20\">+20%</option><option value=\"50\">+50%</option><option value=\"100\">+100%</option></select><p><label>Reason <input type=\"text\" name=\"reason\"></label></p>",
+  "variables": { "circuit": "corp-eqx-sv-la-01", "rate": "500" },
+  "btn_success": "Approve",
+  "btn_failure": "Reject"
+}
+```
+
+**QuickForm** — one row per item, with an action column the person fills in:
 
 | Field | Type | Required | Purpose |
 |---|---|---|---|
@@ -249,7 +282,9 @@ An agent asks a person for input by calling a `view` tool, e.g. `view:WorkCenter
 }
 ```
 
-What WorkCenter sends when the person clicks Complete is `PATCH /work-center-service/work-items/{id}/complete` (PATCH — a POST returns 404) with `{"finishState": "completed", "variables": {"acknowledged": "Acknowledged"}}`, where the key is `actionColumnKey` and the value one of `actionColumnLabels`. It returns the work item with `status: "completed"`. Other endpoints are in the [API reference](#work-items-workcenter-service).
+What WorkCenter sends when the person clicks Complete is `PATCH /work-center-service/work-items/{id}/complete` (PATCH — a POST returns 404) with `{"finishState": "completed", "variables": {...}}`; for QuickForm the key is `actionColumnKey` and the value one of `actionColumnLabels`. It returns the work item with `status: "completed"`. Other endpoints are in the [API reference](#work-items-workcenter-service).
+
+Other view tools exist for specific apps (MOP, Configuration Manager, JSON Forms); list them with `GET /tools?type=view`. Never use the Configuration Manager remediation views (`ManualRemediation`, `ManualRemediationResults`) — remediation tasks are prohibited.
 
 ## Decorators
 

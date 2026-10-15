@@ -170,7 +170,9 @@ Convert each observed agent behavior to a workflow construct:
 | LLM decides which path to take | `evaluation` task |
 | LLM builds a request body | `merge` task |
 | LLM formats output | `makeData` or `renderJinjaTemplate` |
-| LLM asks for approval | `ViewData` manual task |
+| LLM asks for approval or acknowledgement | `ViewData` manual task |
+| LLM asks a person to fill a form (choices, values) | WorkCenter `InteractiveHTML` manual task |
+| LLM asks a person to act on each item of a list | WorkCenter `QuickForm` manual task |
 | LLM calls multiple tools for each item in a list | `childJob` with `loopType: parallel` |
 | LLM retries a failed call | `revert` transition |
 | Agent conclusion | workflow `outputSchema` variables |
