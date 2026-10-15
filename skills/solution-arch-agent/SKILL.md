@@ -210,15 +210,14 @@ For each row in the spec's Integrations table:
 
 Search `workflows.json` for existing workflows that match spec phases. Flag as **↻ Reuse** candidates.
 
-For FlowAI requirements, consult `/flowagent` and
-`assets/helpers/flowagent/native-agent-tools.md` and the minimal bodies in
-`assets/helpers/flowagent/native-agent-example.json`. Check the deployment's schemas,
-operable agents, and active `agent:` tools before deciding native delegation is
-feasible. Record child input contracts, access/availability constraints, and
-parent/child session evidence. A missing delegation field is not evidence of
-missing capability: native children are tool bindings. If capability is absent
-or unverified, explicitly document discovery and the proposed fallback; do not
-silently replace requested agents with workflow orchestration.
+**FlowAI agents:** load `/flowagent` for agent requirements. An agent can call
+another agent as an `agent:<agent-id>` tool on Platform 6.5+ and Itential Cloud,
+so a design can be a parent agent with child agents
+(`assets/helpers/flowagent/native-agent-tools.md`; request bodies in
+`assets/helpers/flowagent/native-agent-example.json`). Confirm on the target
+platform with `GET /tools/agent%3A<id>` for an existing agent. If it's not
+supported, say so in the feasibility assessment and propose chaining the agents
+in a workflow; don't switch to a workflow design without the engineer agreeing.
 
 ---
 
@@ -260,17 +259,17 @@ The migrated workflows are built as a new project alongside the originals.
 
 **D. Modular Design — Decompose First**
 
-Before listing components, decide the parent/child split. For native-agent
-designs, keep separate child agents with their own responsibilities and verified
-`agent:<child-agent-id>` bindings; include failure, pending human approval, and
-real session correlation in Section F. For workflow designs, ask for each phase:
+Before listing components, decide the parent/child split. For a parent agent
+with child agents, list each child as its own agent with its own job and inputs,
+and cover in Section F how the parent handles a child that fails or stops and
+any step that waits for a person. For workflow designs, ask for each phase:
 
 - Can it be run and tested independently? → **Child workflow**
 - Does it make sense to reuse it in other use cases? → **Child workflow**
 - Does it loop over multiple items? → **Child workflow with `loopType`**
 - Is it a one-off step that only makes sense in this flow? → **Task in orchestrator**
 
-**Workflow rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built. This rule does not mandate a workflow for native FlowAI parent/child designs.
+**Workflow rule:** Each logical phase becomes a child workflow. The orchestrator sequences them via childJob. This makes every phase independently testable before the orchestrator is built. It doesn't apply to parent and child agents.
 
 **Example decomposition:**
 ```
