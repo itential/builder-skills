@@ -1,12 +1,12 @@
 ---
 name: flowagent
-description: Create and run AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including native child-agent tools where available. Use when setting up agents, native agent-to-agent delegation, configuring LLM provider profiles, managing tools and decorators, or running/tracking parent and child sessions.
+description: Create and run AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including other agents. Use when setting up agents, parent and child agents, configuring LLM provider profiles, managing tools and decorators, or running/tracking parent and child sessions.
 argument-hint: "[action or agent-name]"
 ---
 
 # FlowAI - Agent Skills Guide
 
-FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to autonomously operate the Itential Platform. Agents can call adapters, run workflows, invoke IAG services, and delegate to saved agents through native agent tools where available — all driven by natural language instructions and a typed input contract.
+FlowAI lets you create AI agents that use LLMs (Anthropic, OpenAI, Google, Ollama, AWS Bedrock, Databricks, or platform-managed models) to autonomously operate the Itential Platform. Agents can call adapters, run workflows, invoke IAG services, and call other saved agents as tools — all driven by natural language instructions and a typed input contract.
 
 This skill covers Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager, Tool RPC, and (read-only) Agent Execution Engine — plus Work Items via the separate WorkCenter Service. See the API Reference below for each.
 
@@ -44,7 +44,7 @@ This skill is a map, not a substitute for checking the live API. Don't hardcode 
 - **Agent** — a named AI entity: `instructions` (system prompt), a typed `inputSchema` (what parameters it accepts), a `provider` reference (which LLM profile + model it uses), a `tools` list, and an `operators` access list.
 - **Profile** — a configured, credentialed instance of an LLM provider (e.g., "Production Anthropic"). Owned by Model Registry Service. Holds masked credentials and a curated list of enabled models, each with its own UUID.
 - **Model** — one specific model enabled on a profile (e.g., a Claude or GPT model), addressed by a UUID assigned when it's added to the profile. An agent's `provider` field is `{profile: <uuid>, model: <uuid>}` — both required together.
-- **Tool** — a callable platform capability, including a saved child agent on supported deployments. Its structured `referenceId` varies by type: e.g. `application:ConfigurationManager:runCompliancePlan` or `agent:<child-agent-id>`. Read the Tools Service catalog. A saved agent is registered as `agent:<id>` when it is created; discovery refreshes registry state and needs authorized write scope. Never fabricate registry entries.
+- **Tool** — a callable platform capability (adapter method, IAG service, app method, workflow, or another agent), addressed by a `referenceId` whose structure depends on the type, e.g. `application:ConfigurationManager:runCompliancePlan` or `agent:<agent-id>`. Registered by `POST /tools/discover`, except agents, which are registered when they are created. Never created by hand.
 - **Decorator** — a standalone, ID-addressed override of a tool's description and input schema for a specific use case. Cloneable and portable (bulk export/import). An agent attaches a decorator to a specific tool reference, not globally.
 - **Session** — a single run of an agent. Has an 8-state lifecycle (`PENDING` → `RUNNING` → `COMPLETE`/`FAILED`/`CANCELED`, plus `PAUSING`/`PAUSED`/`CANCELING`) and a typed activity log (`messages`).
 - **Operators** — an agent-level access-control list (account/group IDs) granting specific callers the right to run that agent, independent of their project role. Only project owners can edit it.
@@ -64,8 +64,8 @@ This skill is a map, not a substitute for checking the live API. Don't hardcode 
 - **`operators` doesn't set tool-call identity, and needs the owner GBAC role to update** — see Agents → `operators` for what it actually controls.
 - **Decorators replace the ENTIRE tool input schema**, not just the fields you specify — see Decorators below for the concrete example. Omitting a required field means the agent will never send it, and the underlying adapter call fails with a schema validation error.
 - **`agentSnapshot` on a session is frozen at session-start time.** Editing the agent afterward does not change what an already-running or already-completed session executed.
-- **Tool execution is asynchronous internally.** Fast tools may resolve in seconds, but native child agents and human work items can take longer. Follow the child session and pending work items before diagnosing a stuck executor; see the native delegation pattern below.
-- **A task in `tasks.json` is not automatically a callable tool.** Inspect the actual Tools Service catalog, including native `agent` and `view` tools where available. Generic WorkFlowEngine utilities (merge, query, getTime, etc.) must not be assumed discoverable. For platform-level info, look for a registered app method.
+- **Tool execution is asynchronous internally.** Most tools resolve in `messages` within seconds, but a child agent or a human work item can take much longer. Check the child session and pending work items before treating a call as stuck; if it really is stuck, check `GET /tool-rpc/executions?status=running`.
+- **A task in `tasks.json` is not automatically a callable tool.** Check `GET /tools`. Generic WorkFlowEngine utility tasks (merge, query, getTime, etc.) are not registered as tools; for simple platform-level info, look for an app method (e.g., `application:ConfigurationManager:*`) instead.
 - **No bulk session delete.** You must delete sessions one at a time.
 - **No documented ad-hoc/ephemeral agent capability.** Every session-start path requires a saved `agentDefinitionId` — there is no "run this agent definition once without saving it" endpoint.
 - **`run-agent`'s HTTP response is not the final answer** — it returns `{sessionId, status}` immediately just like plain `sessions` start. The "wait for the result" behavior only happens through the `terminationCallbackSignature` mechanism at the workflow-engine layer, not by blocking the HTTP call.
@@ -127,7 +127,7 @@ Roles: `owner` | `editor` | `viewer`. **Only owners can update `members`.** This
 | GET | `/agent-project-service/project-bundles/{projId}/export` | Export a project and all its agents as a portable bundle |
 | POST | `/agent-project-service/project-bundles/import` | Import a bundle to create (or merge into) a project |
 
-**Prefer this over individual `POST /projects` + `POST /projects/{projId}/agents` calls** when creating a project with one or more agents — same rationale as Automation Studio's project import: build the whole thing locally, import atomically, avoid multi-call intermediate state. **Native child-agent references survive import:** with `conflictMode: keep-both`, intra-bundle `agent:<id>` references are remapped to the new child IDs (verified: the imported parent ran the imported child). `replace` and cross-platform import were not tested. Re-read the imported parent's `tools` and confirm each `agent:` ID resolves via `GET /tools/{referenceId}`.
+**Prefer this over individual `POST /projects` + `POST /projects/{projId}/agents` calls** when creating a project with one or more agents — same rationale as Automation Studio's project import: build the whole thing locally, import atomically, avoid multi-call intermediate state. **Agent-to-agent references survive import:** with `conflictMode: keep-both`, each parent's `agent:<id>` references are updated to the new child IDs. After a `replace` import or an import into another platform (not yet tested), read the parent back and confirm each `agent:` reference resolves with `GET /tools/{referenceId}`.
 
 **Bundle shape** (`agentProjectBundleVersion: 1`):
 ```json
@@ -385,7 +385,7 @@ Response: `{ "success": true, "models": [{ "id", "name", "enabled", "status" }],
 
 **`GET /tools` query parameters:** `skip`, `limit`, `type`, `name`, `referenceIds` (comma-separated), `description` (keyword), `active` (boolean), `parentIds`/`parentTypes`/`parentTitles` (comma-separated — tools can be hierarchical, e.g. children of an adapter instance), `excludeToolChildren` (top-level only), `sort` (`name`\|`type`\|`description`\|`source`\|`referenceId`), `order` (`asc`\|`desc`).
 
-**Test a tool within the authorized execution scope before claiming it works.** Read-only inspection and schema validation do not authorize a tool run. For native agents, a direct child test starts a real session; test the child and then the parent-to-child handoff only when execution is authorized. Other tools wrap platform calls, which can be checked separately:
+**Test a tool directly before wiring it to an agent.** Don't give an agent a tool you haven't tested yourself — every tool wraps a real platform API call, and if the direct call fails, the agent's call will too. Testing a child agent starts a real session, so only do it when you are allowed to run it:
 ```bash
 # Look up the tool's registry entry (schema/description the LLM will see)
 GET /tools/{referenceId}
@@ -402,13 +402,13 @@ Look up the exact route and request body from `openapi.json` (`jq '.paths | keys
 ```
 POST /tools/discover
 ```
-No body. Registers/refreshes available platform tools. This persists registry state; it is not a read-only capability probe. A new agent is registered as `agent:<id>` automatically when it is created, so discovery is not needed to bind a child: read it with `GET /tools/agent%3A<id>` and use `POST /tools/discover` only if that read is missing.
+No body. Scans adapters, IAG services, workflows and app methods and registers each as a tool. Safe to re-run: it refreshes entries rather than duplicating them, but it does change the registry. Agents don't need it: an agent is registered as `agent:<id>` when it is created.
 
-**Tool identity — `referenceId` format:** colon-separated, with a type-specific structure; not every tool has a source and method segment. Observed catalog types include `agent`, `agentProject`, `view`, `application`, `adapter`, `gatewayService`, `workflow`, `integration`, `template`, `jsonForm`, and `method` (a method belonging to a parent `application`/`adapter` entry — see `parentType`/`parentId`/`parentTitle`). This is not an exhaustive cross-version inventory:
+**Tool identity — `referenceId` format:** colon-separated, with a structure that depends on the type. Types: `agent`, `agentProject`, `view`, `application`, `adapter`, `gatewayService`, `workflow`, `integration`, `template`, `jsonForm`, and `method` (a method belonging to a parent `application`/`adapter` entry — see `parentType`/`parentId`/`parentTitle` on the tool object):
 
 | Type | Example `referenceId` | Structure |
 |---|---|---|
-| `agent` | `agent:<child-agent-id>` | `agent:<saved-agent-id>`; callable child, often under `parentType: agentProject` |
+| `agent` | `agent:0a4fe55d-d124-4732-b8d2-c71b06da93d4` | `agent:<agent-id>`, listed under its project (`parentType: agentProject`) |
 | `application` | `application:ConfigurationManager:runCompliancePlan` | `application:<app-name>:<method>` |
 | `adapter` | `adapter:Servicenow:ServiceNow:createChangeRequest` | `adapter:<adapter-instance-id>:<app-type-name>:<method>` |
 | `gatewayService` | `gatewayService:selab-iag5-standalone:04a19e29-f2dc-41f7-b9c7-102e6b19df08` | `gatewayService:<cluster-id>:<service-uuid>` |
@@ -435,7 +435,7 @@ No body. Registers/refreshes available platform tools. This persists registry st
 ```
 `inputSchema` on a tool is a full, real JSON Schema (types, enums, patterns, examples) — this is what an LLM actually sees for that tool's parameters, and it's what a decorator's `toolInputSchema` replaces if one is attached.
 
-There is **no public create/update/delete for individual tools** in the inspected schema. Use platform discovery/registration rather than hand-authoring a registry record. Read an agent tool's current schema after saving or updating the child.
+There is **no create/update/delete for individual tools** — the registry is populated by discovery and, for agents, by saving the agent. After you change a child agent's `inputSchema`, read its tool again to see the new schema.
 
 ### Decorators
 
@@ -573,7 +573,7 @@ Decorators are looked up by ID when an agent runs, not embedded inline — the s
   "inputs": {}
 }
 ```
-`provider`/`modelVersion` are plain strings (provider id and model name) at the session level — not the `{profile, model}` UUID pair used on the agent itself. `agentSnapshot` is a copy of the agent's config **at session-start time** — updating the agent afterward does not retroactively change what a past session ran. Native `agent:` tools create child sessions. Follow the parent tool result's actual `sessionId`; `sessionType` may be absent, so it is not the only correlation evidence. See the native delegation pattern below.
+`provider`/`modelVersion` are plain strings (provider id and model name) at the session level — not the `{profile, model}` UUID pair used on the agent itself. `agentSnapshot` is a copy of the agent's config **at session-start time** — updating the agent afterward does not retroactively change what a past session ran. Calling an agent tool starts a child session; its ID is the `sessionId` in the parent's tool result. Child sessions have `trigger.type: session`; don't rely on `sessionType: child`, which can be absent. See Agents as tools below.
 
 **Start a session (async):**
 ```
@@ -653,7 +653,7 @@ Sibling `text` field on the same message has the LLM's actual reasoning/response
   "status": "succeeded"
 }
 ```
-`output` is the real, resolved tool result — inspect it directly rather than assuming you need `GET .../messages/{eventId}` to see it. `isInputTruncated`/`isOutputTruncated` flag when a large payload WAS truncated in this listing. For truncated output, follow `outcomeEventId` to the single-event endpoint: the inspected raw event was `tool-execution-succeeded` with `data.toolOutput.kind: resolved` and `data.toolOutput.payload`, not a following reasoning message. Verify event/session/tool-call identity and inspect the response shape before extracting. A `view`-type tool call (see Work Items below) instead sits at `"status": "pending"` with `"output": null` until a person completes the corresponding work item.
+`output` is the real, resolved tool result — inspect it directly rather than assuming you need `GET .../messages/{eventId}` to see it. `isInputTruncated`/`isOutputTruncated` flag when a large payload WAS truncated in this listing. For truncated output, fetch the single event named by `outcomeEventId`; the full result is in its `data.toolOutput.payload`. A `view`-type tool call (see Work Items below) instead sits at `"status": "pending"` with `"output": null` until a person completes the corresponding work item.
 
 ### Work Items (WorkCenter Service)
 
@@ -823,27 +823,29 @@ The task holds the workflow at that point until the session reaches a terminal s
 }
 ```
 
-### Native parent/child agents (capability-dependent)
+### Agents as tools (parent and child agents)
 
-**Native Itential delegation uses a child agent as a tool:**
-`{"tools": [{"referenceId": "agent:<child-agent-id>"}]}` on parent creation,
-or `addTools` on update. No separate delegation field is needed. A saved agent
-is registered as `agent:<id>` when it is created: read it with
-`GET /tools/agent%3A<id>` to confirm it is active and to get its input schema
-before attaching it.
+An agent can call another saved agent as a tool. Add the child to the parent's
+tools: `{"tools": [{"referenceId": "agent:<child-id>"}]}` when creating the
+parent, or `{"addTools": [...]}` on `PATCH /agent-project-service/agents/{id}`.
+There is no separate delegation field. The child is registered as
+`agent:<child-id>` when it is created; read `GET /tools/agent%3A<child-id>` to
+get its input schema. The parent passes the child's fields directly, and gets
+back `{sessionId, sessionStatus, lastMessage}`.
 
-Read `assets/helpers/flowagent/native-agent-tools.md` before designing or debugging
-this pattern; it covers capability discovery/fallback, permissions and versions,
-direct tool arguments, actual returned `sessionId`/`sessionStatus`/`lastMessage`,
-parent/child history inspection, and failure/approval boundaries. The minimal
-schema-validated bodies are in `assets/helpers/flowagent/native-agent-example.json`.
-They are not an executed transcript. Outer `succeeded` and even child `COMPLETE`
-do not establish task success: inspect the child's result and history.
+**A child's `COMPLETE` status doesn't mean its task succeeded,** and neither
+does the parent's `succeeded` tool status. Read `lastMessage` and the child
+session to judge the outcome.
 
-This mechanism is separate from coding-harness subagents and the external A2A
-protocol. Where native capability is unavailable or unverified, document that
-deployment-specific limitation and offer verified workflow orchestration as a
-design alternative; do not impose it on a capable native-agent deployment.
+This is FlowAI's sub-agent model, on one platform. It is not the external A2A
+protocol. It needs Platform 6.5+ or Itential Cloud (July 2026 or later); on
+older platforms, chain agents in a workflow instead (see Using Agents in
+Workflows above).
+
+Read `assets/helpers/flowagent/native-agent-tools.md` before building or testing
+this: it covers the build steps, the outcome checks, session history, export
+and import, and permissions. Request bodies are in
+`assets/helpers/flowagent/native-agent-example.json`.
 
 ## Developer Scenarios
 
@@ -906,7 +908,7 @@ See **Gotchas → Quick fixes for common problems** above for a symptom → caus
 3. Run the session — the QuickForm tool call sits at status: "pending"; session status stays RUNNING throughout
 4. GET  /work-center-service/work-items?rootExecutionId=<sessionId>   → find the pending item
 5. GET  /work-center-service/work-items/{id}/variables/incoming       → see exactly what was presented to the human
-6. The authorized human completes the work item in WorkCenter; observe the session resume and check its actual outcome. Do not complete a human approval on their behalf merely to finish a build/test.
+6. The assigned person completes the work item in WorkCenter; the session resumes and reaches a terminal state on its own. Don't complete an approval on someone's behalf just to finish a build or test.
 ```
 See **Work Items (WorkCenter Service)** above for the full field reference and lifecycle endpoints.
 
