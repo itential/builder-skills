@@ -72,7 +72,7 @@ Each rule is stated here once; later sections refer back.
 8. **Deleting a profile is permanent, and deleting a project deletes all its agents.** Check `GET /model-registry-service/profiles/{id}/agent-impact` before deleting a profile.
 
 **Tools**
-9. **A task in `tasks.json` is not automatically a tool.** Generic WorkFlowEngine utilities (merge, query, getTime, etc.) aren't registered as tools; look for an app method instead (e.g., `application:ConfigurationManager:*`).
+9. **Most workflow tasks are also agent tools, with the same inputs — but not all.** An app task (`app` + `name` in `tasks.json`) is usually the tool `application:<app>:<name>`, an adapter task is `adapter:<instance>:<type>:<method>`, and a manual task is `view:<app>:<name>`. Generic WorkFlowEngine utilities (merge, query, getTime, etc.) are not tools. Never assume: look the tool up with `GET /tools?name=<task name>` and use the `referenceId` and `inputSchema` it returns.
 10. **Test a tool directly before giving it to an agent.** If the direct call fails, the agent's call will too. Testing an agent tool starts a real session, so only do that when you're allowed to run it.
 11. **A decorator replaces the tool's entire input schema.** A field you leave out will never be sent, even if the adapter requires it.
 
@@ -104,7 +104,7 @@ Only owners can change `members`, and the list replaces the existing one, so sen
 
 **2. Profile and model.** `GET /model-registry-service/profiles` to reuse one. `id` is the agent's `provider.profile`; `models[].id` is `provider.model`. To create one, see [Profiles](#profiles-model-registry-service).
 
-**3. Tools.** Find each tool and its `referenceId`:
+**3. Tools.** Find each tool and its `referenceId`. If you already know the workflow task you'd use, search for its name; the tool usually has the same name and inputs (rule 9):
 ```bash
 GET /tools?limit=200 > tools.json            # page with skip until fewer than limit come back
 jq '.data[] | select(.name | test("ServiceNow"; "i")) | {referenceId, name, type}' tools.json
@@ -228,6 +228,16 @@ ViewData returns no values, only the button: in a workflow it sets the task's fi
 
 Use ViewData for a plain yes/no. Use QuickForm when the person acts on each row of a table, and InteractiveHTML for any other form layout. `view:WorkFlowEngine:ViewHTML` only displays HTML with buttons and returns no input, so use InteractiveHTML whenever you need values back. The same three exist as workflow manual tasks (WorkFlowEngine `ViewData`, WorkCenter `InteractiveHTML` and `QuickForm`).
 
+**The same task as a workflow step and as an agent tool.** These three work in both places with the same input fields. Only where the result goes differs:
+
+| Task | In a workflow (`tasks.json`) | As an agent tool (`referenceId`) | Where the result goes |
+|---|---|---|---|
+| ViewData | `app: "WorkFlowEngine"`, `name: "ViewData"`, `view: "/workflow_engine/task/ViewData"` | `view:WorkFlowEngine:ViewData` | Workflow: finish state `success`/`failure`. Agent: the tool call's `output`. |
+| InteractiveHTML | `app: "WorkCenter"`, `name: "InteractiveHTML"`, `view: "/work-center/task/InteractiveHTML"` | `view:WorkCenter:InteractiveHTML` | Workflow: outgoing variable `export`. Agent: `output.export`. |
+| QuickForm | `app: "WorkCenter"`, `name: "QuickForm"`, `view: "/work-center/task/QuickForm"` | `view:WorkCenter:QuickForm` | Workflow: outgoing variable `rows`. Agent: `output.rows`. |
+
+Building a workflow manual task is covered in `/builder-agent` (Manual Tasks). The rest of this section is about agents.
+
 **How it runs:**
 1. Add the view tool to `tools[]` and tell the agent in `instructions` when to call it and what to put in each field.
 2. When the agent calls it, the `tool-execution` message shows `status: "pending"` and `output: null`, and the session stays `RUNNING` (rule 14) for however long the person takes.
@@ -255,6 +265,25 @@ Use ViewData for a plain yes/no. Use QuickForm when the person acts on each row 
   "btn_failure": "Reject"
 }
 ```
+
+**Worked example: an agent that asks for approval with InteractiveHTML.** Tools: the data tools it needs plus `{"referenceId": "view:WorkCenter:InteractiveHTML"}`. Instructions (with `circuit` and `rate` in its `inputSchema`):
+
+```text
+You review a circuit upgrade for {{ circuit }} (current rate {{ rate }} Mbps).
+1. Call the InteractiveHTML tool once with:
+   - header: "Circuit upgrade approval"
+   - body: an HTML page showing the circuit and its current rate, with a
+     <select name="increase"> offering 20, 50 and 100 (percent), and a
+     <input type="text" name="reason">.
+   - btn_success: "Approve", btn_failure: "Reject"
+2. Wait for the result. Read output.export.increase and output.export.reason.
+3. If the tool call did not succeed, or export.increase is missing or empty,
+   report "Not approved" and stop. Do not change anything.
+4. Otherwise report the chosen increase and reason. Never fill in or guess
+   the person's answer yourself.
+```
+
+Before relying on the reject path, run it once and look at the tool call's `status` and `output` when the person clicks the failure button; the agent must treat that result as a rejection.
 
 **QuickForm** — one row per item, with an action column the person fills in:
 
