@@ -212,9 +212,8 @@ Search `workflows.json` for existing workflows that match spec phases. Flag as *
 
 **FlowAI agents:** load `/flowagent` for agent requirements. An agent can call
 another agent as an `agent:<agent-id>` tool on Platform 6.5+ and Itential Cloud,
-so a design can be a parent agent with child agents
-(`assets/helpers/flowagent/native-agent-tools.md`; request bodies in
-`assets/helpers/flowagent/native-agent-example.json`). Confirm on the target
+so a design can be a parent agent with child agents (see "Agents as tools" in
+`/flowagent`). Confirm on the target
 platform with `GET /tools/agent%3A<id>` for an existing agent. If it's not
 supported, say so in the feasibility assessment and propose chaining the agents
 in a workflow; don't switch to a workflow design without the engineer agreeing.

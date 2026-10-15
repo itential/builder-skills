@@ -84,8 +84,8 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 - **Re-auth** — if the token expires, refresh from `.env` exactly as builder-agent does
 - **FlowAI agents** — read agents and tools for static checks; start sessions and read sessions and their messages for the test cases in the approved test plan. No agent create or update, and never complete a WorkCenter work item.
 
-**Agents that call other agents:** read
-`assets/helpers/flowagent/native-agent-tools.md` first. For each parent, check
+**Agents that call other agents:** read "Agents as tools" in `/flowagent`
+first. For each parent, check
 that every `agent:` tool resolves (`GET /tools/{referenceId}`, `active: true`)
 and that the parent sends the inputs the child's schema declares. In each test
 record, link the parent session to the child session it started, and judge the

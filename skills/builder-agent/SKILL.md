@@ -50,9 +50,8 @@ This skill covers everything needed to build and test Itential automation assets
 
 **FlowAI agents:** load `/flowagent` before building agents. When the design has
 a parent agent that calls child agents, build each child as its own agent, then
-attach it to the parent as an `agent:<child-id>` tool; follow
-`assets/helpers/flowagent/native-agent-tools.md`, with request bodies in
-`assets/helpers/flowagent/native-agent-example.json`. Don't wrap the agents in a
+attach it to the parent as an `agent:<child-id>` tool, following "Agents as tools"
+in `/flowagent`. Don't wrap the agents in a
 workflow or `runCode` unless the design says to. The workflow and childJob steps
 below apply to workflow components only. When you test, run the child on its own
 and then through the parent. Record both session IDs, and check the child's
