@@ -6,6 +6,7 @@ release tag — what every tool's update installs.
 ## Unreleased
 
 - Fixed `itential-inventory` guidance, which never mentioned that an Inventory Manager adapter instance must exist and be running before inventory nodes appear in Configuration Manager or command templates. Added a Device Broker Adapter section (check, create, start, verify) and a pointer in the gotchas and the create-inventory scenario, plus notes that broker actions are a separate requirement for operating on those devices and that the Gateway host's Python must be 3.10 to 3.14 for the built-in broker services
+- Fixed FlowAI guidance that said agent-to-agent delegation is unsupported: a child agent is bound to a parent as an `agent:<id>` tool, registered automatically when the agent is created. Added `native-agent-tools.md` and an example, verified on a live platform, covering project export/import (`providerResolutions` is required and keyed by agent `_id`; `agent:` references are remapped), the session message list (bare array, use `limit=100` and sort by `timestamp`), and why a child's `COMPLETE` status does not prove its task succeeded; updated `flowagent-to-spec` to match
 
 ## 2.1.1
 
