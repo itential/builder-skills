@@ -1059,6 +1059,7 @@ JSON Forms have their own dedicated skill — `itential-json-forms`. See that sk
 Helper templates for forms still live under `assets/helpers/`:
 - `assets/helpers/create/create-json-form.json` — static-enum dropdowns
 - `assets/helpers/create/create-json-form-rest-bound.json` — REST-bound or cascading dropdowns
+- `assets/helpers/create/create-json-form-array-field.json` — array-of-objects field (every field, including nested ones, needs a `nodeId`)
 
 ---
 
@@ -2827,6 +2828,7 @@ Read these first. They have the correct wrapper, required fields, and structure.
 | Update a MOP template | `assets/helpers/update/update-command-template.json` | `POST /mop/updateTemplate/{name}` |
 | Create a JSON form (static dropdowns) | `assets/helpers/create/create-json-form.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
 | Create a JSON form (REST-bound or cascading dropdowns) | `assets/helpers/create/create-json-form-rest-bound.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
+| Create a JSON form (array-of-objects field) | `assets/helpers/create/create-json-form-array-field.json` | `POST /json-forms/forms` — see `itential-json-forms` skill |
 | Create an Ops Manager automation | `assets/helpers/create/create-ops-manager-automation.json` | `POST /operations-manager/automations` |
 | Create a manual trigger (with form) | `assets/helpers/create/create-ops-manager-trigger-manual.json` | `POST /operations-manager/triggers` — `legacyWrapper` MUST be false |
 | Create a scheduled trigger | `assets/helpers/create/create-ops-manager-trigger-schedule.json` | `POST /operations-manager/triggers` |

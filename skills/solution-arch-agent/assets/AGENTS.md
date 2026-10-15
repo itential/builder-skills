@@ -363,6 +363,7 @@ Helper templates are organized in subdirectories under `helpers/`:
 | `create-template-textfsm.json` | TextFSM template |
 | `create-json-form.json` | JSON form for user input |
 | `create-json-form-rest-bound.json` | JSON form with REST-bound dropdowns |
+| `create-json-form-array-field.json` | JSON form with an array-of-objects field (every field, including nested ones, needs a `nodeId`) |
 | `create-ops-manager-automation.json` | Operations Manager automation |
 | `create-ops-manager-trigger.json` | API endpoint trigger |
 | `create-ops-manager-trigger-manual.json` | Manual/form trigger (legacyWrapper: false) |

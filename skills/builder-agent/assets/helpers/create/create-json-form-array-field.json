@@ -1,0 +1,112 @@
+{
+  "name": "Array field example",
+  "description": "Form with an array-of-objects field",
+
+  "struct": {
+    "type": "array",
+    "items": [
+      {
+        "nodeId": "unique-uuid-per-field-1",
+        "type": "string",
+        "title": "Label",
+        "description": "",
+        "placeholder": "Enter label",
+        "required": true,
+        "readOnly": false,
+        "binding": false,
+        "rel": "item",
+        "targetPointer": "/default",
+        "customKey": "label"
+      },
+      {
+        "nodeId": "unique-uuid-per-field-2",
+        "type": "array",
+        "title": "Targets",
+        "description": "",
+        "required": true,
+        "minItems": 1,
+        "customKey": "targets",
+        "items": [
+          {
+            "nodeId": "unique-uuid-nested-1",
+            "type": "string",
+            "title": "Host",
+            "description": "",
+            "placeholder": "Enter host",
+            "required": true,
+            "customKey": "host"
+          },
+          {
+            "nodeId": "unique-uuid-nested-2",
+            "type": "integer",
+            "title": "Port",
+            "description": "",
+            "placeholder": "Enter port",
+            "required": false,
+            "minimum": 1,
+            "maximum": 65535,
+            "customKey": "port"
+          }
+        ]
+      }
+    ]
+  },
+
+  "schema": {
+    "title": "Array field example",
+    "description": "Form with an array-of-objects field",
+    "type": "object",
+    "required": ["label", "targets"],
+    "properties": {
+      "label": {
+        "type": "string",
+        "title": "Label",
+        "_id": "/properties/label",
+        "description": ""
+      },
+      "targets": {
+        "type": "array",
+        "title": "Targets",
+        "description": "",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": ["host"],
+          "properties": {
+            "host": {
+              "type": "string",
+              "title": "Host",
+              "_id": "/properties/targets/items/properties/host",
+              "description": ""
+            },
+            "port": {
+              "type": "integer",
+              "title": "Port",
+              "_id": "/properties/targets/items/properties/port",
+              "description": "",
+              "minimum": 1,
+              "maximum": 65535
+            }
+          }
+        }
+      }
+    }
+  },
+
+  "uiSchema": {
+    "label": {"ui:placeholder": "Enter label"},
+    "targets": {
+      "items": {
+        "host": {"ui:placeholder": "Enter host"},
+        "port": {"ui:placeholder": "Enter port"},
+        "ui:order": ["host", "port", "*"]
+      }
+    },
+    "ui:order": ["label", "targets", "*"]
+  },
+
+  "bindingSchema": {},
+  "validationSchema": {},
+  "tags": [],
+  "version": "2020.1"
+}
