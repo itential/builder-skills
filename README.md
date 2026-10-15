@@ -157,7 +157,7 @@ This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers, registers tools (adapters, workflows, IAG services), and runs agent sessions. Use when building or operating Flow AI agents. |
+| `/itential-builder:flowagent` | Creates and runs AI agents on the Itential Platform. Configures LLM providers and tools (adapters, workflows, IAG services and other agents), and runs and inspects agent sessions. Use when building or operating Flow AI agents. |
 | `/itential-builder:iag` | Builds and runs IAG 5 services — Python scripts, Ansible playbooks, OpenTofu plans. Manages YAML service definitions, imports via `iagctl`, and calls services from Itential workflows via GatewayManager. |
 | `/itential-builder:gateway4-to-gateway5` | Assesses readiness to migrate from Gateway4-IAG4 to Gateway5-IAG5. Scans workflows, JSON forms, scripts, playbooks, and inventory for Gateway4-IAG4 usage (`AGManager` / `automation_gateway`). Produces a deterministic markdown readiness report with a manual-action checklist. Read-only — never modifies the platform. For building Gateway5-IAG5 services after the assessment, use `/iag`. |
 | `/itential-builder:itential-mop` | Builds Method of Procedure command templates with variable substitution and validation rules. Runs CLI pre-checks and post-checks against devices, and uses analytic templates for before/after config comparison. |
