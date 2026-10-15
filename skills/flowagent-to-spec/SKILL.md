@@ -104,8 +104,7 @@ If the agent calls another agent (a tool call with `toolType: "agent"`), read
 the child too: take the `sessionId` from that call's output and read the child's
 session and messages the same way. A child's `COMPLETE` status, and the parent's
 `succeeded` tool status, don't mean the child's task worked; read its
-`lastMessage`. See `assets/helpers/flowagent/native-agent-tools.md` (relative to
-this skill's folder) for details.
+`lastMessage`. See "Agents as tools" in `/flowagent`.
 
 ---
 
