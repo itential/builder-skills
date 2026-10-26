@@ -278,7 +278,7 @@ With the assembled payload. Response:
 
 **Check `metadata.failedComponents`** — if any components failed, they'll be listed here with the reason. A successful import has an empty array.
 
-Save the import payload to `{use-case}/project-import.json` for reference.
+Save the import payload to `{use-case}/project-import.json` for reference. If the project `_id` already exists on the platform, do not re-import this saved file as is: follow the pre-import comparison in the builder skill first.
 
 ### Set project membership (immediately after import)
 
