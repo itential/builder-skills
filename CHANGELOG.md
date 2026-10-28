@@ -5,6 +5,7 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- solution-arch-agent now recommends an execution model per phase — deterministic workflow, LCM resource, FlowAgent or Gateway5 service — with when to use and when not to use each, the order to decide in, common combinations and the platform check behind each. Feasibility records the choice and its check in `feasibility.md`; the design records it in Section C and lists LCM, agent and Gateway5 components in the inventory
 - Removed `evals/` from the repository; evals are run and maintained locally, not in the repo
 - builder-agent, solution-arch-agent and qa-agent now cover agents that call other agents: design them as a parent with child agents instead of forcing a workflow, let builder create agents and run test sessions, let QA run sessions in the approved test plan, and judge a child by its answer rather than its status
 - Reworded `flowagent`'s description, README row and Codex metadata around designing, building and testing agents; running delivered agents belongs to the Operator pack

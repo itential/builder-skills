@@ -218,6 +218,120 @@ platform with `GET /tools/agent%3A<id>` for an existing agent. If it's not
 supported, say so in the feasibility assessment and propose chaining the agents
 in a workflow; don't switch to a workflow design without the engineer agreeing.
 
+### Recommend the Execution Model
+
+Before writing `feasibility.md`, decide which execution model each spec phase
+uses — see **Choosing the Execution Model** below — and check the platform can
+run it. Record the result in a short **Execution Model** section of
+`feasibility.md`: one row per phase, the model, why, and the platform check that
+backs it. A model the spec needs but the platform can't run is a constraint, the
+same as a missing adapter.
+
+---
+
+## Choosing the Execution Model
+
+A delivery is built from four execution models. They are layers, not
+alternatives — most designs combine two or three — so choose per phase, not once
+for the whole use case.
+
+| Model | What it is | Built with |
+|-------|------------|------------|
+| **Deterministic workflow** | Fixed steps and branches; same inputs, same path every run | Automation Studio workflows, Operations Manager triggers |
+| **LCM resource** | A resource model whose instances keep their state between runs; each lifecycle operation is an action backed by a workflow | `/itential-lcm` — resource model + action workflows |
+| **FlowAgent** | An LLM chooses which tools to call, in what order, from the request and what it finds | `/flowagent` — agents, tools, decorators, work items |
+| **Gateway5 service** | Python, Ansible or OpenTofu run on an Itential Gateway5 cluster, called from a workflow or an agent | `/iag` — `GatewayManager.runService` |
+
+**The deterministic workflow is the default.** Recommend another model only when
+a signal below applies, and say which signal.
+
+### When to recommend each
+
+**LCM resource** — the use case manages a *thing* that outlives one run.
+
+| Recommend when | Don't recommend when |
+|----------------|----------------------|
+| The spec has more than one lifecycle operation on the same object — create, then modify, delete or decommission later | The job is one-shot: a backup, a compliance run, a set of show commands, a report |
+| Someone needs to see what has been provisioned and its current state (VLANs, ports, IP blocks, firewall rules, circuits, tenant services) | The source of truth for that state is an external system the customer won't move (NetBox, ServiceNow CMDB, an IPAM) — read and write it from a workflow instead |
+| Day-2 operations need the data captured at create time (modify a service without re-entering it, delete exactly what was built) | Each run is independent and nothing from it is needed afterwards |
+
+Each LCM action is still a deterministic workflow — LCM adds the model, the
+instance record and the action history around it. Every action workflow must
+output an `instance` variable; carry that rule into the design (see
+`/itential-lcm`).
+
+**FlowAgent** — the path depends on judgment that can't be written down as rules.
+
+| Recommend when | Don't recommend when |
+|----------------|----------------------|
+| The input is free text or unstructured (a ticket description, a user request in plain language, log or `show` output to interpret) | The steps and branches are known — write them as a workflow |
+| Troubleshooting or triage, where the next check depends on what the last one found | It runs at high volume, or on a schedule, where cost and run time matter |
+| The engineer wants to prove a pattern before committing to fixed steps | The customer needs the same result every run for audit or change control |
+| Many read-only tools, and which ones to call varies per request | It changes production configuration with no person approving first |
+
+Keep an agent's writes behind deterministic steps: give it workflows as tools for
+anything that changes a device or a record, and put a human approval (work item)
+before any change — see `/flowagent`. Once the agent's sessions show a stable
+pattern, `/flowagent-to-spec` turns it into a deterministic workflow spec; say so
+in the design when you recommend an agent as a first step.
+
+**Gateway5 service** — the logic belongs in code that runs near the devices or
+the cloud.
+
+| Recommend when | Don't recommend when |
+|----------------|----------------------|
+| The customer already has a Python script, Ansible playbook or Terraform/OpenTofu plan to reuse | A native task or adapter already does it — search `tasks.json` first |
+| It needs Python packages or vendor SDKs (netmiko, NAPALM, a cloud SDK), or a device protocol no adapter covers | It's a CLI command or config push — use `GatewayManager.sendCommand` / `sendConfig`, or `/itential-mop` for checks |
+| Cloud or infrastructure provisioning — use an OpenTofu plan | It only reshapes data already in the workflow — use `GatewayManager.runCode` |
+| The same code is reused by several workflows or agents and should be versioned in a repository | It's orchestration, approvals or ITSM — that's the workflow's job |
+
+`runCode` and `runService` both run on Gateway5: `runCode` is short inline Python
+over data the workflow passes in; `runService` runs a versioned service from a
+repository, with its own packages, decorator and device access. Never design new
+work on Gateway4 (`AGManager` tasks); for an existing Gateway4 estate, point to
+`/gateway4-to-gateway5`.
+
+### Decide in this order
+
+1. **Is there a resource with more than one lifecycle operation?** → LCM resource
+   model; each operation becomes an action workflow. Otherwise, no LCM.
+2. **For each phase: can its steps and branches be written down?** → Deterministic
+   workflow. If not, and the judgment is essential, a FlowAgent for that phase
+   only — called from the workflow with `AgentSessionManager.runAgent`, or the
+   agent at the front calling workflows as tools.
+3. **For each step that touches a device, system or cloud:** native task or
+   adapter → use it; existing script, playbook or plan, or a package/SDK need →
+   Gateway5 service; data reshaping only → `runCode`.
+
+Typical combinations:
+
+```
+Service with a lifecycle      LCM model → action workflows → adapters / Gateway5 services
+Request intake or triage      FlowAgent → workflows as tools (writes) + read-only tools
+Fixed change with one         Workflow → runAgent for the judgment step → workflow continues
+  judgment step
+Reuse customer automation     Workflow → Gateway5 services (existing scripts/playbooks/plans)
+```
+
+### Check the platform can run it
+
+| Model | Check | Where |
+|-------|-------|-------|
+| LCM resource | `LifecycleManager` application `RUNNING`; `runAction` in the task catalog | `applications.json`, `tasks.json` |
+| FlowAgent | `AgentProjectService`, `AgentSessionManager` and `AgentExecutionEngine` `RUNNING`; an LLM provider profile the engineer can use | `applications.json`, `GET /model-registry-service/profiles` |
+| Gateway5 service | `GatewayManager` `RUNNING`; a connected Gateway5 cluster | `applications.json`, `GET /gateway_manager/v1/gateways` |
+
+If a check fails: say so in `feasibility.md`, give the fallback (e.g., a
+deterministic workflow writing to an external source of truth instead of LCM; a
+workflow instead of an agent) and let the engineer choose. Don't switch models
+without the engineer agreeing.
+
+### Who decides
+
+The recommendation is yours; the choice is the engineer's. If the spec already
+names a model ("build an agent", "use LCM"), follow it, and record any concern
+from the tables above as a risk instead of overriding it.
+
 ---
 
 ## Design
@@ -251,10 +365,15 @@ The migrated workflows are built as a new project alongside the originals.
 ┌─────────────────────────────────────┬────────────────────────────────────────┐
 │ Decision                            │ In This Environment                    │
 ├─────────────────────────────────────┼────────────────────────────────────────┤
+│ Execution model                     │ LCM model; actions are workflows       │
 │ ITSM integration                    │ ServiceNow — create incidents          │
 │ Naming convention                   │ VLAN_{id}_{site} (customer standard)   │
 └─────────────────────────────────────┴────────────────────────────────────────┘
 ```
+
+Start Section C with the execution model per phase from feasibility, and the
+signal that justifies anything other than a deterministic workflow (see
+**Choosing the Execution Model**).
 
 **D. Modular Design — Decompose First**
 
@@ -294,6 +413,9 @@ The orchestrator is always the last thing built, after all children are tested.
 └────┴──────────────────────────────┴─────────────────────┴──────────┘
 ```
 
+Other types to use as the execution model requires: `LCM Resource Model`,
+`LCM Action Workflow`, `FlowAgent`, `Agent Tool Decorator`, `Gateway5 Service`.
+
 For every `⚠ Stub` integration, add to the inventory:
 - `integration-model-{name}.json` — OpenAPI 3.0.3 stub spec (Type: Integration Model, Action: Build)
 - `stub-{name}` — stub connectivity workflow (Type: Stub Workflow, Action: Build)
@@ -329,6 +451,7 @@ Close `integration-questions.md` with a **Next steps** note: once all questions 
 **Present the full solution design. Do NOT proceed to build until approved.**
 
 Walk through each section:
+- Execution model: "[Phase] runs as [model] because [signal]. Agree?"
 - Requirements: "I'll use [adapter/app]. Correct?"
 - Decisions: "The spec says [X], I'll do [Y]. Sound right?"
 - Components: "Reuse this? Build that? Skip this?"
