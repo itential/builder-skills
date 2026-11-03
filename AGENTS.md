@@ -34,6 +34,7 @@ Three things commonly go wrong even after this gate is respected — watch for a
 | `/project-to-spec` | — | Read an existing project → produce customer-spec.md + solution-design.md. |
 | `/documentation` | — | Survey global platform assets → discover relationships → group by use case → produce HLD+LLD per use case → optionally create projects and move assets in. For a specific named project, redirect to `/project-to-spec`. |
 | `/flowagent-to-spec` | — | Read a FlowAgent → produce customer-spec.md as a deterministic workflow spec. |
+| `/jst-to-code` | — | Convert transformations (JSTs) into single-file Python for the Run Code task, one at a time, proving each against test data (your samples or a past job). Read-only on the platform. |
 | `/solution-arch-agent` | **Solution Architecture Agent** | Feasibility assessment + solution design. Runs after Requirements. |
 | `/builder-agent` | **Builder Agent** | Build all assets, test each component individually. Runs after Design. |
 | `/qa-agent` | **QA Agent** | Acceptance testing against the approved acceptance criteria + as-built record. Runs after Build — last technical stage before customer sign-off. |

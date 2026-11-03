@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "JST to Code"
+  short_description: "Convert JST transformations into single-file Python for the Run Code task"
+  default_prompt: "Convert my JST transformations into Run Code Python"

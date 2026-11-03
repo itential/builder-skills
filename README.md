@@ -10,7 +10,7 @@ AI agent skills for **building automations on the Itential Platform**, spec-driv
 | `explore` | Connect to a platform and see what's there — adapters, tasks, workflows — before committing to a delivery |
 | `project-to-spec` / `documentation` | Document automation that already exists: one project, or everything on the platform |
 
-All 17 skills are listed under [Skills](#skills).
+All 18 skills are listed under [Skills](#skills).
 
 ---
 
@@ -20,11 +20,16 @@ All 17 skills are listed under [Skills](#skills).
   - [Table of Contents](#table-of-contents)
   - [Prerequisites](#prerequisites)
   - [Getting Started](#getting-started)
+    - [1. Install for your tool](#1-install-for-your-tool)
+    - [2. Connect to your platform](#2-connect-to-your-platform)
+    - [3. Verify it's working](#3-verify-its-working)
+    - [Staying up to date](#staying-up-to-date)
   - [How to Use It](#how-to-use-it)
   - [Skills](#skills)
   - [Customization](#customization)
   - [Spec Library](#spec-library)
   - [Demo Specs](#demo-specs)
+  - [Related skill packs](#related-skill-packs)
   - [Docs](#docs)
   - [Contributing](#contributing)
   - [Support](#support)
@@ -130,6 +135,9 @@ Next: the full first-delivery walkthrough in [`docs/quickstart.md`](docs/quickst
 "Am I ready to move from Gateway 4 (IAG4) to Gateway 5 (IAG5)?"
 → /itential-builder:gateway4-to-gateway5
 
+"Convert this JST (transformation) into Python for the Run Code task"
+→ /itential-builder:jst-to-code
+
 "Help me build a golden config for my devices and run compliance"
 → /itential-builder:itential-golden-config
 ```
@@ -151,6 +159,7 @@ This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical
 | `/itential-builder:flowagent-to-spec` | Reads a FlowAgent's config and mission history, reconstructs what it actually did, and produces a `customer-spec.md` for the deterministic equivalent. Turns agentic exploration into a governed delivery path. |
 | `/itential-builder:project-to-spec` | Reads an existing Itential project — workflows, templates, MOP — and reverse-engineers a `customer-spec.md` and `solution-design.md`. Use to document undocumented automation or create a baseline for a rebuild. |
 | `/itential-builder:documentation` | Surveys global assets on a platform — collects workflows, templates, LCM models, golden config, and OM automations, discovers their relationships, groups them into use cases, and produces `customer-spec.md` + `solution-design.md` per use case plus a master README. Optionally creates a project per use case and moves assets in with a reference impact report. For a named project, use `/project-to-spec` instead. |
+| `/itential-builder:jst-to-code` | Converts one or more transformation documents (JSTs) into single-file Python for the Run Code workflow task, one JST at a time. JSTs come from local `.jst.json` files or are pulled read-only via OAuth by URL/id. Asks for test data per JST (your own input/output, or a past job URL/id to pull real data) and proves each `<name>.py` against it; a JST with no test data is still converted but flagged NOT TESTED. Output is `code-on-canvas-files/<jst-name>/<jst-name>.py`. Not for building new transformations (JSTs). |
 | `/itential-builder:explore` | Authenticates to a platform, pulls live data, and lets you browse capabilities freely. Use for ad-hoc investigation before starting a delivery or when you need to work outside the lifecycle. |
 
 **Platform**
