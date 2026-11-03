@@ -896,6 +896,7 @@ POST /automation-studio/projects/import
 | childJob `workflow` | Must include `@{projectId}:` prefix | Pre-wire using the same `_id` |
 | `reference` (workflow) | UUID string | Becomes the workflow's `uuid` |
 | `reference` (MOP) | `@{projectId}: Template Name` | String reference |
+| `reference` (template, transformation, JSON form) | 24-character hex id, not a uuid | A uuid here fails the import with `Argument passed in must be a string of 12 bytes or a string of 24 hex characters`, which names nothing |
 | `iid` (components) | Sequential integers starting at 1 | Incrementing ID |
 
 > **NEVER feed a `GET /automation-studio/workflows/detailed/{name}` read-back document into `projects/import` unmodified — it crashes the import and, against an EXISTING project `_id`, wipes its components.** The platform mutates workflow documents after import/save: `created_by`/`last_updated_by` become plain account-ID strings (import requires the object shape above), `outputSchema` is expanded with platform-generated fields, and `encodingVersion`/`_id`/`errors`/`warnings`/`namespace` appear. Importing such a document fails every component with `"WorkflowBuilder stopped during execution"` — and because a re-import is a destructive full-replace, the project is left with `components: []` (confirmed data loss, recovered only by re-importing the ORIGINAL known-good documents). To re-import over an existing project: reuse the original import documents, or normalize the read-back first (restore object-shaped `created_by`/`last_updated_by`, strip `encodingVersion`, `_id`, `errors`, `warnings`, `namespace`, and strip the `@projectId: ` name prefix).
@@ -1355,6 +1356,8 @@ Body wraps the workflow in `{"automation": {...}}`:
   }
 }
 ```
+
+**Scenarios.** A workflow can carry `scenarios`, the mock data used in the canvas debug mode. Each scenario needs `name` and `input`, and `input` must be an object (`{}` when empty), never a string. A string `input` fails the validator with `Schema violation at /scenarios/0/input: must be object`.
 
 **Update a workflow:**
 ```
@@ -2089,6 +2092,8 @@ Perform JSON transformation using JST (JSON Schema Transformation).
 
 Used in childJob mode 3 (loop with transformation) to reshape each `data_array` element before passing to the child.
 
+**Create transformations before the workflows that call them, and use the ids the platform returns for `tr_id`.** Transformation ids are not portable between platforms, so a copied or invented `tr_id` points at nothing. The validator warns ("Transformation tasks must reference an existing transformation") when the id isn't in the project.
+
 ### decision
 
 Multi-way branching based on conditions. Unlike `evaluation` (binary true/false), `decision` branches to different tasks based on multiple conditions.
@@ -2180,6 +2185,8 @@ POST /automation-studio/templates
 ```
 
 **Required fields:** `name`, `group`, `command`, `description`, `template`, `data`, `type`
+
+**Give every template field a real value.** `data` must be a non-blank string of sample text to test the template with (for TextFSM, a few lines of the command's output) — never `{}`. A missing or non-string `data` fails that component on import while the project still reports success, so always check `metadata.failedComponents` after importing (`Field 'data' must be a string`, `Field 'data' is required`). A blank `command`, `description`, `data` or body imports but fails the template validator. Validate before importing — see "Validate every asset with its own validator".
 
 **Types:** `jinja2` (config generation) or `textfsm` (output parsing)
 
@@ -2757,6 +2764,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 5. **Members PATCH is full replacement** — include ALL members or omitted ones are removed.
 6. **Import sets the OAuth service account as project owner** — not the UI user. PATCH membership immediately after import (Phase 3, not Phase 6) or the spec engineer is locked out.
 7. **`accessControl` in PATCH body is silently ignored** — API returns 200 but the field is a no-op. Always use the `members` array format (`[{type, reference, role}]`).
+7a. **Component `reference` formats differ** — a workflow's is a uuid; a template, transformation or JSON form's is a 24-character hex id. A uuid on a template fails the import with `Argument passed in must be a string of 12 bytes or a string of 24 hex characters`, which names nothing. Check `metadata.failedComponents` after every import.
 
 ### Workflows
 8. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`. Wrong `canvasName` causes silent `$var` failures.
@@ -2767,6 +2775,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 11a. **Enable Query needs a suffix AND a decorator** — `$var.x#/path` alone runs fine but Studio shows no query, and a Studio save then strips the `#/path`. The pointer depends on the field shape (`merge` and `childJob` differ); on `evaluation` put `query`/`rightQuery` on the evaluation object, never inside the operand. Verify with `assets/helpers/enable_query.py check` — see [Enable Query](#enable-query--inline-query-decorator-on-any-incoming-field-aka-in-task-query-called-task-query-in-official-docs).
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
 13. **Every adapter/external task needs an error transition** — without one, errors cause "Job has no available transitions" and the job gets stuck forever. `POST /workflow_engine/workflows/validate` does not check for this — it only flags a missing success path.
+13a. **Scenario `input` must be an object (`{}` when empty), and `tr_id` must be an id the platform returned** — create transformations before the workflows that call them. See Workflow Structure and `### transformation`.
 14. **JSON can't have duplicate keys** — if success and error both go to `workflow_end`, route error to an intermediate `newVariable` task first.
 14a. **Every workflow document needs `"canvasVersion": 3`** — see the Step 9 checklist. Without it, validation fails and import stores the workflow as canvas version 1.
 
@@ -2796,6 +2805,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 35. **Template `group` cannot be empty or whitespace-only** — causes a silent rejection.
 36. **TextFSM templates may contain control characters** that break jq — use Python with a control-char strip when parsing them.
 37. **`renderJinja2` inline template with `\n` breaks `parse`** — static values store literal `\n` characters, causing `parse` to fail with "Expected property name or '}' in JSON at position 1". Fix: write single-line templates.
+37a. **Template `data` must be a non-blank string, never `{}`** — missing or `{}` fails that component on import while the project still reports success; check `metadata.failedComponents`. See `## Templates`.
 
 ### MOP
 38. **Missing variable = skip = PASS (not fail)** — if a variable isn't passed, the rule is skipped and the command auto-passes. Always verify variables are passed correctly.
