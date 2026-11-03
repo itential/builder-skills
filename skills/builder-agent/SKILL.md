@@ -63,7 +63,7 @@ the plan's definition of proven and the engineer agrees, record the session IDs 
 `use-case-memory.md` and hand off to `/flowagent-to-spec` for that phase. Its
 `<phase>-converted-spec.md` comes back through `/solution-arch-agent design-only`
 before the deterministic assets are built — don't build them from the agent
-directly. Build the delivery's other phases meanwhile as designed.
+directly. Meanwhile, build the delivery's other phases as designed.
 
 ## Workspace Contract
 

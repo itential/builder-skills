@@ -283,7 +283,7 @@ Then offer next steps:
 - **Refine and deliver** → hand to `/spec-agent` for requirements refinement → `/solution-arch-agent` → `/builder-agent`
 - **Accept as-is** → hand directly to `/solution-arch-agent` with the approved spec
 - **One phase of an existing delivery** → `/solution-arch-agent design-only` with `<phase>-converted-spec.md`; set `Stage: design` in `use-case-memory.md`
-- **Keep the agent** → a valid outcome too; record the decision in `use-case-memory.md` and the agent stays the phase's delivered component
+- **Keep the agent** → also valid; record the decision in `use-case-memory.md`, and the agent stays the phase's delivered component
 
 ---
 

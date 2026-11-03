@@ -59,14 +59,14 @@ Design defines how it will be delivered. Nothing is built until this is approved
 
 If requirements are unchanged but the implementation plan needs to change, invoke `/solution-arch-agent design-only`. Skips Feasibility. Reads existing `feasibility.md` as context and produces an updated `solution-design.md`.
 
-If `feasibility.md` has no Execution Capabilities section (written before it
-existed), re-run `scripts/pull-platform-data.py` and take it from
-`platform-summary.json` → `execution_capabilities` before Design the Execution Model.
+If `feasibility.md` has no Execution Capabilities section, run
+`scripts/pull-platform-data.py` and use `platform-summary.json` →
+`execution_capabilities` before Design the Execution Model.
 
-Design-only is also how an agent-first phase comes back: `/flowagent-to-spec` writes
-`{use-case}/<phase>-converted-spec.md`; design that phase's deterministic components
-from it, replace the phase's rows in Sections C–F, and leave the other phases as
-approved.
+Use design-only mode when an agent-first phase comes back from `/flowagent-to-spec`
+as `{use-case}/<phase>-converted-spec.md`: design that phase's deterministic
+components from it, replace that phase's rows in Sections C–F, and leave the other
+phases as approved.
 
 ---
 
@@ -241,27 +241,26 @@ in a workflow; don't switch to a workflow design without the engineer agreeing.
 
 ### Inventory Execution Capabilities
 
-Record what LCM, FlowAgent and Gateway5 have on this platform, from
-`platform-summary.json` → `execution_capabilities`, in an **Execution
-Capabilities** section of `feasibility.md`. No recommendation — which model each
-phase uses is decided in Design, with the engineer.
+Write an **Execution Capabilities** section in `feasibility.md` from
+`platform-summary.json` → `execution_capabilities`. Record facts only — don't
+recommend a model here; Design decides that with the engineer.
 
-| Model | Record | Not available when |
-|-------|--------|--------------------|
-| LCM | `LifecycleManager` running; resource models whose names match the spec's objects, with their actions | `LifecycleManager` not running |
-| FlowAgent | Agent apps running; LLM profiles the client can build with; agents whose names match the spec's job | Apps not running, or no LLM profile |
-| Gateway5 | `GatewayManager` running; connected clusters and their service counts; services whose names match spec steps; inventories and node counts | `GatewayManager` not running, or no connected cluster |
-| Gateway4 | `gateway4_workflows` — workflows that still call `AGManager` tasks. New work is never designed on Gateway4; if any of those workflows are in this spec's scope, point to `/gateway4-to-gateway5` | — |
+| Model | What to record | Mark it not available when |
+|-------|----------------|----------------------------|
+| LCM | `LifecycleManager` running; resource models whose names match the spec's objects, with their actions | `LifecycleManager` isn't running |
+| FlowAgent | Agent apps running; LLM profiles the client can build with; agents whose names match the spec's job | The apps aren't running, or there's no LLM profile |
+| Gateway5 | `GatewayManager` running; connected clusters and their service counts; services whose names match spec steps; inventories and node counts | `GatewayManager` isn't running, or no cluster is connected |
+| Gateway4 | `gateway4_workflows` — workflows that still call `AGManager` tasks. Never design new work on Gateway4; if any of these workflows are in this spec's scope, point to `/gateway4-to-gateway5` | — |
 
-Matches are found **by name only** — list them as *candidates* (name, ID, owning
-project if known), at most five per kind with a count of the rest, never as fits.
-Design checks whether each one actually fits. Search with word boundaries
-(`test("\\bport\\b";"i")`, not `test("port";"i")`, which also matches "report").
-If `agents.json` reports `approxInaccessibleAgentCnt` above zero, say that some
-agents aren't visible to this client — see `assets/AGENTS.md` → Project Visibility.
+List name matches as **candidates** — name, ID, owning project if known — at most
+five per kind, with a count of the rest. Don't call them fits; Design checks that.
+Search with word boundaries: `test("\\bport\\b";"i")`, not `test("port";"i")`,
+which also matches "report". If `agents.json` reports `approxInaccessibleAgentCnt`
+above zero, note that some agents aren't visible to this client — see
+`assets/AGENTS.md` → Project Visibility.
 
 If the spec names a model the platform can't run ("use LCM", "build an agent"),
-that's a capability gap — resolve it like any other (Resolve Capabilities above).
+treat it as a capability gap (Resolve Capabilities above).
 
 ---
 
@@ -277,43 +276,35 @@ The migrated workflows are built as a new project alongside the originals.
 ### Design the Execution Model
 
 Before decomposing anything, decide with the engineer where LCM, FlowAgent and
-Gateway5 come into this delivery. Read `references/execution-model.md` — what
-each one gives the customer, when to use it, its discovery questions, and what it
-puts in the design — then:
+Gateway5 come into this delivery. Read `references/execution-model.md` first — it
+says when to use each one, what to check, what to ask and what to put in the
+design. Then:
 
-1. **Start from what the platform has** — the Execution Capabilities section of
-   `feasibility.md`. Don't offer a model the platform can't run. Check each
-   candidate before building on it — these are read-only live calls, made here
-   because the pulled files hold only names:
-   - resource model: `GET /lifecycle-manager/resources/{id}` — does its schema fit
-     this spec's object, do its actions have workflows, which project owns it?
-   - agent: `GET /agent-project-service/agents/{id}` — its instructions and tools
+1. **Check the candidates.** Feasibility lists existing resource models, agents and
+   services by name only. Read each one before building on it — make these
+   read-only calls now:
+   - resource model: `GET /lifecycle-manager/resources/{id}` — schema, actions,
+     owning project
+   - agent: `GET /agent-project-service/agents/{id}` — instructions and tools
    - tools an agent would need: `GET /tools?name=...`
 
-   A candidate that fits is the first thing to build on (a new action on the
-   model, the agent as a tool, the service reused). One that doesn't fit — a
-   schema built for another use case, or owned by another team who hasn't
-   agreed — is not reused just because the name matched. Two overlapping
-   candidates → ask the engineer which, if either.
-2. **Ask the discovery questions the spec and the inventory leave open** — only
-   those, grouped in one message, and leave out anything already answered by the
-   spec or in Feasibility Step 2; merge a question that overlaps a spec question
-   instead of asking it twice. The LCM questions find out whether the deliverable
-   is a *thing* with a life after delivery; the FlowAgent questions decide the
-   delivery path (agent first or direct) separately from what runs in production —
-   ask which path only where agent first is a real option, with its trade-off, and
-   never assume either;
-   the Gateway5 questions find out where the logic should live and who maintains it.
-3. **Propose the model for each phase**, citing the answer or inventory fact behind
-   anything other than a deterministic workflow. Record it in Section C.
+   Reuse a candidate only if it fits; a matching name isn't enough. If two
+   overlap, ask the engineer which, if either.
+2. **Ask the engineer what's still open, in one message.** Pick from the guide's
+   questions. Leave out anything the spec or Feasibility Step 2 already answered,
+   and merge any question that overlaps a spec question. Ask about the delivery
+   path (agent first or direct) only where agent first is a real option, and give
+   the trade-off.
+3. **Propose a model for each phase** and record it in Section C, with the answer
+   or inventory fact behind anything other than a deterministic workflow.
 
-The spec constrains the proposal:
-- If it explicitly names a model ("use LCM", "build an agent"), follow it and
-  record any concern as a risk.
-- Its Key Design Decisions (Section 4) still apply — e.g., "never improvise a
-  fix" rules out an agent choosing the remediation. If a model you'd propose
-  conflicts with one (LCM's one action per operation vs. "one workflow handles
-  turn-up and tear-down"), raise it in review; don't silently follow or override.
+Follow the spec:
+- If it names a model ("use LCM", "build an agent"), use it and record any concern
+  as a risk.
+- Apply its Key Design Decisions (Section 4). "Never improvise a fix", for
+  example, rules out an agent choosing the remediation. If your proposal conflicts
+  with one — LCM's one action per operation vs. "one workflow handles turn-up and
+  tear-down" — raise it in review; don't silently follow or override it.
 
 ### Produce `{use-case}/solution-design.md`
 
@@ -334,11 +325,11 @@ The spec constrains the proposal:
 
 **C. Design Decisions**
 
-Start with the execution model — from Design the Execution Model. One row per
-spec phase; for an LCM resource, one row per action instead (create, modify,
-delete…), with the spec phases it runs listed in Why. "Runs as" is what runs in
-production; "Delivery path" is how it gets built. Illustrative only — the rows
-come from this spec's answers, not from this example:
+Start Section C with the execution model from Design the Execution Model. Write
+one row per spec phase — for an LCM resource, one row per action instead (create,
+modify, delete…), with the spec phases it runs under Why. "Runs as" is what runs
+in production; "Delivery path" is how it gets built. The example is illustrative —
+fill the rows from this spec's answers:
 ```
 ┌──────────────────────┬──────────────────────────┬───────────────┬──────────────────────────────────────────┐
 │ Phase / action       │ Runs as                  │ Delivery path │ Why                                      │
@@ -353,8 +344,8 @@ come from this spec's answers, not from this example:
 │                      │                          │               │ maintains it                             │
 └──────────────────────┴──────────────────────────┴───────────────┴──────────────────────────────────────────┘
 ```
-Cross-cutting concerns (throttling, per-device serialization) go in the decisions
-table below.
+Put cross-cutting concerns (throttling, per-device serialization) in the
+decisions table below.
 
 Then the other decisions:
 ```
@@ -404,10 +395,10 @@ The orchestrator is always the last thing built, after all children are tested.
 └────┴──────────────────────────────┴─────────────────────┴──────────┘
 ```
 
-Types the execution model adds: `LCM Resource Model`, `LCM Action` (on a new or
-existing model), `Agent`, `Agent Tool Decorator`, `Gateway5 Service`,
-`Inventory`. An existing resource model, agent or service the design builds on is
-listed with Action `Reuse` or `Extend`.
+When the execution model calls for them, use these types: `LCM Resource Model`,
+`LCM Action` (on a new or existing model), `Agent`, `Agent Tool Decorator`,
+`Gateway5 Service`, `Inventory`. List an existing resource model, agent or service
+the design builds on with Action `Reuse` or `Extend`.
 
 For every `⚠ Stub` integration, add to the inventory:
 - `integration-model-{name}.json` — OpenAPI 3.0.3 stub spec (Type: Integration Model, Action: Build)
@@ -437,12 +428,12 @@ Close `integration-questions.md` with a **Next steps** note: once all questions 
 
 **E. Implementation Plan** — ordered build steps with test method for each
 
-For a phase built agent first, plan two stages: (1) the agent and its test
-sessions, with what counts as proven (e.g., N sessions on real requests with the
-expected result) and who decides; (2) `/flowagent-to-spec` turns the proven
-sessions into `<phase>-converted-spec.md`, which comes back through design-only
-mode and Build. Stage 2 is planned now, not left for later; the engineer may still
-decide at that point to keep the agent instead.
+For a phase built agent first, plan both stages now:
+1. The agent and its test sessions. Say what counts as proven (e.g., N sessions on
+   real requests with the expected result) and who decides.
+2. `/flowagent-to-spec` turns the proven sessions into
+   `<phase>-converted-spec.md`, which comes back through design-only mode and
+   Build. The engineer can still decide at that point to keep the agent.
 
 **F. Acceptance Criteria → Tests** — map each criterion to how to verify it. This is a first-pass mapping — `/qa-agent` refines it into an executable `test-plan.md` once real IDs exist after Build, but the verification *method* per criterion should be decided now, while the design is fresh.
 
