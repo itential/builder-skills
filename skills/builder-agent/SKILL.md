@@ -2501,6 +2501,23 @@ POST /workflow_engine/workflows/validate
 
 **A non-empty `warnings` array is not "good enough to ship."** `errors` blocks a job from starting; `warnings` (e.g., `"input should be of type string but is of type object"`, `"outputType is of type enum but got non-enumerated value..."`) means a task's static data won't behave the way you intended even though the workflow will technically save and run. Treat any non-empty `warnings` array as a build defect to fix before marking the component delivered — don't report a workflow as built/delivered just because the save call returned a 200. If the same warning reappears after a "fix," you've patched the symptom, not the cause — re-check the `$var` Resolution Rules section below before trying another variation.
 
+**Validate every asset with its own validator before creating, updating or importing it, and read both `errors` and `warnings`.** Each asset type has its own endpoint and request shape; sending a document to the wrong one, or wrapping a template or transformation in `asset`, returns misleading errors:
+
+| Asset | Call | Request body |
+|---|---|---|
+| Workflow | `POST /workflow_engine/workflows/validate` | `{"asset": <workflow document>}` |
+| JSON form | `POST /json-forms/validate` | `{"asset": <form document>}` |
+| Template | `POST /automation-studio/templates/validate` | the template document itself — **no** `asset` wrapper |
+| Transformation | `POST /transformations/validate` | the transformation document itself — **no** `asset` wrapper |
+
+Each returns `{"isValid": true|false, "errors": [], "warnings": []}`. For any other asset type (e.g., MOP command templates), look up its validator in `openapi.json`; don't guess.
+
+**Validator quirks:**
+- An exported template stores `createdBy` and `lastUpdatedBy` as user objects; the template validator rejects them ("must be a MongoDB ObjectId"). Replace each with the user's `_id` before validating.
+- The template validator rejects an empty or whitespace-only `command` or `description`, though import accepts them. Give both real values.
+- The workflow validator can flag `query` decorators as errors when they aren't defects — see "Validator vs runtime" above. Don't remove the decorators to silence it.
+- The form validator catches a missing top-level `nodeId` but not one on a field nested in an array field. Check nested fields yourself (see the `itential-json-forms` skill).
+
 **Never author a large workflow JSON payload as an inline shell string.** Write it to a file with a proper file-editing tool, or if constrained to `bash`, generate it via `python3 -c "..." ` with `json.dump()` — never an interactive heredoc with embedded Jinja/markdown/emoji. If a payload fails to parse, regenerate it cleanly rather than patching it byte-by-byte with `sed`.
 
 **Workflow rename:**
@@ -2745,6 +2762,7 @@ The `revert` transition moves execution back to a previous task, allowing the us
 8. **`canvasName` must come from `tasks.json`** — some differ from method name: `arrayPush`→`push`, `stringConcat`→`concat`. Wrong `canvasName` causes silent `$var` failures.
 9. **Task IDs must be hex `[0-9a-f]{1,4}`** — non-hex causes silent `$var` failure.
 10. **Validation errors = draft workflow** that cannot be started. Run `POST /workflow_engine/workflows/validate` (deep validation, prefer over `/automation-studio/workflows/validate`) before every create or update, and check `warnings[]` too — `isValid` ignores them.
+10a. **Each asset type has its own validator and request shape** — templates and transformations take the document itself, with no `asset` wrapper. See "Validate every asset with its own validator".
 11. **`$var` inside nested objects doesn't resolve** — use merge/makeData/query to build the object first. Exception: `GatewayManager.runService`/`runServiceStatic` (`params`), `GatewayManager.runCode` (`data`), `AgentSessionManager.runAgent` (`inputs`) resolve one level deep into that one specific key.
 11a. **Enable Query needs a suffix AND a decorator** — `$var.x#/path` alone runs fine but Studio shows no query, and a Studio save then strips the `#/path`. The pointer depends on the field shape (`merge` and `childJob` differ); on `evaluation` put `query`/`rightQuery` on the evaluation object, never inside the operand. Verify with `assets/helpers/enable_query.py check` — see [Enable Query](#enable-query--inline-query-decorator-on-any-incoming-field-aka-in-task-query-called-task-query-in-official-docs).
 12. **`stringConcat` does not resolve `$var` inside `stringN` arrays** — values stored as literal strings. Use `merge` → `makeData` with `<!var!>` placeholders instead.
