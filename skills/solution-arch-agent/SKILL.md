@@ -260,7 +260,7 @@ The migrated workflows are built as a new project alongside the originals.
 ### Design the Execution Model
 
 Before decomposing anything, decide with the engineer where LCM, FlowAgent and
-Gateway5 come into this delivery. Read `assets/helpers/execution-model.md` — what
+Gateway5 come into this delivery. Read `references/execution-model.md` — what
 each one gives the customer, the test for it, its discovery questions, and what it
 puts in the design — then:
 

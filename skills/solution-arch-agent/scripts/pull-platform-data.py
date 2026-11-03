@@ -206,7 +206,7 @@ def main():
         dg = results["device_groups"]
         summary["device_group_count"] = len(dg) if isinstance(dg, list) else len(dg.get("results", dg.get("list", [])))
 
-    # Execution-model capabilities — what the design can build on (see helpers/execution-model.md)
+    # Execution-model capabilities — what the design can build on (see ../references/execution-model.md)
     running = {a["name"] for a in summary["applications"]}
     caps = {
         "lcm": {"running": "LifecycleManager" in running, "models": []},
