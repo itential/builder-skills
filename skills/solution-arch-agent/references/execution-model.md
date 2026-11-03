@@ -34,13 +34,13 @@ because of something specific about the use case — name it.
 | Bulk actions and instance groups | One action across the fleet: verify every port, re-apply after a standard change |
 | Import | Services that already exist come under management |
 
-### The test
+### When to use LCM
 
-Can the deliverable be named as a **thing that outlives the run that created it and
+Use LCM when the deliverable is a **thing that outlives the run that created it and
 is acted on again later** — a port service, a circuit, a VXLAN network, a device
-under management, an IP block, a firewall rule? If it can only be named as a
-**task** — a backup, a compliance run, a report — LCM doesn't apply (the task may
-still become an action on someone else's resource model).
+under management, an IP block, a firewall rule. Don't use it when the deliverable is
+a **task** — a backup, a compliance run, a report (the task may still become an
+action on someone else's resource model).
 
 A noun alone isn't enough. An incident or a request that is opened and closed
 within one run is a task record — the ITSM ticket already holds it — unless the
@@ -94,7 +94,8 @@ both. Decide them separately for each phase.
 | **Delivery path** | **Agent first** — build an agent on existing tools, prove the idea, then convert it to deterministic assets with `/flowagent-to-spec`. **Direct** — build the deterministic assets from the start. |
 | **Production** | The agent, a workflow, or a workflow with one `runAgent` step |
 
-Neither path is the default. When the test below says direct, propose direct
+Neither path is the default. When "When to build agent first, when direct, and when
+to keep the agent" below says direct, propose direct
 without asking. When agent first is a real option, ask the engineer, with the
 trade-off: agent first shows the idea working sooner and records the real procedure,
 but the phase is built twice (the agent, then its deterministic assets) with a
@@ -111,10 +112,10 @@ paper first.
 | Writes language | Summaries, root-cause write-ups, ticket text, explanations for a person |
 | Stops for a person (work items) | Proposes, gets approval, then acts |
 
-### The test
+### When to build agent first, when direct, and when to keep the agent
 
-**Who decides the next step, and when?** A workflow's designer decides every step
-and branch at build time; an agent decides at run time.
+The difference: in a workflow, the designer decides every step and branch at build
+time; an agent decides its next step at run time.
 
 - **Agent first** fits when the tools the idea needs already exist (the agent is
   mostly instructions and a tool list), the idea isn't proven yet, or nobody has
@@ -179,9 +180,9 @@ and branch at build time; an agent decides at run time.
 | The Python and SDK ecosystem — netmiko, NAPALM, cloud SDKs, OpenTofu state | Protocols and APIs no adapter covers |
 | Services are also agent tools | One service serves workflows and agents |
 
-### The test
+### When to use a Gateway5 service
 
-**Where should this logic live, and who maintains it after delivery?**
+Decide where each piece of logic lives, based on who maintains it after delivery:
 
 - **In the orchestration**, as workflow tasks maintained by Studio builders: a native
   task or adapter, `sendCommand`/`sendConfig`, `runCode` for reshaping data.
