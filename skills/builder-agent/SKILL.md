@@ -60,9 +60,10 @@ answer, not just the parent's tool status.
 **Phases built agent first** (Section C of the design says "Agent first"): build
 the agent and run the test sessions the implementation plan names. Once they meet
 the plan's definition of proven and the engineer agrees, record the session IDs in
-`use-case-memory.md` and hand off to `/flowagent-to-spec`. Its spec comes back
-through `/solution-arch-agent` before the deterministic assets are built — don't
-build them from the agent directly.
+`use-case-memory.md` and hand off to `/flowagent-to-spec` for that phase. Its
+`<phase>-converted-spec.md` comes back through `/solution-arch-agent design-only`
+before the deterministic assets are built — don't build them from the agent
+directly. Build the delivery's other phases meanwhile as designed.
 
 ## Workspace Contract
 

@@ -215,8 +215,14 @@ def main():
             "llm_profiles": [], "agent_count": 0,
         },
         "gateway5": {"running": "GatewayManager" in running, "clusters": [], "inventories": []},
-        "gateway4_running": "AGManager" in running,
+        "gateway4_workflows": [],
     }
+    # Gateway4 is still in use where a workflow calls AGManager tasks (tasks is keyed by task ID)
+    if isinstance(results["workflows"], dict):
+        for w in results["workflows"].get("items", []):
+            tasks = w.get("tasks") or {}
+            if any(isinstance(t, dict) and t.get("app") == "AGManager" for t in tasks.values()):
+                caps["gateway4_workflows"].append(w.get("name"))
     if isinstance(results["lcm_models"], dict):
         for m in results["lcm_models"].get("data", []):
             caps["lcm"]["models"].append({"name": m.get("name"), "id": m.get("_id"),
@@ -260,6 +266,7 @@ def main():
     print(f"  Agents / LLM profiles: {caps['flowagent']['agent_count']} / {len(caps['flowagent']['llm_profiles'])}")
     print(f"  Gateway5 clusters:    {len(connected)} connected of {len(caps['gateway5']['clusters'])}")
     print(f"  Inventories:          {len(caps['gateway5']['inventories'])}")
+    print(f"  Gateway4 workflows:   {len(caps['gateway4_workflows'])}")
     print(f"  Summary:              {out}")
     print(f"\nFiles written to {use_case}/:")
     print(f"  platform-summary.json — read this for feasibility")

@@ -8,8 +8,8 @@ The order is always the same:
 
 1. **What the platform has** — the capability inventory from feasibility
    (`platform-summary.json` → `execution_capabilities`). A model the platform can't
-   run is not offered; one it already has in use (an existing resource model, agent
-   or service) is the first thing to build on.
+   run is not offered. An existing resource model, agent or service is the first
+   candidate to build on — once it's checked and actually fits.
 2. **What the spec doesn't say** — ask the discovery questions below that the spec
    and the inventory leave open. Ask only those; never the whole list.
 3. **Where each one comes in** — propose the model per phase, citing the answer that
@@ -36,10 +36,15 @@ because of something specific about the use case — name it.
 
 ### The test
 
-Can the deliverable be named as a **thing** — a port service, a circuit, a VXLAN
-network, a device under management, an IP block, a firewall rule? If it can only be
-named as a **task** — a backup, a compliance run, a report — LCM doesn't apply (the
-task may still become an action on someone else's resource model).
+Can the deliverable be named as a **thing that outlives the run that created it and
+is acted on again later** — a port service, a circuit, a VXLAN network, a device
+under management, an IP block, a firewall rule? If it can only be named as a
+**task** — a backup, a compliance run, a report — LCM doesn't apply (the task may
+still become an action on someone else's resource model).
+
+A noun alone isn't enough. An incident or a request that is opened and closed
+within one run is a task record — the ITSM ticket already holds it — unless the
+customer wants it tracked and acted on across several runs.
 
 ### Discovery questions
 
@@ -59,8 +64,11 @@ task may still become an action on someone else's resource model).
 
 ### Check the inventory first
 
-- An **existing resource model** for the same thing → the new use case is a new
-  action on it, not a new model. Read its schema and actions before designing.
+- An **existing resource model** for the same thing → read its schema and actions
+  (`GET /lifecycle-manager/resources/{id}`). If the schema fits this spec's object
+  and its owners agree, the new use case is a new action on it, not a new model.
+  A schema built for another use case, actions with no workflow, or a model owned
+  by another team who hasn't agreed → a new model. Overlapping models → ask.
 - **Two specs on the same thing** (turn-up and turn-down, create and modify) → one
   model with several actions, not separate workflows.
 
@@ -86,7 +94,12 @@ both. Decide them separately for each phase.
 | **Delivery path** | **Agent first** — build an agent on existing tools, prove the idea, then convert it to deterministic assets with `/flowagent-to-spec`. **Direct** — build the deterministic assets from the start. |
 | **Production** | The agent, a workflow, or a workflow with one `runAgent` step |
 
-Agent first ending in a workflow is expected to be the common case.
+Neither path is the default. When the test below says direct, propose direct
+without asking. When agent first is a real option, ask the engineer, with the
+trade-off: agent first shows the idea working sooner and records the real procedure,
+but the phase is built twice (the agent, then its deterministic assets) with a
+conversion in between; direct is one build, but the procedure has to be right on
+paper first.
 
 ### What it gives the customer
 
@@ -131,16 +144,21 @@ and branch at build time; an agent decides at run time.
 
 - An **LLM profile** the engineer can build with (`/agent-project-service/profiles`).
   If there is none, FlowAgent isn't available on this platform.
-- **Existing agents** that already do part of the job → reuse as a tool (parent and
-  child agents), or extend.
+- **Existing agents** whose names match the job → read their instructions and tools
+  (`GET /agent-project-service/agents/{id}`). One that does part of the job → reuse
+  as a tool (parent and child agents), or extend. If the path is direct, a matching
+  agent may still be a proven version of the procedure — ask whether its sessions
+  should be the starting point (`/flowagent-to-spec`).
 - The **tools** each agent would need. A missing tool is build work in the design.
 
 ### What it puts in the design
 
 - For agent first, **two build phases**: (1) the agent and its test sessions, which
-  prove the idea; (2) `/flowagent-to-spec` produces a deterministic spec that goes
-  back through design and build. Plan the conversion — say what "proven" means
-  (e.g., N sessions on real requests with the expected result) and who decides.
+  prove the idea; (2) `/flowagent-to-spec` produces `<phase>-converted-spec.md`,
+  which comes back through `/solution-arch-agent design-only` and Build — the
+  delivery's approved `customer-spec.md` is left as is. Plan the conversion — say
+  what "proven" means (e.g., N sessions on real requests with the expected result)
+  and who decides. Keeping the agent is still an option at that point.
 - For an agent in production: its tools, which of them write and the work item in
   front of each write, and its inputs.
 - For a workflow with one judgment step: the `runAgent` task and how the workflow
@@ -173,8 +191,9 @@ and branch at build time; an agent decides at run time.
 
 ### Discovery questions
 
-1. **"What scripts, playbooks or Terraform do you already have — where do they live,
-   and who maintains them?"**
+1. **"What scripts, Ansible playbooks or Terraform do you already have — where do
+   they live, and who maintains them?"** (A spec's "playbook" often means a runbook
+   entry, not Ansible — check which before treating it as Gateway5 code.)
 2. **"Which zones or sites are the devices in? Can the platform reach them, or only
    a gateway placed there?"**
 3. **"After delivery, who maintains this logic — people who write code, or people
@@ -185,13 +204,14 @@ and branch at build time; an agent decides at run time.
 
 ### Check the inventory first
 
-- **Connected clusters**, and which zones they serve. A cluster that is
-  `disconnected` isn't available.
+- **Connected clusters**. A cluster that is `disconnected` isn't available. The
+  platform doesn't record which zone a cluster serves — that comes from question 2.
 - **Services already registered** on those clusters → reuse before writing new ones.
 - **Inventory Manager inventories** and their node counts → whether devices are
   ready to target, or populating them is build work (`/itential-inventory`).
-- **Gateway4 (`AGManager`) in use** → no new work on Gateway4; for the existing
-  estate, point to `/gateway4-to-gateway5`.
+- **Workflows still on Gateway4** (`gateway4_workflows`, those calling `AGManager`
+  tasks) → no new work on Gateway4; if any are in this spec's scope, point to
+  `/gateway4-to-gateway5`.
 
 ### What it puts in the design
 
