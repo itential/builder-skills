@@ -1,0 +1,19 @@
+{
+  "example1Input": {
+    "fruits": [
+      "apple",
+      "Orange",
+      "banana"
+    ]
+  },
+  "example1Output": {
+    "info": {
+      "originalSize": 3,
+      "newSize": 2
+    },
+    "newFruits": [
+      "APPLE",
+      "BANANA"
+    ]
+  }
+}
