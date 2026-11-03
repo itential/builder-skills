@@ -17,6 +17,12 @@ Writes:
     {use-case}/projects.json      — projects visible to this client
     {use-case}/devices.json       — every device ({"list": [...], "total": N})
     {use-case}/device-groups.json — device groups
+    {use-case}/lcm-models.json    — LCM resource models with their actions
+    {use-case}/agents.json        — FlowAgent agents this client can see
+    {use-case}/llm-profiles.json  — LLM profiles this client can build agents with
+    {use-case}/gateways.json      — Gateway5 clusters, with connection state
+    {use-case}/gateway-services.json — services registered on Gateway5 clusters
+    {use-case}/inventories.json   — Inventory Manager inventories
     {use-case}/platform-summary.json — compact summary for AI context
 """
 
@@ -41,7 +47,7 @@ def main():
         auth = json.load(f)
 
     base = auth["platform_url"].rstrip("/")
-    token = auth["token"]
+    token = auth.get("token") or auth["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
     def get(path, out_file):
@@ -113,6 +119,34 @@ def main():
                 print(f"  WARN: devices.json failed — {e}")
                 return None
         futures["devices"] = pool.submit(get_devices)
+
+        # Execution-model capability inventory: what LCM, FlowAgent and Gateway5 already
+        # have on this platform. A missing app returns an error; that file is just skipped.
+        def get_lcm_models():
+            items, total = [], None
+            try:
+                while total is None or len(items) < total:
+                    req = Request(f"{base}/lifecycle-manager/resources?limit=100&skip={len(items)}", headers=headers)
+                    with urlopen(req, timeout=120) as r:
+                        page = json.loads(r.read().decode("utf-8"))
+                    total = page.get("metadata", {}).get("total", 0)
+                    if not page.get("data"):
+                        break
+                    items.extend(page["data"])
+                data = {"data": items, "total": total}
+                with open(os.path.join(use_case, "lcm-models.json"), "w") as f:
+                    json.dump(data, f)
+                return data
+            except Exception as e:
+                print(f"  WARN: lcm-models.json failed — {e}")
+                return None
+        futures["lcm_models"] = pool.submit(get_lcm_models)
+        futures["agents"] = pool.submit(get, "/agent-project-service/agent-names/accessible", "agents.json")
+        futures["llm_profiles"] = pool.submit(get, "/agent-project-service/profiles", "llm-profiles.json")
+        futures["gateways"] = pool.submit(get, "/gateway_manager/v1/gateways", "gateways.json")
+        futures["gateway_connections"] = pool.submit(get, "/gateway_manager/v1/connections", "gateway-connections.json")
+        futures["gateway_services"] = pool.submit(get, "/gateway_manager/v1/services", "gateway-services.json")
+        futures["inventories"] = pool.submit(get, "/inventory_manager/v1/inventories?pageSize=100", "inventories.json")
         results = {k: v.result() for k, v in futures.items()}
 
     # Build compact summary — only what's needed for feasibility
@@ -172,7 +206,44 @@ def main():
         dg = results["device_groups"]
         summary["device_group_count"] = len(dg) if isinstance(dg, list) else len(dg.get("results", dg.get("list", [])))
 
-    out = os.path.join(use_case, "platform-summary.json")
+    # Execution-model capabilities — what the design can build on (see helpers/execution-model.md)
+    running = {a["name"] for a in summary["applications"]}
+    caps = {
+        "lcm": {"running": "LifecycleManager" in running, "models": []},
+        "flowagent": {
+            "running": {"AgentProjectService", "AgentSessionManager", "AgentExecutionEngine"} <= running,
+            "llm_profiles": [], "agent_count": 0,
+        },
+        "gateway5": {"running": "GatewayManager" in running, "clusters": [], "inventories": []},
+        "gateway4_running": "AGManager" in running,
+    }
+    if isinstance(results["lcm_models"], dict):
+        for m in results["lcm_models"].get("data", []):
+            caps["lcm"]["models"].append({"name": m.get("name"), "id": m.get("_id"),
+                                          "actions": [a.get("name") for a in m.get("actions") or []]})
+    if isinstance(results["llm_profiles"], dict):
+        for p in results["llm_profiles"].get("data", {}).get("items", []):
+            caps["flowagent"]["llm_profiles"].append({"name": p.get("name"), "provider": p.get("provider"),
+                                                      "models": [m.get("name") for m in p.get("models") or []]})
+    if isinstance(results["agents"], dict):
+        caps["flowagent"]["agent_count"] = len(results["agents"].get("data", {}).get("items", []))
+    services_by_cluster = {}
+    if isinstance(results["gateway_services"], dict):
+        for s in results["gateway_services"].get("result", []):
+            loc = (s.get("service_metadata") or {}).get("location")
+            services_by_cluster[loc] = services_by_cluster.get(loc, 0) + 1
+    conns = results["gateway_connections"] if isinstance(results["gateway_connections"], dict) else {}
+    if isinstance(results["gateways"], dict):
+        for g in results["gateways"].get("results", []):
+            cid = g.get("cluster_id")
+            caps["gateway5"]["clusters"].append({"cluster_id": cid, "connection": conns.get(cid, "unknown"),
+                                                 "services": services_by_cluster.get(cid, 0)})
+    if isinstance(results["inventories"], dict):
+        for i in results["inventories"].get("result", {}).get("data", []):
+            caps["gateway5"]["inventories"].append({"name": i.get("name"), "nodes": i.get("nodeCount")})
+    summary["execution_capabilities"] = caps
+
+    out =os.path.join(use_case, "platform-summary.json")
     with open(out, "w") as f:
         json.dump(summary, f, indent=2)
 
@@ -184,11 +255,18 @@ def main():
     print(f"  Projects:             {len(summary['projects'])}")
     print(f"  Devices:              {summary['device_count']}")
     print(f"  Device groups:        {summary['device_group_count']}")
+    connected = [c for c in caps["gateway5"]["clusters"] if c["connection"] == "connected"]
+    print(f"  LCM resource models:  {len(caps['lcm']['models'])}")
+    print(f"  Agents / LLM profiles: {caps['flowagent']['agent_count']} / {len(caps['flowagent']['llm_profiles'])}")
+    print(f"  Gateway5 clusters:    {len(connected)} connected of {len(caps['gateway5']['clusters'])}")
+    print(f"  Inventories:          {len(caps['gateway5']['inventories'])}")
     print(f"  Summary:              {out}")
     print(f"\nFiles written to {use_case}/:")
     print(f"  platform-summary.json — read this for feasibility")
     print(f"  openapi.json, tasks.json, apps.json, adapters.json, applications.json")
     print(f"  workflows.json, projects.json, devices.json, device-groups.json")
+    print(f"  lcm-models.json, agents.json, llm-profiles.json, gateways.json, gateway-connections.json,")
+    print(f"  gateway-services.json, inventories.json")
     print(f"\nSearch raw files locally with jq — never load them into context.")
 
 if __name__ == "__main__":

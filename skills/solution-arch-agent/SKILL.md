@@ -36,7 +36,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 | | |
 |--|--|
 | **Engineer provides** | Approved `customer-spec.md`, platform credentials |
-| **Agent does** | Connects to platform, assesses capabilities, checks adapters, finds reuse candidates, identifies constraints |
+| **Agent does** | Connects to platform, assesses capabilities, checks adapters, finds reuse candidates, records what LCM, FlowAgent and Gateway5 have on the platform, identifies constraints |
 | **Engineer action** | Reviews assessment and approves decision to proceed |
 | **Deliverable** | `feasibility.md` (assessment + decision) |
 | **Customer receives** | Feasibility assessment with a clear decision (feasible / feasible with constraints / not feasible), flagged constraints, and identified reuse opportunities. |
@@ -48,7 +48,7 @@ Feasibility confirms what is possible. Decision options: **feasible**, **feasibl
 | | |
 |--|--|
 | **Engineer provides** | Approved `feasibility.md` |
-| **Agent does** | Produces implementation design — component inventory, adapter mappings, reuse decisions, build order, test plan |
+| **Agent does** | Designs the execution model with the engineer (where LCM, FlowAgent and Gateway5 come in), then produces the implementation design — component inventory, adapter mappings, reuse decisions, build order, test plan |
 | **Engineer action** | Reviews and approves the solution design |
 | **Deliverable** | `solution-design.md` (Solution Design / LLD, approved) |
 | **Customer receives** | Solution Design / LLD — component inventory, adapter mappings, build order, and acceptance criteria mapped to tests. Nothing is built until this is signed off. |
@@ -162,6 +162,13 @@ python3 scripts/pull-platform-data.py {use-case}
 | `projects.json` | Existing projects — search locally with `jq` | ❌ No |
 | `devices.json` | Device inventory — search locally with `jq` | ❌ No |
 | `device-groups.json` | Device groups — search locally with `jq` | ❌ No |
+| `lcm-models.json` | LCM resource models with their schemas and actions | ❌ No |
+| `agents.json`, `llm-profiles.json` | FlowAgent agents and the LLM profiles this client can build with | ❌ No |
+| `gateways.json`, `gateway-connections.json`, `gateway-services.json` | Gateway5 clusters, their connection state, registered services | ❌ No |
+| `inventories.json` | Inventory Manager inventories and node counts | ❌ No |
+
+`platform-summary.json` carries the compact version of the last four rows as
+`execution_capabilities` (see Inventory Execution Capabilities below).
 
 **After running, read `platform-summary.json` for feasibility. Search raw files locally when you need specifics — never load them into context.**
 
@@ -171,7 +178,11 @@ Every file has a specific shape. Use these queries — don't guess.
 
 | File | Shape | Example query |
 |------|-------|---------------|
-| `platform-summary.json` | `{adapters, applications, adapter_type_names, projects, workflow_count, device_count}` | `jq '.adapters[] | select(.connection == "ONLINE")' platform-summary.json` |
+| `platform-summary.json` | `{adapters, applications, adapter_type_names, projects, workflow_count, device_count, execution_capabilities}` | `jq '.adapters[] | select(.connection == "ONLINE")' platform-summary.json` |
+| `lcm-models.json` | `{"data":[...], "total":N}` | `jq '.data[] | select(.name | test("X";"i")) | {name, actions: [.actions[].name], required: .schema.required}' lcm-models.json` |
+| `agents.json` | `{"data":{"items":[...]}}` | `jq '.data.items[] | select(.name | test("X";"i")) | {name,_id}' agents.json` |
+| `gateway-services.json` | `{"result":[...]}` | `jq '.result[].service_metadata | select(.name | test("X";"i")) | {name,type,location}' gateway-services.json` |
+| `inventories.json` | `{"result":{"data":[...]}}` | `jq '.result.data[] | {name,nodeCount}' inventories.json` |
 | `tasks.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,app,type,location}' tasks.json` |
 | `apps.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,type}' apps.json` |
 | `adapters.json` | `{"results":[...], "total":N}` | `jq '.results[] | select(.id | test("X";"i")) | {id,state,package_id}' adapters.json` |
@@ -218,6 +229,23 @@ platform with `GET /tools/agent%3A<id>` for an existing agent. If it's not
 supported, say so in the feasibility assessment and propose chaining the agents
 in a workflow; don't switch to a workflow design without the engineer agreeing.
 
+### Inventory Execution Capabilities
+
+Record what LCM, FlowAgent and Gateway5 have on this platform, from
+`platform-summary.json` → `execution_capabilities`, in an **Execution
+Capabilities** section of `feasibility.md`. Facts only — which model each phase
+uses is decided in Design, with the engineer.
+
+| Model | Record | Not available when |
+|-------|--------|--------------------|
+| LCM | `LifecycleManager` running; resource models, with their actions, that concern the same things as the spec | `LifecycleManager` not running |
+| FlowAgent | Agent apps running; LLM profiles the client can build with; agents that already do part of the job (search `agents.json`) | Apps not running, or no LLM profile |
+| Gateway5 | `GatewayManager` running; connected clusters and their service counts; services that match spec phases (search `gateway-services.json`); inventories and node counts | `GatewayManager` not running, or no connected cluster |
+| Gateway4 | `gateway4_running` — new work is never designed on Gateway4; for an existing estate, point to `/gateway4-to-gateway5` | — |
+
+If the spec names a model the platform can't run ("use LCM", "build an agent"),
+that's a capability gap — resolve it like any other (Resolve Capabilities above).
+
 ---
 
 ## Design
@@ -228,6 +256,27 @@ Produce the solution design from the approved spec + feasibility results.
 ARGS / INV) using `assets/helpers/gateway-migration/conversion-guide.md` — the inventory mapping, the
 service per script/playbook, the task-by-task rewire, and a parity test per workflow for Section F.
 The migrated workflows are built as a new project alongside the originals.
+
+### Design the Execution Model
+
+Before decomposing anything, decide with the engineer where LCM, FlowAgent and
+Gateway5 come into this delivery. Read `assets/helpers/execution-model.md` — what
+each one gives the customer, the test for it, its discovery questions, and what it
+puts in the design — then:
+
+1. **Start from what the platform has** — the Execution Capabilities section of
+   `feasibility.md`. Don't offer a model the platform can't run. An existing
+   resource model, agent or Gateway5 service that covers part of the spec is the
+   first thing to build on.
+2. **Ask the discovery questions the spec and the inventory leave open** — only
+   those, grouped in one message. The LCM questions find out whether the deliverable
+   is a *thing* with a life after delivery; the FlowAgent questions decide the
+   delivery path (agent first or direct) separately from what runs in production;
+   the Gateway5 questions find out where the logic should live and who maintains it.
+3. **Propose the model for each phase**, citing the answer or inventory fact behind
+   anything other than a deterministic workflow. Record it in Section C.
+
+If the spec already names a model, follow it and record any concern as a risk.
 
 ### Produce `{use-case}/solution-design.md`
 
@@ -247,6 +296,21 @@ The migrated workflows are built as a new project alongside the originals.
 ```
 
 **C. Design Decisions**
+
+Start with the execution model, one row per phase — from Design the Execution Model:
+```
+┌──────────────────────┬──────────────────────────┬───────────────┬──────────────────────────────────────────┐
+│ Phase                │ Runs as                  │ Delivery path │ Why                                      │
+├──────────────────────┼──────────────────────────┼───────────────┼──────────────────────────────────────────┤
+│ Provision port       │ LCM action (Port model)  │ Direct        │ Changed later; today parameters come     │
+│                      │                          │               │ from the original ticket                 │
+│ Fault triage         │ Workflow                 │ Agent first   │ Procedure not written down; tools exist  │
+│ Collect device state │ Gateway5 service         │ Direct        │ Existing Ansible playbook, netops team   │
+│                      │                          │               │ maintains it                             │
+└──────────────────────┴──────────────────────────┴───────────────┴──────────────────────────────────────────┘
+```
+
+Then the other decisions:
 ```
 ┌─────────────────────────────────────┬────────────────────────────────────────┐
 │ Decision                            │ In This Environment                    │
@@ -294,6 +358,11 @@ The orchestrator is always the last thing built, after all children are tested.
 └────┴──────────────────────────────┴─────────────────────┴──────────┘
 ```
 
+Types the execution model adds: `LCM Resource Model`, `LCM Action` (on a new or
+existing model), `Agent`, `Agent Tool Decorator`, `Gateway5 Service`,
+`Inventory`. An existing resource model, agent or service the design builds on is
+listed with Action `Reuse` or `Extend`.
+
 For every `⚠ Stub` integration, add to the inventory:
 - `integration-model-{name}.json` — OpenAPI 3.0.3 stub spec (Type: Integration Model, Action: Build)
 - `stub-{name}` — stub connectivity workflow (Type: Stub Workflow, Action: Build)
@@ -322,6 +391,12 @@ Close `integration-questions.md` with a **Next steps** note: once all questions 
 
 **E. Implementation Plan** — ordered build steps with test method for each
 
+For a phase built agent first, plan two stages: (1) the agent and its test
+sessions, with what counts as proven (e.g., N sessions on real requests with the
+expected result) and who decides; (2) `/flowagent-to-spec` turns the proven
+sessions into a deterministic spec, which comes back through Design and Build.
+Stage 2 is planned now, not left for later.
+
 **F. Acceptance Criteria → Tests** — map each criterion to how to verify it. This is a first-pass mapping — `/qa-agent` refines it into an executable `test-plan.md` once real IDs exist after Build, but the verification *method* per criterion should be decided now, while the design is fresh.
 
 ### Present for Review
@@ -329,6 +404,7 @@ Close `integration-questions.md` with a **Next steps** note: once all questions 
 **Present the full solution design. Do NOT proceed to build until approved.**
 
 Walk through each section:
+- Execution model: "[Phase] runs as [model], built [agent first / direct], because [answer or inventory fact]. Agree?"
 - Requirements: "I'll use [adapter/app]. Correct?"
 - Decisions: "The spec says [X], I'll do [Y]. Sound right?"
 - Components: "Reuse this? Build that? Skip this?"
@@ -388,6 +464,7 @@ The builder builds from the locked plan and tests each component individually. O
 - `Stage: build`, `Status: active`
 - Any adapter instance names and type names resolved during feasibility
 - Key decisions made during design (why this adapter, why this split, any constraints)
+- The execution model per phase and its delivery path; for agent-first phases, that the `/flowagent-to-spec` conversion is still to come
 
 **Update `Stage` at each internal transition too, not just at final handoff** — set `Stage: feasibility` when starting the feasibility assessment (if `/spec-agent` left it at `requirements`) and `Stage: design` once feasibility is approved and design work begins. Someone resuming mid-Feasibility shouldn't see `Stage: build`.
 
@@ -407,8 +484,8 @@ Entered from `/spec-agent` after the engineer approves `customer-spec.md`. At th
 
 ```
 /solution-arch-agent flow:
-    Feasibility: authenticate → pull platform data → assess capabilities → write feasibility.md → engineer approves
-    Design:      produce solution-design.md from approved feasibility → engineer approves
+    Feasibility: authenticate → pull platform data → assess capabilities → inventory LCM / FlowAgent / Gateway5 → write feasibility.md → engineer approves
+    Design:      design the execution model with the engineer → produce solution-design.md → engineer approves
     Handoff:     pass complete workspace to /builder
 ```
 
