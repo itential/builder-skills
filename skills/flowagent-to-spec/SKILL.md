@@ -183,6 +183,12 @@ Convert each observed agent behavior to a workflow construct:
 
 Write the spec for the deterministic equivalent.
 
+**Converting one phase of an existing delivery** (a phase the solution design built
+agent first): `{use-case}/customer-spec.md` is that delivery's approved spec — don't
+overwrite it. Write `{use-case}/<phase>-converted-spec.md` instead, covering only
+that phase, and in Step 6 hand it to `/solution-arch-agent design-only`, which
+replaces the phase's design.
+
 ```markdown
 # Use Case: {Derived from agent instructions and inputSchema}
 
@@ -276,6 +282,8 @@ Ask the engineer:
 Then offer next steps:
 - **Refine and deliver** → hand to `/spec-agent` for requirements refinement → `/solution-arch-agent` → `/builder-agent`
 - **Accept as-is** → hand directly to `/solution-arch-agent` with the approved spec
+- **One phase of an existing delivery** → `/solution-arch-agent design-only` with `<phase>-converted-spec.md`; set `Stage: design` in `use-case-memory.md`
+- **Keep the agent** → also valid; record the decision in `use-case-memory.md`, and the agent stays the phase's delivered component
 
 ---
 

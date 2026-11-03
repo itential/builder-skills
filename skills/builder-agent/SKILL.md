@@ -57,6 +57,14 @@ below apply to workflow components only. When you test, run the child on its own
 and then through the parent. Record both session IDs, and check the child's
 answer, not just the parent's tool status.
 
+**Phases built agent first** (Section C of the design says "Agent first"): build
+the agent and run the test sessions the implementation plan names. Once they meet
+the plan's definition of proven and the engineer agrees, record the session IDs in
+`use-case-memory.md` and hand off to `/flowagent-to-spec` for that phase. Its
+`<phase>-converted-spec.md` comes back through `/solution-arch-agent design-only`
+before the deterministic assets are built — don't build them from the agent
+directly. Meanwhile, build the delivery's other phases as designed.
+
 ## Workspace Contract
 
 **The builder receives a complete workspace. All discovery data is already present.** Solution-design (or setup for explore mode) has already pulled everything.
