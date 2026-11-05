@@ -40,7 +40,8 @@ Three things commonly go wrong even after this gate is respected — watch for a
 | `/qa-agent` | **QA Agent** | Acceptance testing against the approved acceptance criteria + as-built record. Runs after Build — last technical stage before customer sign-off. |
 | `/iag` | — | Automation Gateway: IAG services (Python, Ansible, OpenTofu). |
 | `/gateway4-to-gateway5` | — | Assess Gateway4→Gateway5 migration readiness; identify Gateway4/IAG4 usage and produce a manual-action guideline. Analysis only — to deliver the migration, `/spec-agent` with the Gateway4 → Gateway5 migration spec (patterns: `helpers/gateway-migration/conversion-guide.md`). |
-| `/flowagent` | — | AI Agents: configure LLM providers, tools, skills, and agent sessions; write and import agent skills. |
+| `/flowagent` | — | AI Agents: configure LLM providers, tools, and agent sessions; attach skills to agents. |
+| `/flowagent-skill-builder` | — | Write, package, import and test skills for FlowAgent agents (Agent Skills format, infra-agent-skills shape). |
 | `/itential-mop` | — | Command templates with validation rules. |
 | `/itential-devices` | — | Devices, backups, diffs, device groups. |
 | `/itential-golden-config` | — | Golden config, compliance, grading, remediation. |

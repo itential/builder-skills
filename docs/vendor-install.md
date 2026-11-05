@@ -107,7 +107,7 @@ copilot plugin install itential-builder@itential-builder
 **Check it worked:**
 ```bash
 copilot plugin list      # shows itential-builder@itential-builder
-copilot skill list       # the 18 skills appear
+copilot skill list       # the 19 skills appear
 ```
 
 **Run a skill:** `/spec-agent`, or describe the task and Copilot picks the skill.

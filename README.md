@@ -10,7 +10,7 @@ AI agent skills for **building automations on the Itential Platform**, spec-driv
 | `explore` | Connect to a platform and see what's there — adapters, tasks, workflows — before committing to a delivery |
 | `project-to-spec` / `documentation` | Document automation that already exists: one project, or everything on the platform |
 
-All 18 skills are listed under [Skills](#skills).
+All 19 skills are listed under [Skills](#skills).
 
 ---
 
@@ -166,7 +166,8 @@ This repository is AAIF-aligned around [`AGENTS.md`](AGENTS.md) as the canonical
 
 | Skill | What It Does |
 |-------|-------------|
-| `/itential-builder:flowagent` | Builds and tests AI agents on the Itential Platform: LLM providers, tools (adapters, workflows, IAG services and other agents), skills, decorators and human approval steps, checked with test sessions. Use when designing, building or testing FlowAI agents. |
+| `/itential-builder:flowagent` | Builds and tests AI agents on the Itential Platform: LLM providers, tools (adapters, workflows, IAG services and other agents), decorators, skills and human approval steps, checked with test sessions. Use when designing, building or testing FlowAI agents. |
+| `/itential-builder:flowagent-skill-builder` | Writes, packages, imports and tests skills for FlowAgent agents: one operation per skill, a short `SKILL.md` routing to per-vendor procedure and endpoint files (the itential/infra-agent-skills shape), checked with a test session. Not for building the agents themselves. |
 | `/itential-builder:iag` | Builds and runs IAG 5 services — Python scripts, Ansible playbooks, OpenTofu plans. Manages YAML service definitions, imports via `iagctl`, and calls services from Itential workflows via GatewayManager. |
 | `/itential-builder:gateway4-to-gateway5` | Assesses readiness to migrate from Gateway4-IAG4 to Gateway5-IAG5. Scans workflows, JSON forms, scripts, playbooks, and inventory for Gateway4-IAG4 usage (`AGManager` / `automation_gateway`). Produces a deterministic markdown readiness report with a manual-action checklist. Read-only — never modifies the platform. For building Gateway5-IAG5 services after the assessment, use `/iag`. |
 | `/itential-builder:itential-mop` | Builds Method of Procedure command templates with variable substitution and validation rules. Runs CLI pre-checks and post-checks against devices, and uses analytic templates for before/after config comparison. |
