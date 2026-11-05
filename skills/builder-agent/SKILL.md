@@ -400,6 +400,7 @@ Becomes this workflow task (extract a real adapter task from an asset project fi
 ```
 
 **Mapping rules:**
+- task ID (the key in `tasks`) → hex only, `[0-9a-f]{1,4}` (e.g. `d4e5`) — never letters g–z, and use the same ID in `transitions`
 - `name`, `canvasName` → from tasks.json
 - `app`, `locationType` → from apps.json (NOT tasks.json)
 - `displayName` → from tasks.json
@@ -456,7 +457,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 
 **Step 9: Pre-submit checklist.**
 - [ ] Every task has a non-empty `description` field — schema-required on every task, easy to forget, and `POST /workflow_engine/workflows/validate` will reject a document missing it
-- [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`) — verify with `python3 -c "import json,re; d=json.load(open('workflow.json')); bad=[k for k in d['tasks'] if k not in ('workflow_start','workflow_end') and not re.match(r'^[0-9a-f]{1,4}$', k)]; print(bad or 'OK')"` rather than eyeballing the task list. A non-hex ID (e.g. `g007`, using a letter outside `a`–`f`) doesn't error at creation time — it causes intermittent, hard-to-diagnose `$var` resolution failures later (evaluation operands silently drilling into the wrong value, string references passing through as unresolved literal text) that look like unrelated wiring bugs.
+- [ ] Task IDs are hex-only (`[0-9a-f]{1,4}`) — every key in `tasks` and every key and target in `transitions`; only `workflow_start` and `workflow_end` are exempt. A letter g–z (e.g. `g1g1`) makes the import fail. Verify with `python3 -c "import json,re; d=json.load(open('workflow.json')); bad=[k for k in d['tasks'] if k not in ('workflow_start','workflow_end') and not re.match(r'^[0-9a-f]{1,4}$', k)]; print(bad or 'OK')"` rather than eyeballing the task list. A non-hex ID (e.g. `g007`, using a letter outside `a`–`f`) doesn't error at creation time — it causes intermittent, hard-to-diagnose `$var` resolution failures later (evaluation operands silently drilling into the wrong value, string references passing through as unresolved literal text) that look like unrelated wiring bugs.
 - [ ] Every workflow document has `"canvasVersion": 3` at the top level. Copy the value from `assets/helpers/create/create-workflow.json`; do not guess. This applies to new workflows, updates and imports. Without it, `POST /workflow_engine/workflows/validate` returns `isValid: false` ("Task has nodeLocation but canvasVersion is not 3"), and an import still succeeds but stores the workflow as canvas version 1 (the old canvas).
 - [ ] `app` and `locationType` values come from apps.json `.name`, NOT tasks.json and NOT the adapter instance name (e.g., `EmailOpensource` not `email`)
 - [ ] `adapter_id` is the adapter **instance** name (e.g., `email`), NOT the type name
