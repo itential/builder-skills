@@ -464,6 +464,7 @@ If both success and error need to reach `workflow_end`, route error to an interm
 - [ ] `adapter_id` values come from `adapters.json` `.results[].id` — NEVER from the spec's adapter identity table. The spec is a design document; `adapters.json` is the source of truth for the target environment.
 - [ ] `canvasName` values come from tasks.json `canvasName` field
 - [ ] Every adapter task has `adapter_id` in incoming
+- [ ] No `newVariable` or `query` task exists only to hold or extract a value, and job variables are limited to workflow inputs, outputs and shared values (see "Keep variables to a minimum")
 - [ ] Every adapter task has an error transition — `/workflow_engine/workflows/validate` does not check for this; missing error transitions pass validation and hang the job at runtime
 - [ ] `evaluation` tasks have both success AND failure transitions — `/workflow_engine/workflows/validate` does not check for this either
 - [ ] `evaluation` operators are from the closed enum (`contains, !contains, <, <=, >, >=, ==, !=`) — no others exist. `/workflow_engine/workflows/validate` does not enforce this enum on a workflow's embedded `evaluation` tasks; an invalid operator passes validation and fails silently at runtime (`finish_state: failure`, no error message)
@@ -1527,7 +1528,7 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **Task ID validation:** `$var.taskId.x` only resolves when `taskId` matches `[0-9a-f]{1,4}`. Non-hex IDs silently fail.
 
-**Prefer task-to-task wiring:** When a task's output feeds directly into the next task's input, wire it as `$var.<taskId>.<outVar>` instead of bouncing through `$var.job.x`. Only use job variables when: (a) values cross non-adjacent tasks, (b) values need to be visible in job output, or (c) multiple downstream tasks need the same value. Direct task-to-task wiring reduces clutter and makes data flow easier to trace.
+**Keep variables to a minimum.** Read a value from the task that produced it — `$var.<taskId>.<outVar>`, or a field of it with Enable Query (`$var.<taskId>.result#/stdout_json/<field>`). Don't add `newVariable` or `query` tasks just to hold or extract a value, and put data shaping in one `runCode` task rather than a chain of utility tasks. Create a job variable (`$var.job.x`) only for a workflow input or output, or a value several tasks share.
 
 **`incomingRefs` cache — what PUT does and doesn't fix:**
 
@@ -1547,7 +1548,7 @@ Both workflow and template creation return `{created, edit}` — NOT `{message, 
 
 **`task: "static"` values broadly** are backed by `job_data` written at Studio-save time. Any static value (template strings, query paths, model IDs, inline constants in childJob `variables` dicts) resolves as `null` at runtime on a freshly API-imported workflow until saved through Automation Studio.
 
-**Outgoing must write to job var for cross-task `$var` to be readable by downstream tasks.** Pattern: `"outgoing": {"result": "$var.job.raw_result"}` then downstream: `"obj": "$var.job.raw_result"`. If outgoing is `null`, the value is accessible via task iteration (`GET /operations-manager/tasks/{iterationId}`) but NOT via `$var.taskId.result` in downstream tasks at runtime. Use job vars for any result you need to pass forward.
+**A downstream task can read an upstream task's output without a job variable.** `$var.<taskId>.<outVar>` resolves whether the upstream task's `outgoing` is `""`, `null` or a job variable (tested on a live platform). Write `outgoing` to `$var.job.x` only when the value is a workflow output or shared by several tasks.
 
 **`POST /workflow_engine/workflows/validate`** (6.5.2+) — deep validation before create or update; body `{"asset": {...}}`, returns `{isValid, errors: [], warnings: []}`. `isValid` is `errors.length === 0` — warnings don't count against it, so always check both. See the pre-flight section under "Updating Assets" below for exactly what this endpoint does and doesn't catch. Use this instead of the older `POST /automation-studio/workflows/validate` (`{"workflow": {...}}` → `{errors, warnings}`, no `isValid`), which misses errors this one catches.
 
