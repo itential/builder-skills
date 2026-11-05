@@ -1,0 +1,5 @@
+# Codex skill metadata (display in /skills and the plugin UI).
+interface:
+  display_name: "FlowAgent Skill Builder"
+  short_description: "Write, import and test skills for FlowAgent agents"
+  default_prompt: "Write a FlowAgent skill for creating DNS records"
