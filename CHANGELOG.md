@@ -5,8 +5,11 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+## 2.3.0
+
 - Added the `flowagent-skill-builder` skill: writes, packages, imports and tests skills for FlowAgent agents. Skills follow the Agent Skills format in the itential/infra-agent-skills shape (one operation per skill, a short `SKILL.md` routing to per-vendor `procedure.md` and `endpoints.md`), so that library's skills import unchanged; it covers matching a skill to the agent's tools and approval steps, the undocumented preview and import request bodies, versions, and checking a test session for the built-in `loadSkill` and `loadSkillResource` calls. All checked on a live platform
 - Changed `flowagent` to cover attaching skills to agents: the `skills` field, pinned versus `latest` versions, what an agent shows when a skill is deleted (`state: missing`), and that project bundles carry only skill references
+
 ## 2.2.0
 
 - Fixed builder-agent pushing workflows toward extra job variables: it said a task's output can't be read downstream unless written to a job variable, which a live test disproved. It now says to read values from the task that produced them, skip `newVariable`/`query` tasks that only hold or extract a value, shape data in one `runCode`, and create job variables only for inputs, outputs and shared values
