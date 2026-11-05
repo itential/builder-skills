@@ -1,6 +1,6 @@
 ---
 name: solution-arch-agent
-description: Use this skill when someone has approved requirements (a customer-spec.md) and needs to assess platform feasibility or produce a solution design. Trigger it for phrases like "requirements are approved", "my spec is done", "check if the platform supports this", "run feasibility", "connect to the platform and design the solution", "I have a customer-spec — now what?", or "produce a solution-design.md". This skill connects to the live platform, checks what adapters and capabilities are available, and produces feasibility.md and solution-design.md. Also trigger it in design-only mode when the implementation plan needs to change but requirements are stable. Invoke after /spec-agent produces an approved customer-spec.md. Hands off to /builder-agent after design approval.
+description: Use this skill when someone has approved requirements (a customer-spec.md) and needs to assess platform feasibility or produce a solution design. Trigger it for phrases like "requirements are approved", "my spec is done", "check if the platform supports this", "run feasibility", "connect to the platform and design the solution", "I have a customer-spec — now what?", or "produce a solution-design.md". This skill connects to the live platform, checks what adapters, integrations and capabilities are available, and produces feasibility.md and solution-design.md. Also trigger it in design-only mode when the implementation plan needs to change but requirements are stable. Invoke after /spec-agent produces an approved customer-spec.md. Hands off to /builder-agent after design approval.
 ---
 
 # Solution Architecture Agent
@@ -36,7 +36,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 | | |
 |--|--|
 | **Engineer provides** | Approved `customer-spec.md`, platform credentials |
-| **Agent does** | Connects to platform, assesses capabilities, checks adapters, finds reuse candidates, records what LCM, FlowAgent and Gateway5 have on the platform, identifies constraints |
+| **Agent does** | Connects to platform, assesses capabilities, checks adapters and integrations, finds reuse candidates, records what LCM, FlowAgent and Gateway5 have on the platform, identifies constraints |
 | **Engineer action** | Reviews assessment and approves decision to proceed |
 | **Deliverable** | `feasibility.md` (assessment + decision) |
 | **Customer receives** | Feasibility assessment with a clear decision (feasible / feasible with constraints / not feasible), flagged constraints, and identified reuse opportunities. |
@@ -133,7 +133,7 @@ Read `{use-case}/customer-spec.md` and extract:
 - **Phases** from Section 3 (workflow stages)
 - **Design decisions** from Section 4 (constraints)
 - **Capabilities** table from Section 7 (platform checks)
-- **Integrations** table from Section 7 (adapter checks)
+- **Integrations** table from Section 7 (adapter and integration instance checks)
 - **Discovery questions** from Section 7
 - **Acceptance criteria** from Section 9 (test cases)
 
@@ -161,11 +161,12 @@ python3 scripts/pull-platform-data.py {use-case}
 
 | File | Use for | Load into context? |
 |------|---------|-------------------|
-| `platform-summary.json` | Feasibility — running adapters, apps, type names, projects | ✅ Yes — compact |
+| `platform-summary.json` | Feasibility — running adapters, integration instances, apps, type names, projects | ✅ Yes — compact |
 | `openapi.json` | API reference — search locally with `jq` | ❌ No — too large |
 | `tasks.json` | Task catalog — search locally with `jq` | ❌ No — too large |
 | `apps.json` | Adapter type names — search locally with `jq` | ❌ No |
 | `adapters.json` | Adapter instances — search locally with `jq` | ❌ No |
+| `integrations.json` | Integration instances (virtual adapters such as NetBox or ServiceNow) — name, model, active flag, server host. Credentials are removed. | ❌ No |
 | `applications.json` | App health — search locally with `jq` | ❌ No |
 | `workflows.json` | Existing workflows — search locally with `jq` | ❌ No |
 | `projects.json` | Existing projects — search locally with `jq` | ❌ No |
@@ -187,7 +188,7 @@ Every file has a specific shape. Use these queries — don't guess.
 
 | File | Shape | Example query |
 |------|-------|---------------|
-| `platform-summary.json` | `{adapters, applications, adapter_type_names, projects, workflow_count, device_count, execution_capabilities}` | `jq '.adapters[] | select(.connection == "ONLINE")' platform-summary.json` |
+| `platform-summary.json` | `{adapters, integrations, applications, adapter_type_names, projects, workflow_count, device_count, execution_capabilities}` | `jq '.adapters[] | select(.connection == "ONLINE")' platform-summary.json` |
 | `platform-summary.json` → `execution_capabilities` | `{lcm: {running, models: [{name,id,actions}]}, flowagent: {running, llm_profiles: [{name,provider,models}], agent_count}, gateway5: {running, clusters: [{cluster_id,connection,services}], inventories: [{name,nodes}]}, gateway4_workflows: [names]}` | `jq '.execution_capabilities.gateway5.clusters[] | select(.connection=="connected")' platform-summary.json` |
 | `lcm-models.json` | `{"data":[...], "total":N}` | `jq '.data[] | select(.name | test("X";"i")) | {name, actions: [.actions[].name], required: .schema.required}' lcm-models.json` |
 | `agents.json` | `{"data":{"items":[...]}}` | `jq '.data.items[] | select(.name | test("X";"i")) | {name,_id}' agents.json` |
@@ -196,6 +197,7 @@ Every file has a specific shape. Use these queries — don't guess.
 | `tasks.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,app,type,location}' tasks.json` |
 | `apps.json` | plain array `[...]` | `jq '.[] | select(.name | test("X";"i")) | {name,type}' apps.json` |
 | `adapters.json` | `{"results":[...], "total":N}` | `jq '.results[] | select(.id | test("X";"i")) | {id,state,package_id}' adapters.json` |
+| `integrations.json` | `{"results":[{name,model,type,active,server:{protocol,host,port,base_path}}], "total":N}` | `jq '.results[] | select(.name | test("X";"i")) | {name,model,active,server}' integrations.json` |
 | `applications.json` | `{"results":[...], "total":N}` | `jq '.results[] | select(.state=="RUNNING") | {id,package_id}' applications.json` |
 | `workflows.json` | `{"items":[...], "count":N}` | `jq '.items[] | select(.name | test("X";"i")) | {name,_id}' workflows.json` |
 | `projects.json` | `{"data":[...]}` | `jq '.data[] | select(.name | test("X";"i")) | {name,_id}' projects.json` |
@@ -218,12 +220,23 @@ For each row in the spec's Capabilities table:
 
 ### Resolve Integrations
 
+The platform connects to external systems in two ways. Check both before you call a system missing:
+
+| Source | What it is | Where to look |
+|--------|-----------|---------------|
+| **Adapter instance** | Installed adapter package | `platform-summary.json` → `adapters` (from `/health/adapters`; has `RUNNING` state and `ONLINE`/`OFFLINE` connection) |
+| **Integration instance** | Virtual adapter built from an integration model (`POST /integrations`) | `platform-summary.json` → `integrations` (from `/integrations`; has an `active` flag and server host) |
+
+Integration instances do **not** appear in `/health/adapters`. A system such as NetBox connected as an integration shows up only as a type name in `adapter_type_names` (and in `tasks.json`), so checking adapters alone reports it as not found. Match each row of the spec's Integrations table against **both** lists — by name, by model, or by the `app` / `locationType` on its tasks in `tasks.json`.
+
 For each row in the spec's Integrations table:
-- Found + Running? → **✓ Resolved** (record adapter name, app name)
-- Found + Stopped? → **⚠ Warning** (needs to be started)
+- Found as a running adapter, or as an active integration? → **✓ Resolved** (record the instance name, whether it is an adapter or an integration, and the `app` / `locationType` from `tasks.json`)
+- Found + Stopped (adapter) or inactive (integration)? → **⚠ Warning** (needs to be started or activated)
 - Not found, required, adapter unavailable or customer details TBD? → **⚠ Stub** (proceed — Design produces stub artifacts)
 - Not found, required, and nothing can be built without it? → **⚠ Blocked** (stop and discuss)
 - Not found + Not Required? → **✗ Skipped**
+
+**An integration's `active` flag is configuration state, not proof the external system is reachable** — integrations have no `connection` state. Record "reachability not verified" in `feasibility.md`, and plan a read-only call through the integration's task as one of the first build steps.
 
 **`⚠ Stub` vs `⚠ Blocked`:** Stub means the integration is required but not yet available — delivery proceeds by building stub workflows and placeholder tasks now, activating the real adapter later. Blocked means the entire delivery is gated on resolving this first (e.g., the main workflow can't be designed without data only this adapter provides). Rule of thumb: if at least one component can be built and tested without the adapter, it's Stub, not Blocked.
 
@@ -488,6 +501,7 @@ Hand off to `/builder-agent`. The workspace is complete.
   tasks.json              ← task catalog (pulled during feasibility)
   apps.json               ← app/adapter type names (pulled during feasibility)
   adapters.json           ← adapter instances (pulled during feasibility)
+  integrations.json       ← integration instances, credentials removed (pulled during feasibility)
   applications.json       ← app health (pulled during feasibility)
   devices.json            ← device inventory (if spec involves devices)
   workflows.json          ← existing workflows (if reuse planned)
@@ -536,4 +550,5 @@ To revise design only: invoke `/solution-arch-agent design-only` → reads exist
 
 - Tokens expire mid-session — on auth errors, re-authenticate silently from `.env` (see `assets/AGENTS.md` Auth Reuse)
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list`
+- A system connected as an **integration** is absent from `/health/adapters` — check `integrations` in `platform-summary.json` before marking a required system not found
 - OpenAPI spec is ~1.5MB — search it locally with `jq`, never load into context

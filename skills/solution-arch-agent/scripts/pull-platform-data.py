@@ -12,6 +12,7 @@ Writes:
     {use-case}/tasks.json         — full task catalog
     {use-case}/apps.json          — adapter/app type names
     {use-case}/adapters.json      — adapter instances and status
+    {use-case}/integrations.json  — integration instances (virtual adapters, e.g. NetBox), credentials removed
     {use-case}/applications.json  — running applications
     {use-case}/workflows.json     — every workflow ({"items": [...], "total": N})
     {use-case}/projects.json      — projects visible to this client
@@ -147,12 +148,43 @@ def main():
         futures["gateway_connections"] = pool.submit(get, "/gateway_manager/v1/connections", "gateway-connections.json")
         futures["gateway_services"] = pool.submit(get, "/gateway_manager/v1/services", "gateway-services.json")
         futures["inventories"] = pool.submit(get, "/inventory_manager/v1/inventories?pageSize=100", "inventories.json")
+
+        # Integration instances (GET /integrations) are a second way the platform connects to
+        # external systems. They are NOT listed by /health/adapters, so without this call a
+        # connected system such as NetBox looks like "not found". The raw response carries each
+        # instance's authentication block, so only the non-secret fields are kept on disk.
+        def get_integrations():
+            try:
+                req = Request(f"{base}/integrations", headers=headers)
+                with urlopen(req, timeout=120) as r:
+                    raw = json.loads(r.read().decode("utf-8"))
+                items = []
+                for i in raw.get("results", []):
+                    d = i.get("data") or {}
+                    meta = i.get("metadata") or {}
+                    server = ((d.get("properties") or {}).get("properties") or {}).get("server") or {}
+                    items.append({
+                        "name": d.get("name"),
+                        "model": d.get("model"),
+                        "type": d.get("type"),
+                        "active": meta.get("IsActive", meta.get("isActive")),
+                        "server": {k: server.get(k) for k in ("protocol", "host", "port", "base_path")},
+                    })
+                data = {"results": items, "total": len(items)}
+                with open(os.path.join(use_case, "integrations.json"), "w") as f:
+                    json.dump(data, f)
+                return data
+            except Exception as e:
+                print(f"  WARN: integrations.json failed — {e}")
+                return None
+        futures["integrations"] = pool.submit(get_integrations)
         results = {k: v.result() for k, v in futures.items()}
 
     # Build compact summary — only what's needed for feasibility
     summary = {
         "platform_url": base,
         "adapters": [],
+        "integrations": [],
         "applications": [],
         "adapter_type_names": [],
         "workflow_count": 0,
@@ -170,6 +202,17 @@ def main():
                     "package_id": a.get("package_id"),
                     "connection": a.get("connection", {}).get("state")
                 })
+
+    # Integration instances (name, model, active, server host). "active" is configuration state,
+    # not proof the external system is reachable -- see SKILL.md "Resolve Integrations".
+    if results["integrations"] and isinstance(results["integrations"], dict):
+        for i in results["integrations"].get("results", []):
+            summary["integrations"].append({
+                "name": i.get("name"),
+                "model": i.get("model"),
+                "active": i.get("active"),
+                "server_host": (i.get("server") or {}).get("host"),
+            })
 
     # Running applications
     if results["applications"] and isinstance(results["applications"], dict):
@@ -255,6 +298,7 @@ def main():
 
     print(f"\nDone.")
     print(f"  Running adapters:     {len(summary['adapters'])}")
+    print(f"  Integrations:         {len(summary['integrations'])}")
     print(f"  Running applications: {len(summary['applications'])}")
     print(f"  Adapter type names:   {len(summary['adapter_type_names'])}")
     print(f"  Workflows:            {summary['workflow_count']}")
@@ -270,7 +314,7 @@ def main():
     print(f"  Summary:              {out}")
     print(f"\nFiles written to {use_case}/:")
     print(f"  platform-summary.json — read this for feasibility")
-    print(f"  openapi.json, tasks.json, apps.json, adapters.json, applications.json")
+    print(f"  openapi.json, tasks.json, apps.json, adapters.json, integrations.json, applications.json")
     print(f"  workflows.json, projects.json, devices.json, device-groups.json")
     print(f"  lcm-models.json, agents.json, llm-profiles.json, gateways.json, gateway-connections.json,")
     print(f"  gateway-services.json, inventories.json")
