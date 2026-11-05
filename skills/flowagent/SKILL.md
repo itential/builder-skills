@@ -1,6 +1,6 @@
 ---
 name: flowagent
-description: Design, build and test AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including other agents. Use when designing or building agents, parent and child agents, LLM provider profiles, tools, decorators or human approval steps, or when running test sessions to check an agent.
+description: Design, build and test AI agents on the Itential Platform (Agent Project Service, Model Registry Service, Tools Service, Agent Session Manager). Agents use LLMs to call platform tools, including other agents. Use when designing or building agents, parent and child agents, LLM provider profiles, tools, skills, decorators or human approval steps, when writing or importing agent skills, or when running test sessions to check an agent.
 argument-hint: "[action or agent-name]"
 ---
 
@@ -31,6 +31,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 2. [Rules](#rules) — read before building anything
 3. [Build and run an agent](#build-and-run-an-agent)
 4. [Agents as tools (parent and child agents)](#agents-as-tools-parent-and-child-agents)
+4a. [Skills](#skills)
 5. [Human approval (work items)](#human-approval-work-items)
 6. [Decorators](#decorators)
 7. [Export and import (project bundles)](#export-and-import-project-bundles)
@@ -51,6 +52,7 @@ that relative path — e.g. `<this skill's folder>/assets/helpers/create/create-
 - **Agent** — `instructions` (a prompt template), a typed `inputSchema`, a `provider` (`{profile, model}` UUIDs), a `tools` list and an `operators` list.
 - **Profile** — a credentialed LLM provider configuration (e.g., "Production Anthropic") in Model Registry Service, with a list of enabled **models**, each with its own UUID.
 - **Tool** — anything an agent can call: adapter method, app method, IAG service, workflow, view (human form) or another agent. Addressed by a `referenceId` such as `application:ConfigurationManager:runCompliancePlan` or `agent:<agent-id>`.
+- **Skill** — a package of procedure an agent reads when it needs it: a `SKILL.md` (Agent Skills format) plus optional reference files, imported into Agent Project Service and versioned. A tool *does* something; a skill tells the agent *how* to do it with its tools.
 - **Decorator** — a reusable override of one tool's description and input schema, attached per agent.
 - **Session** — one run of an agent, with a status and a message log. Calling another agent creates a child session.
 - **Operators** — accounts or groups allowed to run one agent without a project role.
@@ -86,6 +88,10 @@ Each rule is stated here once; later sections refer back.
 16. **The message list pages unreliably.** It's a bare array; small pages can be short, empty or out of order mid-history. Use `limit=100`, read until several pages in a row are empty, de-duplicate by `eventId` and sort by `timestamp`.
 17. **Every run needs a saved agent** — there is no one-off "run this definition" call — and **sessions can only be deleted one at a time**.
 18. **Never complete a person's work item** to finish a build or test.
+
+**Skills**
+19. **Every import of a skill with an existing `name` adds a version — even if nothing changed.** Preview first (`existing` shows a match), and pin a version (`"version": 2`) on agents that must not change underneath you; `"latest"` follows every import.
+20. **Deleting a skill doesn't check who uses it.** The delete succeeds and each agent's entry turns to `"state": "missing"`. Check `GET /agent-project-service/skills/{skillId}/affected-agents` first.
 
 ## Build and run an agent
 
@@ -215,6 +221,28 @@ In the parent's messages this is a `tool-execution` with `data.toolType: "agent"
 `lastMessage` is free text. If you need structure, specify the format in the child's instructions and treat anything that doesn't parse as unresolved. When testing, record both session IDs, the inputs, both statuses and the child's answer.
 
 **Permissions.** Attaching a child needs Editor access to the parent's project; whoever runs the parent needs run access to the child (a project role or the child's `operators`). If `GET /agent-project-service/agents/{id}` returns 403 for an agent you can run, use `GET /agent-project-service/operable-agents/{id}` — the 403 means no edit access, not that agent tools are unsupported. Never grant yourself access; ask the project owner.
+
+## Skills
+
+A skill gives an agent a procedure to follow; its tools carry the procedure out. Use a skill when the agent needs *how* — a vendor's step order, safeguards, exact success criteria, wire-level calls — and that know-how is too long or too reused to put in `instructions`. An agent loads only what a request needs: it sees each attached skill's name and description, and reads the rest on demand through two built-in tools, `loadSkill` (the `SKILL.md` body) and `loadSkillResource` (one file under it). Both show in the session log as `TOOL_CALLED` with `toolType: "built-in"`.
+
+To write one, follow `references/authoring-skills.md`. Skills from [itential/infra-agent-skills](https://github.com/itential/infra-agent-skills) import as they are.
+
+**1. Package it.** Either the `SKILL.md` text alone (`filename: "SKILL.md"`), or a `.zip`/`.tar` with `SKILL.md` at its root or in its single top-level folder, sent base64-encoded (`filename: "<name>.zip"`). At most 10 MB decoded. `SKILL.md` must start with `---` frontmatter holding `name` and `description`.
+
+**2. Preview, then import.**
+```
+POST /agent-project-service/skills/preview   {"filename": "dns-record-management.zip", "content": "<base64>"}
+POST /agent-project-service/skills/import    {"filename": "dns-record-management.zip", "content": "<base64>",
+                                              "permissions": {"writeUserIds": ["<account-id>"]}}
+```
+Preview saves nothing; read its `warnings`, and `existing` (non-null means this import adds a version — rule 19). Import needs at least one user or group in `writeUserIds`/`writeGroupIds` (your account ID is `GET /whoami` → `id`) and returns `{"skill": {"id", "name", "version", "created"}}`.
+
+**3. Attach it.** On create, `"skills": [{"skillId": "<id>", "version": "latest"}]`; on update, `addSkills` / `removeSkills` (`[{"skillId": "<id>"}]`). `version` is a number to pin or `"latest"`. The agent then lists each skill with `"state": "available"` (or `"missing"` once deleted — rule 20).
+
+**4. Test it.** Run a session whose request needs the skill, then check the message log (rule 16): a `loadSkill` call, a `loadSkillResource` call for the file the answer depends on, and a final answer that matches that file. An agent that answers without loading the skill is guessing — tighten the skill's `description` or the agent's `instructions` so the request matches it.
+
+**Versions and moving between platforms.** `GET .../skills/{id}/versions` lists them; `affected-agents` shows which agents follow `latest`. A project bundle carries only each agent's skill reference, not the skill (see Export and import).
 
 ## Human approval (work items)
 
@@ -355,7 +383,7 @@ All five fields are required. The response is the decorator record; its `_id` (2
 
 Prefer a bundle over separate project and agent calls when creating several agents or copying a setup between environments: build it locally and import it in one call.
 
-**Export:** `GET /agent-project-service/project-bundles/{projId}/export`. Each agent's `provider` becomes `{profileName, modelName}` so the bundle is portable; tools keep their `referenceId`s, including `agent:<id>` references to other agents in the bundle.
+**Export:** `GET /agent-project-service/project-bundles/{projId}/export`. Each agent's `provider` becomes `{profileName, modelName}` so the bundle is portable; tools keep their `referenceId`s, including `agent:<id>` references to other agents in the bundle. Skills are **not** in the bundle — only each agent's reference (`skillId`, `version`, `lastKnownName`). Move a skill separately (export it, import it on the target), and re-point agents to the new `skillId` with `addSkills`/`removeSkills` if it differs.
 ```json
 {
   "_id": "<project-uuid>",
@@ -478,6 +506,20 @@ The `runAgent` workflow task (mirrors `POST /agent-session-manager/sessions/run-
 | GET | `/agent-project-service/agent-names/operable` | `{name, _id, project}` for every agent the caller can run (not paginated) |
 
 There's no "list agents in a project" endpoint; use `agent-names/accessible?projUUID=<uuid>`.
+
+### Skills (Agent Project Service)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/agent-project-service/skills/preview` | Parse a skill without saving: `{filename, content}` → name, description, folders, `existing`, `warnings` |
+| POST | `/agent-project-service/skills/import` | Create, or add a version to the skill with the same `name`: `{filename, content, permissions: {writeUserIds?, writeGroupIds?}}` |
+| GET | `/agent-project-service/skills` | List (`search`, `nameContains`, `limit`, `skip`, …); each item has `skillId`, `name`, `version` |
+| GET | `/agent-project-service/skills/{skillId}` | Get (`version`, `includeDeleted`): `body` (the SKILL.md text), `resources` (path, size), `checksum` |
+| GET | `/agent-project-service/skills/{skillId}/resource?path=<path>` | One file's content |
+| GET | `/agent-project-service/skills/{skillId}/versions` | `currentVersion` and every version |
+| GET | `/agent-project-service/skills/{skillId}/affected-agents` | Projects and agents using it, and whether each follows `latest` |
+| GET | `/agent-project-service/skills/{skillId}/export` | `{filename, contentType, content}` (JSON, though the spec calls it a zip) |
+| DELETE | `/agent-project-service/skills/{skillId}` | Delete (rule 20) |
 
 ### Profiles (Model Registry Service)
 
