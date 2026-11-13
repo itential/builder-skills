@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Itential Builder Skills</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0f1e;
+    --bg-glow-1: rgba(56, 132, 255, 0.18);
+    --bg-glow-2: rgba(150, 92, 255, 0.16);
+    --ink: #f2f5fb;
+    --text: #b7c1d6;
+    --muted: #7b88a3;
+    --accent: #4cc3ff;
+    --accent-2: #a98bff;
+    --accent-3: #4ee0a8;
+    --warm: #ffb86b;
+    --card: rgba(255, 255, 255, 0.045);
+    --card-strong: rgba(255, 255, 255, 0.08);
+    --border: rgba(255, 255, 255, 0.10);
+    --border-strong: rgba(255, 255, 255, 0.22);
+    --code-bg: rgba(255, 255, 255, 0.06);
+    --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    --dot: rgba(255, 255, 255, 0.22);
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f7fc;
+    --bg-glow-1: rgba(56, 132, 255, 0.14);
+    --bg-glow-2: rgba(150, 92, 255, 0.12);
+    --ink: #0f1a33;
+    --text: #3d4b66;
+    --muted: #6b7895;
+    --accent: #0a74c9;
+    --accent-2: #6a48d8;
+    --accent-3: #0d9a6a;
+    --warm: #c26a10;
+    --card: #ffffff;
+    --card-strong: #ffffff;
+    --border: #dde4f0;
+    --border-strong: #b8c4da;
+    --code-bg: #eef2f9;
+    --shadow: 0 1px 2px rgba(15, 26, 51, 0.05), 0 10px 30px rgba(15, 26, 51, 0.08);
+    --dot: #c4cee0;
+  }
+
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+
+  /* Background */
+  .backdrop {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(900px 500px at 15% 10%, var(--bg-glow-1), transparent 70%),
+      radial-gradient(800px 600px at 90% 95%, var(--bg-glow-2), transparent 70%);
+  }
+  .grid-lines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.35;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+
+  /* Slide engine */
+  .deck { position: relative; width: 100%; height: 100vh; z-index: 1; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 56px 72px 80px;
+    opacity: 0; transform: translateY(18px) scale(0.99);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+    overflow-y: auto;
+  }
+  .slide.active { opacity: 1; transform: none; pointer-events: all; }
+  .slide.exit { opacity: 0; transform: translateY(-18px) scale(0.99); }
+
+  /* Chrome */
+  .topbar {
+    position: fixed; top: 22px; left: 32px; right: 32px; z-index: 50;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--muted); letter-spacing: 0.5px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--ink); letter-spacing: 3px; text-transform: uppercase; font-size: 12px; }
+  .brand-mark { width: 18px; height: 18px; border-radius: 5px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .theme-btn {
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    border-radius: 100px; padding: 5px 12px; font-size: 11px; cursor: pointer;
+  }
+  .bottombar {
+    position: fixed; bottom: 22px; left: 32px; right: 32px; z-index: 50;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 12px; color: var(--muted);
+  }
+  .print-foot { display: none; }
+  .progress { display: flex; gap: 7px; }
+  .dot { width: 22px; height: 4px; border-radius: 4px; background: var(--dot); cursor: pointer; transition: background 0.3s, width 0.3s; }
+  .dot.active { background: linear-gradient(90deg, var(--accent), var(--accent-2)); width: 38px; }
+
+  /* Type */
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 3.5px; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 18px; display: inline-flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  h1, h2 { color: var(--ink); text-align: center; letter-spacing: -0.03em; }
+  h2 { font-size: clamp(28px, 3.6vw, 48px); font-weight: 800; line-height: 1.08; }
+  .grad { background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    box-shadow: var(--shadow); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Title */
+  .hero h1 { font-size: clamp(46px, 7vw, 96px); font-weight: 900; line-height: 0.98; letter-spacing: -0.045em; }
+  .hero .sub { font-size: clamp(17px, 2vw, 24px); color: var(--text); margin-top: 26px; text-align: center; }
+  .pill-row { display: flex; gap: 10px; margin-top: 34px; flex-wrap: wrap; justify-content: center; }
+  .pill { padding: 7px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--card); font-size: 12.5px; color: var(--text); }
+  .pill b { color: var(--ink); }
+  .gives { margin-top: 44px; width: 100%; max-width: 980px; }
+  .gives-label { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: var(--accent-3); margin-bottom: 12px; }
+  .gives-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .give { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
+  .give b { color: var(--ink); font-size: 13.5px; }
+  .give span { font-size: 12px; line-height: 1.45; }
+
+  /* Why */
+  .why { display: grid; grid-template-columns: 1fr 1.1fr; gap: 16px; width: 100%; max-width: 1120px; margin-top: 34px; }
+  .why-col { padding: 26px 28px; }
+  .why-h { font-size: 11px; font-weight: 800; letter-spacing: 2.5px; text-transform: uppercase; color: var(--warm); margin-bottom: 14px; }
+  .good-h { color: var(--accent-3); }
+  .why-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+  .why-list li { font-size: 14px; line-height: 1.5; padding-left: 18px; position: relative; }
+  .why-list li::before { content: "×"; position: absolute; left: 0; top: -1px; color: var(--warm); font-weight: 800; }
+  .why-list b { color: var(--ink); }
+  .why-big { color: var(--ink); font-size: clamp(18px, 1.9vw, 24px); font-weight: 800; line-height: 1.35; letter-spacing: -0.01em; margin-bottom: 20px; }
+  .flowline { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; align-items: center; }
+  .flowline span { padding: 7px 13px; border-radius: 10px; background: var(--code-bg); color: var(--ink); font-weight: 700; font-size: 14px; }
+  .flowline i { color: var(--accent); font-style: normal; font-weight: 800; }
+  .why-col .flowline { justify-content: flex-start; gap: 5px; flex-wrap: nowrap; }
+  .why-col .flowline span { font-size: 12px; padding: 5px 8px; white-space: nowrap; }
+  .why-col .flowline i { font-size: 12px; }
+  .why-note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+
+  /* Lifecycle */
+  .lifecycle { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; width: 100%; max-width: 1180px; margin-top: 34px; }
+  .stage {
+    position: relative; padding: 16px 14px; cursor: pointer; text-align: left;
+    transition: transform 0.15s, border-color 0.2s, background 0.2s;
+  }
+  .stage:hover { transform: translateY(-2px); border-color: var(--border-strong); }
+  .stage.selected { border-color: var(--accent); background: var(--card-strong); }
+  .stage.qa.selected { border-color: var(--accent-2); }
+  .stage .num { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+  .stage.qa .num { color: var(--accent-2); }
+  .stage .nm { color: var(--ink); font-weight: 800; font-size: 16px; margin-top: 6px; }
+  .stage .ag { font-size: 12px; margin-top: 4px; color: var(--text); }
+  .stage .art { font-size: 11px; margin-top: 10px; color: var(--muted); }
+  .stage .gate { position: absolute; top: 14px; right: 12px; font-size: 9.5px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--accent-3); }
+  .detail { width: 100%; max-width: 1180px; margin-top: 16px; overflow: hidden; max-height: 0; opacity: 0; transition: max-height 0.4s ease, opacity 0.3s; }
+  .detail.open { max-height: 360px; opacity: 1; }
+  .detail-inner { padding: 22px 28px; display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 28px; }
+  .dl { font-size: 10.5px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
+  .dt { color: var(--ink); font-size: 20px; font-weight: 800; }
+  .da { color: var(--text); font-size: 12.5px; margin-top: 4px; }
+  .chip-art { display: inline-block; margin-top: 12px; padding: 5px 10px; border-radius: 8px; background: var(--code-bg); color: var(--accent); font-size: 12px; }
+  .bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .bullets li { font-size: 13.5px; line-height: 1.5; padding-left: 16px; position: relative; }
+  .bullets li::before { content: ""; position: absolute; left: 0; top: 8px; width: 6px; height: 6px; border-radius: 2px; background: var(--accent); }
+  .dd { font-size: 13.5px; line-height: 1.6; }
+  .hint { margin-top: 14px; font-size: 12px; color: var(--muted); transition: opacity 0.3s; }
+  .hint.hidden { opacity: 0; }
+  .stage-table { display: none; }
+
+  /* Execution model */
+  .modes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; width: 100%; max-width: 1180px; margin-top: 34px; }
+  .mode { padding: 20px 20px; }
+  .mode .k { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 1.5px; text-transform: uppercase; }
+  .mode:nth-child(2) .k { color: var(--accent-2); }
+  .mode:nth-child(3) .k { color: var(--accent-3); }
+  .mode:nth-child(4) .k { color: var(--warm); }
+  .mode .t { color: var(--ink); font-weight: 800; font-size: 16px; margin-top: 8px; line-height: 1.3; }
+  .mode .d { font-size: 13px; line-height: 1.55; margin-top: 8px; }
+  .mode .c { margin-top: 12px; font-size: 11.5px; color: var(--muted); background: var(--code-bg); padding: 6px 9px; border-radius: 8px; line-height: 1.5; }
+  .exec-steps { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; max-width: 1180px; margin-top: 14px; }
+  .exec-step { padding: 18px 22px; }
+  .exec-step h3 { color: var(--ink); font-size: 14px; font-weight: 800; }
+  .exec-step p { font-size: 13px; line-height: 1.6; margin-top: 6px; }
+
+  /* Skills */
+  .skill-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; width: 100%; max-width: 1180px; margin-top: 30px; align-items: start; }
+  .group { padding: 18px 16px; }
+  .group h3 { color: var(--ink); font-size: 14px; font-weight: 800; display: flex; justify-content: space-between; align-items: baseline; }
+  .group h3 small { color: var(--muted); font-weight: 600; font-size: 11px; }
+  .group p { font-size: 12px; color: var(--muted); margin: 4px 0 12px; }
+  .skill {
+    display: block; width: 100%; text-align: left; margin-top: 7px; padding: 8px 10px; border-radius: 9px;
+    border: 1px solid var(--border); background: transparent; color: var(--accent); font-size: 12.5px; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .g2 .skill { color: var(--accent-2); }
+  .g3 .skill { color: var(--accent-3); }
+  .g4 .skill { color: var(--warm); }
+  .skill:hover, .skill.on { border-color: var(--border-strong); background: var(--code-bg); }
+  .skill-desc { margin-top: 16px; width: 100%; max-width: 1180px; padding: 16px 22px; min-height: 58px; font-size: 14px; display: flex; gap: 14px; align-items: center; }
+  .skill-desc b { color: var(--ink); white-space: nowrap; }
+
+  /* Guardrails */
+  .news { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; max-width: 1180px; margin-top: 30px; }
+  .new { padding: 20px 20px; }
+  .new .v { font-size: 10.5px; font-weight: 800; letter-spacing: 1.5px; color: var(--accent-3); text-transform: uppercase; }
+  .new .t { color: var(--ink); font-size: 15px; font-weight: 800; margin-top: 7px; line-height: 1.3; }
+  .new .d { font-size: 13px; line-height: 1.6; margin-top: 7px; }
+
+  /* Get started */
+  .start { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; width: 100%; max-width: 1180px; margin-top: 28px; }
+  .start-right { display: flex; flex-direction: column; gap: 16px; }
+  .panel { padding: 22px 24px; }
+  .panel h3 { color: var(--ink); font-size: 16px; font-weight: 800; }
+  .start .panel p { font-size: 13px; line-height: 1.6; margin-top: 8px; }
+  .row { display: grid; grid-template-columns: 150px 1fr; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border); }
+  .row:first-of-type { border-top: 0; }
+  .row .n { color: var(--ink); font-weight: 700; font-size: 13.5px; }
+  .row .c { font-size: 11.5px; color: var(--accent); background: var(--code-bg); padding: 6px 9px; border-radius: 8px; line-height: 1.5; }
+  .k2 { color: var(--accent-2); }
+  .spec-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .spec-chips span { font-size: 11.5px; padding: 4px 9px; border-radius: 100px; border: 1px solid var(--border); background: var(--code-bg); }
+  .spec-chips .hot { color: var(--accent-3); border-color: color-mix(in srgb, var(--accent-3) 45%, transparent); }
+  .packs-line { margin-top: 18px; font-size: 13.5px; text-align: center; }
+  .packs-line b { color: var(--ink); }
+  .packs-line .c1 { color: var(--accent); font-weight: 700; }
+  .packs-line .c2 { color: var(--accent-2); font-weight: 700; }
+  .packs-line .c3 { color: var(--accent-3); font-weight: 700; }
+
+  /* Four steps */
+  .terminal { width: 100%; max-width: 860px; margin-top: 34px; overflow: hidden; }
+  .term-top { display: flex; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .term-top i { width: 11px; height: 11px; border-radius: 50%; background: var(--dot); display: block; }
+  .term-body { padding: 22px 26px; font-size: clamp(12.5px, 1.25vw, 15px); display: flex; flex-direction: column; gap: 10px; }
+  .cl { color: var(--ink); }
+  .cl .p { color: var(--accent); font-weight: 800; margin-right: 10px; }
+  .cl .cm { color: var(--muted); }
+  .out { color: var(--accent-3); padding-left: 22px; border-left: 2px solid var(--border); margin-left: 4px; font-size: 0.9em; }
+  .invoke { margin-top: 18px; max-width: 860px; width: 100%; font-size: 12.5px; color: var(--muted); text-align: center; line-height: 1.7; }
+  .invoke .mono { color: var(--accent); }
+
+  @media (max-width: 1000px) {
+    .slide { padding: 70px 22px 90px; justify-content: flex-start; }
+    .modes, .skill-groups, .news, .gives-grid { grid-template-columns: repeat(2, 1fr); }
+    .lifecycle { grid-template-columns: repeat(3, 1fr); }
+    .detail-inner, .why, .start, .exec-steps { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- Print / PDF: one landscape page per slide, light theme, everything expanded ---------- */
+  @page { size: 1280px 720px; margin: 0; }
+  @media print {
+    :root, :root[data-theme] {
+      --bg: #ffffff; --ink: #0f1a33; --text: #3d4b66; --muted: #5d6a86;
+      --accent: #0a74c9; --accent-2: #6a48d8; --accent-3: #0d9a6a; --warm: #b35f0d;
+      --card: #ffffff; --card-strong: #ffffff; --border: #d3dbea; --border-strong: #b8c4da;
+      --code-bg: #eef2f9; --shadow: none; --dot: #c4cee0;
+    }
+    html, body { height: auto; overflow: visible; background: #fff;
+      -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .backdrop, .grid-lines, .theme-btn, .progress, #navhint, .hint, .detail, .skill-desc { display: none !important; }
+    .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .deck { height: auto; }
+    .slide {
+      position: relative; inset: auto; opacity: 1; transform: none; transition: none; pointer-events: auto;
+      overflow: visible; height: auto; min-height: 720px; padding: 64px 56px 14px; justify-content: flex-start;
+      break-after: page; page-break-after: always;
+    }
+    .slide:last-child { break-after: auto; page-break-after: auto; }
+    .slide.exit { opacity: 1; transform: none; }
+    .topbar { position: fixed; top: 20px; left: 32px; right: 32px; }
+    .bottombar { position: fixed; bottom: 16px; left: 32px; right: 32px; }
+    .print-foot { display: block; }
+    .eyebrow { margin-bottom: 10px; }
+    h2 { font-size: 36px; }
+    .hero { justify-content: center; }
+
+    /* lifecycle: all six stages expanded */
+    .lifecycle { margin-top: 20px; gap: 10px; }
+    .stage { padding: 12px 11px; }
+    .stage .nm { font-size: 14px; }
+    .stage .ag { font-size: 11px; }
+    .stage-table { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; width: 100%; max-width: 1180px; margin-top: 12px; }
+    .st-col { padding: 12px 11px; border: 1px solid var(--border); border-radius: 12px; }
+    .st-col .bullets { gap: 4px; margin-top: 6px; }
+    .st-col .bullets li { font-size: 10.5px; line-height: 1.4; padding-left: 12px; }
+    .st-col .bullets li::before { width: 5px; height: 5px; top: 6px; }
+    .st-out { margin-top: 8px; font-size: 10.5px; line-height: 1.4; color: var(--text); border-top: 1px solid var(--border); padding-top: 7px; }
+    .st-out b { color: var(--ink); display: block; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 2px; }
+
+    /* skills: show each description under its name; the group row may continue on a second page */
+    .skill-groups { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
+    .group { break-inside: avoid; page-break-inside: avoid; padding: 14px 14px; }
+    .skill { cursor: default; padding: 6px 9px; margin-top: 6px; }
+    .skill::after {
+      content: attr(data-d); display: block; margin-top: 3px; white-space: normal;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      font-size: 10.5px; line-height: 1.4; color: var(--text);
+    }
+
+    .modes, .news, .exec-steps { margin-top: 20px; }
+    .mode, .new, .exec-step, .panel, .why-col { break-inside: avoid; page-break-inside: avoid; }
+    .start { margin-top: 14px; gap: 12px; }
+    .start-right { gap: 12px; }
+    .start .row { padding: 5px 0; }
+    .start .panel { padding: 14px 18px; }
+    .start .panel p { margin-top: 6px; line-height: 1.5; }
+    .spec-chips { margin-top: 8px; gap: 5px; }
+    .spec-chips span { font-size: 10.5px; padding: 3px 8px; }
+    .packs-line { margin-top: 12px; }
+    .terminal { margin-top: 20px; }
+    .stage:hover, .mode:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop"></div>
+<div class="grid-lines"></div>
+
+<div class="topbar">
+  <div class="brand"><span class="brand-mark"></span>Itential</div>
+  <button class="theme-btn" id="themeBtn" title="Toggle theme (T)">Light / Dark</button>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 TITLE -->
+  <section class="slide hero active">
+    <div class="eyebrow">Builder Skills</div>
+    <h1>From spec to<br><span class="grad">proven delivery.</span></h1>
+    <div class="sub">AI agents that design, build and test Itential automation, with an approval at every stage.</div>
+    <div class="pill-row">
+      <div class="pill"><b>19</b> skills</div>
+      <div class="pill"><b>23</b> built-in specs</div>
+      <div class="pill"><b>6</b> stages · <b>4</b> agents</div>
+      <div class="pill">Claude Code · Codex · Copilot · Cursor</div>
+    </div>
+    <div class="gives">
+      <div class="gives-label">What you get</div>
+      <div class="gives-grid">
+        <div class="give"><b>Evidence at every stage</b><span>A spec, a design, test results and an as-built record, not just a working job</span></div>
+        <div class="give"><b>The right execution model</b><span>Workflow, LCM, Gateway5 service or agent, chosen per phase with a stated reason</span></div>
+        <div class="give"><b>Any AI tool</b><span>The same skills in Claude Code, Codex, Copilot and Cursor</span></div>
+        <div class="give"><b>Your rules, kept</b><span>Org, team and personal standards that updates never overwrite</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 WHY -->
+  <section class="slide">
+    <div class="eyebrow">Why spec-driven</div>
+    <h2>Delivery needs an <span class="grad">operating model.</span></h2>
+    <div class="why">
+      <div class="card why-col">
+        <div class="why-h">Without one</div>
+        <ul class="why-list bad">
+          <li><b>Intent stays implicit</b> — "done" lives in someone's head</li>
+          <li><b>Discovery happens late</b> — the missing adapter shows up mid-build</li>
+          <li><b>Design and build blur</b> — decisions made inside the canvas</li>
+          <li><b>"It works" is never proven</b> — a green job isn't evidence</li>
+          <li><b>Knowledge walks away</b> — the next team starts from zero</li>
+        </ul>
+      </div>
+      <div class="card why-col">
+        <div class="why-h good-h">With spec-driven development</div>
+        <div class="why-big">Lock intent before touching the environment.<br>Prove the result before calling it done.</div>
+        <div class="flowline">
+          <span>Requirements</span><i>→</i><span>Feasibility</span><i>→</i><span>Design</span><i>→</i><span>Build</span><i>→</i><span>Test</span><i>→</i><span>As-Built</span>
+        </div>
+        <div class="why-note">Each stage: one artifact, one approval. Nothing moves forward on an assumption.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 LIFECYCLE -->
+  <section class="slide" id="slide-lifecycle">
+    <div class="eyebrow">Delivery lifecycle</div>
+    <h2>Six stages. Four agents. <span class="grad">Full traceability.</span></h2>
+    <div class="lifecycle">
+      <div class="card stage" data-stage="0"><div class="gate">approve</div><div class="num">01</div><div class="nm">Requirements</div><div class="ag">Spec Agent</div><div class="art mono">customer-spec.md</div></div>
+      <div class="card stage" data-stage="1"><div class="gate">approve</div><div class="num">02</div><div class="nm">Feasibility</div><div class="ag">Solution Arch. Agent</div><div class="art mono">feasibility.md</div></div>
+      <div class="card stage" data-stage="2"><div class="gate">approve</div><div class="num">03</div><div class="nm">Design</div><div class="ag">Solution Arch. Agent</div><div class="art mono">solution-design.md</div></div>
+      <div class="card stage" data-stage="3"><div class="gate">hand off</div><div class="num">04</div><div class="nm">Build</div><div class="ag">Builder Agent</div><div class="art mono">project + assets</div></div>
+      <div class="card stage qa" data-stage="4"><div class="gate">approve plan</div><div class="num">05</div><div class="nm">Test</div><div class="ag">QA Agent</div><div class="art mono">test-plan · test-report</div></div>
+      <div class="card stage qa" data-stage="5"><div class="gate">sign off</div><div class="num">06</div><div class="nm">As-Built</div><div class="ag">QA Agent</div><div class="art mono">as-built.md</div></div>
+    </div>
+    <div class="detail" id="detail"><div class="card detail-inner" id="detailInner"></div></div>
+    <div class="stage-table" id="stageTable"></div>
+    <div class="hint" id="hint">Click a stage, or press → to step through</div>
+  </section>
+
+  <!-- 4 EXECUTION MODEL -->
+  <section class="slide">
+    <div class="eyebrow">Design decision</div>
+    <h2>Pick how each phase <span class="grad">runs.</span></h2>
+    <div class="modes">
+      <div class="card mode"><div class="k">Workflow</div><div class="t">The default</div><div class="d">Same steps, same result, every run. Used unless another model has a specific reason in this use case.</div><div class="c">Repeatable changes, checks and orchestration</div></div>
+      <div class="card mode"><div class="k">Lifecycle Manager</div><div class="t">A thing that outlives the run</div><div class="d">Stores the instance and runs day-2 actions against it: a port service, a circuit, a network.</div><div class="c">Not for one-off tasks such as a backup or a report</div></div>
+      <div class="card mode"><div class="k">Gateway5 service</div><div class="t">Code that runs on a gateway</div><div class="d">Python, Ansible or OpenTofu defined in YAML and called from a workflow.</div><div class="c">When the work is a script, playbook or plan</div></div>
+      <div class="card mode"><div class="k">FlowAI agent</div><div class="t">Judgment at runtime</div><div class="d">An agent reasons with platform tools. A parent can call child agents; a child is judged by its answer, not its status.</div><div class="c">When the path can't be written down in advance</div></div>
+    </div>
+    <div class="exec-steps">
+      <div class="card exec-step"><h3>How the choice is made</h3><p>Feasibility records what the platform already has. Design asks only the questions the spec leaves open, proposes a model for each phase with the reason, and the engineer confirms it.</p></div>
+      <div class="card exec-step"><h3>Agent first, then deterministic</h3><p>Build and test an agent to find out what the process should be, then turn it into a deterministic workflow spec. Or build the agent as the delivered answer, or go straight to workflows.</p></div>
+    </div>
+  </section>
+
+  <!-- 5 SKILLS -->
+  <section class="slide">
+    <div class="eyebrow">19 skills</div>
+    <h2>Start wherever <span class="grad">you are.</span></h2>
+    <div class="skill-groups">
+      <div class="card group g1"><h3>Deliver from a spec <small>4</small></h3><p>The lifecycle, stage by stage</p>
+        <button class="skill mono" data-d="Use it to start a new delivery. Refines the use case, sets scope and acceptance criteria, and produces the approved customer-spec.md — from 23 built-in specs or from scratch.">/spec-agent</button>
+        <button class="skill mono" data-d="Use it once requirements are approved. Connects to the platform, assesses feasibility, then writes the design: components, execution model per phase, adapter mappings, build order and tests.">/solution-arch-agent</button>
+        <button class="skill mono" data-d="Use it once the design is approved. Builds and tests every component — projects, workflows, templates, MOP, agents — children first, orchestrator last.">/builder-agent</button>
+        <button class="skill mono" data-d="Use it after the build. Acceptance tests against the approved criteria with real data, then the as-built record. Failures go back to the builder.">/qa-agent</button>
+      </div>
+      <div class="card group g2"><h3>Start from what exists <small>4</small></h3><p>Turn running things into specs</p>
+        <button class="skill mono" data-d="Use it when a FlowAI agent proved the pattern. Reads the agent and its sessions, including child agents it calls, and writes a deterministic workflow spec.">/flowagent-to-spec</button>
+        <button class="skill mono" data-d="Use it when automation works but isn't documented. Reads a project and writes customer-spec.md and solution-design.md.">/project-to-spec</button>
+        <button class="skill mono" data-d="Use it to document a whole platform. Surveys global assets, groups them by use case and writes a design for each.">/documentation</button>
+        <button class="skill mono" data-d="Use it to look around first. Authenticate, pull live platform data and browse — no lifecycle required.">/explore</button>
+      </div>
+      <div class="card group g3"><h3>Build on the platform <small>9</small></h3><p>Deep knowledge per area</p>
+        <button class="skill mono" data-d="FlowAI agents: LLM profiles, tools, decorators, human approvals (ViewData, InteractiveHTML, QuickForm), agents that call other agents, attached skills, export and import.">/flowagent</button>
+        <button class="skill mono" data-d="Write, package, import and test skills for FlowAI agents, in the Agent Skills format.">/flowagent-skill-builder</button>
+        <button class="skill mono" data-d="Gateway5 services: Python, Ansible and OpenTofu defined in YAML and called from workflows with runService.">/iag</button>
+        <button class="skill mono" data-d="Command templates with validation rules for pre- and post-checks.">/itential-mop</button>
+        <button class="skill mono" data-d="Devices, backups, diffs and device groups.">/itential-devices</button>
+        <button class="skill mono" data-d="Golden config trees, compliance plans and grading. Detects drift; never applies remediation.">/itential-golden-config</button>
+        <button class="skill mono" data-d="Device inventories, nodes, actions, tags and broker-action inventories.">/itential-inventory</button>
+        <button class="skill mono" data-d="Lifecycle Manager: resource models, instances and lifecycle actions.">/itential-lcm</button>
+        <button class="skill mono" data-d="JSON Forms for manual triggers and tasks: static, REST-bound and cascading dropdowns.">/itential-json-forms</button>
+      </div>
+      <div class="card group g4"><h3>Modernize <small>2</small></h3><p>Move estates forward</p>
+        <button class="skill mono" data-d="Use it before a Gateway4 → Gateway5 move. Read-only readiness report and manual-action guide; the migration itself then runs through /spec-agent with the migration spec and converter.">/gateway4-to-gateway5</button>
+        <button class="skill mono" data-d="Use it to retire transformations. Converts JSTs one at a time into single-file Python for the Run Code task, each proven against test data from your samples or a past job. Read-only on the platform.">/jst-to-code</button>
+      </div>
+    </div>
+    <div class="card skill-desc" id="skillDesc"><b class="mono" id="skillName">Pick a skill</b><span id="skillText">Click any skill to see when to use it.</span></div>
+  </section>
+
+  <!-- 6 GUARDRAILS -->
+  <section class="slide">
+    <div class="eyebrow">Guardrails</div>
+    <h2>Built into every stage, <span class="grad">not bolted on.</span></h2>
+    <div class="news">
+      <div class="card new"><div class="v">Approval gates</div><div class="t">The engineer decides</div><div class="d">The spec, feasibility, design, test plan and as-built record each need an explicit approval before the next stage starts.</div></div>
+      <div class="card new"><div class="v">Validate first</div><div class="t">Zero errors, zero warnings</div><div class="d">Every workflow is deeply validated before it is saved. A warning blocks delivery the same way an error does.</div></div>
+      <div class="card new"><div class="v">Evidence</div><div class="t">A green job isn't proof</div><div class="d">Each task's own output is checked for embedded errors and empty values, and the values are stated before a run is called successful.</div></div>
+      <div class="card new"><div class="v">Safe imports</div><div class="t">Ask before replacing</div><div class="d">Importing over an existing project replaces it. The builder compares the file with the live project and asks before anything is deleted.</div></div>
+      <div class="card new"><div class="v">No device remediation</div><div class="t">Detect, report, push normally</div><div class="d">Golden config finds and reports drift. Corrections go through a normal config-push delivery, never an automatic remediation task.</div></div>
+      <div class="card new"><div class="v">Permissions</div><div class="t">The platform stays in charge</div><div class="d">Skills act with the configured credentials and never grant themselves access. Customization can narrow the rules but can't weaken a safety rule.</div></div>
+    </div>
+  </section>
+
+  <!-- 7 GET STARTED -->
+  <section class="slide">
+    <div class="eyebrow">Get started</div>
+    <h2>Install it. Make it yours. <span class="grad">Pick a spec.</span></h2>
+    <div class="start">
+      <div class="card panel">
+        <h3>Install in your AI tool</h3>
+        <div class="row"><div class="n">Claude Code</div><div class="c mono">/plugin marketplace add itential/builder-skills<br>/plugin install itential-builder@itential-builder</div></div>
+        <div class="row"><div class="n">Codex CLI</div><div class="c mono">codex plugin marketplace add itential/builder-skills<br>codex plugin add itential-builder@itential-builder</div></div>
+        <div class="row"><div class="n">Copilot · VS Code</div><div class="c mono">Chat: Install Plugin From Source → itential/builder-skills</div></div>
+        <div class="row"><div class="n">Copilot CLI</div><div class="c mono">copilot plugin marketplace add itential/builder-skills<br>copilot plugin install itential-builder@itential-builder</div></div>
+        <div class="row"><div class="n">Cursor</div><div class="c mono">gh skill install itential/builder-skills --agent cursor --all</div></div>
+        <p>Check, run and update steps for each tool: <span class="mono k2">docs/vendor-install.md</span>. Watch releases on the repo to hear about updates.</p>
+      </div>
+      <div class="start-right">
+        <div class="card panel">
+          <h3>Customize without forking</h3>
+          <p>Each skill has <span class="mono k2">custom/org</span>, <span class="mono k2">custom/team</span> and <span class="mono k2">custom/dev</span> for your standards. Most specific wins; updates never overwrite them; no layer can weaken a safety rule.</p>
+        </div>
+        <div class="card panel">
+          <h3>23 built-in specs</h3>
+          <div class="spec-chips">
+            <span>Port turn-up</span><span>VLAN</span><span>BGP peer</span><span>VPN tunnel</span><span>Circuit</span><span>WAN bandwidth</span><span>Load balancer VIP</span>
+            <span>Device onboarding</span><span>Decommissioning</span><span>Software upgrade</span><span>Change management</span><span>Health check</span>
+            <span>Config backup</span><span>Drift remediation</span><span>Compliance audit</span><span>Incident remediation</span>
+            <span>Firewall rules</span><span>Cloud security groups</span><span>SSL certificates</span>
+            <span>IPAM</span><span>DNS records</span><span>AWS web server</span><span class="hot">Gateway4 → 5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="packs-line"><b>Three packs:</b> <span class="c1">Builder</span> delivers and tests · <span class="c2">Operator</span> runs delivered automations · <span class="c3">Admin</span> keeps the platform healthy</div>
+  </section>
+
+  <!-- 8 FOUR STEPS -->
+  <section class="slide">
+    <div class="eyebrow">How it runs</div>
+    <h2>A delivery in <span class="grad">four steps.</span></h2>
+    <div class="card terminal">
+      <div class="term-top"><i></i><i></i><i></i></div>
+      <div class="term-body mono">
+        <div class="cl"><span class="p">›</span>spec-agent <span class="cm">— pick a use case, lock requirements</span></div>
+        <div class="out">customer-spec.md approved</div>
+        <div class="cl"><span class="p">›</span>solution-arch-agent <span class="cm">— check the platform, design it</span></div>
+        <div class="out">feasibility.md + solution-design.md approved</div>
+        <div class="cl"><span class="p">›</span>builder-agent <span class="cm">— build and test each component</span></div>
+        <div class="out">project delivered, handed to QA</div>
+        <div class="cl"><span class="p">›</span>qa-agent <span class="cm">— test plan, live acceptance tests, as-built</span></div>
+        <div class="out">test-report.md + as-built.md signed off</div>
+      </div>
+    </div>
+    <div class="invoke">Invoke a skill as <span class="mono">/itential-builder:spec-agent</span> in Claude Code, <span class="mono">$itential-builder:spec-agent</span> in Codex, or <span class="mono">/spec-agent</span> in Copilot and Cursor.</div>
+  </section>
+
+</div>
+
+<div class="bottombar">
+  <div id="navhint">← → navigate · T theme</div>
+  <div class="print-foot">Itential Builder Skills · github.com/itential/builder-skills · reflects release 2.3.0</div>
+  <div class="progress" id="progress"></div>
+  <div id="slideNum"></div>
+</div>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const total = slides.length;
+  const LIFECYCLE = slides.indexOf(document.getElementById('slide-lifecycle'));
+  let current = 0, stageIndex = -1;
+
+  const stages = [
+    { name: 'Requirements', agent: 'Spec Agent · /spec-agent', art: 'customer-spec.md',
+      points: ['Start from 23 built-in specs or a blank one', 'Capture business context, scope and constraints', 'Write the acceptance criteria', 'Engineer approves before anything else happens'],
+      out: 'An approved high-level design: what will be built, scope, constraints and how it will be accepted.' },
+    { name: 'Feasibility', agent: 'Solution Architecture Agent · /solution-arch-agent', art: 'feasibility.md',
+      points: ['First contact with the platform: authenticate and pull live data', 'Check adapters, integrations, and what LCM, agents and Gateway5 already offer', 'Find existing assets to reuse', 'Decide: feasible, feasible with constraints, or not'],
+      out: 'A feasibility decision with constraints flagged and reuse opportunities named.' },
+    { name: 'Design', agent: 'Solution Architecture Agent · /solution-arch-agent', art: 'solution-design.md',
+      points: ['Component inventory: build or reuse', 'An execution model for each phase, with the reason, confirmed with the engineer', 'Adapter mappings and build order', 'Each acceptance criterion mapped to a test'],
+      out: 'A low-level design the builder can follow and QA can test against.' },
+    { name: 'Build', agent: 'Builder Agent · /builder-agent', art: 'project + assets',
+      points: ['Children first, orchestrator last, each one tested', 'runCode + Enable Query instead of long utility chains', 'Deep validation before every save; zero errors and warnings', 'Atomic project import, owners set right after, and a question before replacing an existing project'],
+      out: 'A delivered project with every component tested and real IDs recorded, ready for acceptance testing.' },
+    { name: 'Test', agent: 'QA Agent · /qa-agent', art: 'test-plan.md · test-report.md',
+      points: ['Test plan drafted from the acceptance criteria', 'Engineer approves the test data before anything runs live', 'Static and live acceptance cases, including agent sessions, with evidence', 'Failures go back to the builder; QA never edits workflows'],
+      out: 'Pass or fail with evidence for every acceptance criterion; pending items called out, not hidden.' },
+    { name: 'As-Built', agent: 'QA Agent · /qa-agent', art: 'as-built.md',
+      points: ['Written once every case passes, or residuals are accepted', 'Deviations recorded in the design', 'Scope changes dated in the spec', 'Engineer signs off'],
+      out: 'The delivered state, deviations and learnings, backed by real test evidence. The baseline for the next change.' }
+  ];
+
+  // Print layout: every stage's detail on the page at once
+  document.getElementById('stageTable').innerHTML = stages.map((s, i) => `
+    <div class="st-col"><div class="dl">${i + 1} · ${s.name}</div>
+      <ul class="bullets">${s.points.map(p => `<li>${p}</li>`).join('')}</ul>
+      <div class="st-out"><b>Customer receives</b>${s.out}</div></div>`).join('');
+
+  const prog = document.getElementById('progress');
+  slides.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.onclick = () => { clearStage(); goTo(i); };
+    prog.appendChild(d);
+  });
+
+  function goTo(n) {
+    if (n < 0 || n >= total) return;
+    const prev = slides[current];
+    if (prev !== slides[n]) {
+      prev.classList.remove('active'); prev.classList.add('exit');
+      setTimeout(() => prev.classList.remove('exit'), 380);
+    }
+    current = n;
+    slides[n].classList.add('active');
+    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === n));
+    document.getElementById('slideNum').textContent = `${n + 1} / ${total}`;
+    if (n !== LIFECYCLE) clearStage();
+  }
+
+  function selectStage(i) {
+    stageIndex = i;
+    const s = stages[i];
+    document.querySelectorAll('.stage').forEach((b, k) => b.classList.toggle('selected', k === i));
+    document.getElementById('detailInner').innerHTML = `
+      <div><div class="dl">Stage ${i + 1} of ${stages.length}</div><div class="dt">${s.name}</div><div class="da">${s.agent}</div><div class="chip-art mono">${s.art}</div></div>
+      <div><div class="dl">Key steps</div><ul class="bullets">${s.points.map(p => `<li>${p}</li>`).join('')}</ul></div>
+      <div><div class="dl">Customer receives</div><div class="dd">${s.out}</div></div>`;
+    document.getElementById('detail').classList.add('open');
+    document.getElementById('hint').classList.add('hidden');
+  }
+  function clearStage() {
+    stageIndex = -1;
+    document.querySelectorAll('.stage').forEach(b => b.classList.remove('selected'));
+    document.getElementById('detail').classList.remove('open');
+    document.getElementById('hint').classList.remove('hidden');
+  }
+  document.querySelectorAll('.stage').forEach(el => el.addEventListener('click', () => selectStage(+el.dataset.stage)));
+
+  document.querySelectorAll('.skill').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.skill').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    document.getElementById('skillName').textContent = btn.textContent;
+    document.getElementById('skillText').textContent = btn.dataset.d;
+  }));
+
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    try { localStorage.setItem('sdd-theme', t); } catch (e) {}
+  }
+  let saved = null;
+  try { saved = localStorage.getItem('sdd-theme'); } catch (e) {}
+  setTheme(saved || 'dark');
+  document.getElementById('themeBtn').onclick = () =>
+    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+
+  goTo(0);
+
+  const LAST = stages.length - 1;
+  document.addEventListener('keydown', e => {
+    if (e.key === 't' || e.key === 'T') { document.getElementById('themeBtn').click(); return; }
+    if (current === LIFECYCLE) {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); stageIndex < LAST ? selectStage(stageIndex + 1) : (clearStage(), goTo(current + 1)); return; }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); stageIndex > 0 ? selectStage(stageIndex - 1) : stageIndex === 0 ? clearStage() : goTo(current - 1); return; }
+      if (e.key === 'Escape') { clearStage(); return; }
+    }
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft') goTo(current - 1);
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  let tx = 0;
+  document.addEventListener('touchstart', e => tx = e.touches[0].clientX);
+  document.addEventListener('touchend', e => {
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) < 50) return;
+    if (current === LIFECYCLE) {
+      if (dx > 0 && stageIndex < LAST) { selectStage(stageIndex + 1); return; }
+      if (dx < 0 && stageIndex > 0) { selectStage(stageIndex - 1); return; }
+    }
+    dx > 0 ? goTo(current + 1) : goTo(current - 1);
+  });
+</script>
+</body>
+</html>
