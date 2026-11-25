@@ -1,6 +1,6 @@
 ---
 name: jst-to-code
-description: Use this skill to convert Itential transformation documents (JSTs, .jst.json) into single-file Python for the Run Code workflow task. Trigger it for phrases like "convert this JST to code", "turn these transformations into Python", "rewrite this .jst.json as Run Code Python", or "jst to code on canvas". It reads JSTs from local files or pulls them read-only by URL/id, converts them one at a time, and proves each conversion against test data (your own input and expected output, or a past job that ran the transformation). A JST with no test data is still converted but reported as NOT TESTED. Output is one NAME.py per JST. NOT for building new transformations or workflows.
+description: Use this skill to convert Itential transformation documents (JSTs, .jst.json) into single-file Python for the Run Code workflow task. Trigger it for phrases like "convert this JST to code", "turn these transformations into Python", "rewrite this .jst.json as Run Code Python", or "jst to code on canvas". It reads JSTs from local files or pulls them read-only by URL/id, converts them one at a time, and proves each conversion against test data (your own input and expected output, or a past job that ran the transformation). A JST with no test data is still converted but reported as NOT TESTED. Output is one NAME.py per JST. NOT for building new transformations or workflows. Logs in with its bundled auth helper: never read `.env` yourself.
 ---
 
 # JST → Code

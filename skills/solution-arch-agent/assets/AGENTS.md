@@ -133,7 +133,7 @@ It contains the platform URL, project ID, what's already built, decisions made, 
 
 ### Auth Reuse — Authenticate Once, Reuse Everywhere
 
-**Auth happens when first needed** — in `/explore` or in `/solution-arch-agent` during Feasibility — and **always through the auth helper, `helpers/auth.py`**. It reads `{use-case}/.env`, gets a token, writes it to `{use-case}/.auth.json` (readable only by the file's owner) and prints one status line. It never prints a password, client secret or token.
+**Auth happens when first needed** — in `/explore` or in `/solution-arch-agent` during Feasibility — and **always through the auth helper, `helpers/auth.py`**. It reads `{use-case}/.env`, gets a token, writes it to `{use-case}/.auth.json` and a curl config, `{use-case}/.auth.curl` (both readable only by their owner), and prints one status line. It never prints a password, client secret or token.
 
 ```bash
 python3 helpers/auth.py {use-case}            # reuses a still-valid token, otherwise gets a new one
@@ -146,14 +146,12 @@ From a skill, run the copy bundled with it: `python3 <this skill's folder>/asset
 
 Every skill that calls the platform:
 1. Runs the helper before its first API call. Exit `0`: ready. Exit `1`: the platform refused the credentials — show the engineer the helper's message. Exit `2`: `.env` is missing or incomplete — ask the engineer to fix the file.
-2. Reads the token from `.auth.json` into a shell variable, so its value never appears in a command or in output, and sends it in a **header — never in the URL** (`?token=` ends up in server logs, shell history and proxies):
+2. Makes every call with the curl config the helper writes next to `.auth.json`, which sends the token in a **header — never in the URL** (`?token=` ends up in server logs, shell history and proxies), so the token never appears in a command or its output:
    ```bash
-   BASE=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["platform_url"])' {use-case}/.auth.json)
-   TOKEN=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["token"])' {use-case}/.auth.json)
-   curl -s -H "Authorization: Bearer $TOKEN" "$BASE/health/status"   # auth_method "oauth"
-   curl -s -H "Cookie: token=$TOKEN" "$BASE/health/status"           # auth_method "local" (/login)
+   curl -s -K {use-case}/.auth.curl "https://<platform>/health/status"
+   curl -s -K {use-case}/.auth.curl -X POST -H "Content-Type: application/json" -d @body.json "https://<platform>/…"
    ```
-   `.auth.json` names the right one in its `header` field. Scripts read the token the same way.
+   The platform URL is in the helper's status line and in `.auth.json`'s `platform_url`. It sets `Authorization: Bearer` for an OAuth token and the `token` cookie for a local `/login` token. Never print, `cat` or echo `.auth.json`, `.auth.curl` or the token. Scripts read the token from `.auth.json` themselves.
 3. On a 401 or 403: runs the helper with `--force`, then retries the call once. It doesn't stop or ask the engineer for credentials while `.env` exists.
 
 **No `.env` yet:** ask the engineer to create `{use-case}/.env` from the matching template in `environments/` — `cloud-lab.env` for OAuth client credentials, `local-dev.env` for username and password — and to tell you when it's saved. The engineer types the secret into the file, not into the conversation. If they paste credentials into the conversation anyway, write them to `.env` once and don't repeat them.

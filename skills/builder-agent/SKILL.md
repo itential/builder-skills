@@ -1,6 +1,6 @@
 ---
 name: builder-agent
-description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", or "the design is locked — implement it". Also trigger it when a build is failing mid-way and needs debugging, or when /qa-agent hands back a failing test case for a fix. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, and testing each component individually. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill. Invoke after /solution-arch-agent produces an approved solution-design.md. Hands off to /qa-agent once the build is complete — /qa-agent owns acceptance testing and the as-built record.
+description: Use this skill when someone has an approved solution design and is ready to build. Trigger it for phrases like "solution design is approved", "go ahead and build", "implement the design", "create the workflows", "build everything per the design", or "the design is locked — implement it". Also trigger it when a build is failing mid-way and needs debugging, or when /qa-agent hands back a failing test case for a fix. This skill implements the approved solution-design.md end-to-end — creating all workflows, templates, projects, and configs, and testing each component individually. If the user has a solution-design.md and wants to turn it into working automation, this is the right skill. Invoke after /solution-arch-agent produces an approved solution-design.md. Hands off to /qa-agent once the build is complete — /qa-agent owns acceptance testing and the as-built record. Logs in with its bundled auth helper: never read `.env` yourself.
 ---
 
 # Builder Agent
@@ -117,7 +117,7 @@ python3 <this skill's folder>/assets/helpers/auth.py {use-case}            # mis
 python3 <this skill's folder>/assets/helpers/auth.py {use-case} --force    # after a 401 or 403
 ```
 
-It reads `{use-case}/.env` (OAuth client credentials or username/password), writes `.auth.json` and prints one status line without any secret. **Never read `.env` yourself, never call `/oauth/token` or `/login` by hand, and never put a secret or token in a command** — read the token from `.auth.json` into a shell variable and send it in the header named by its `header` field (see "Auth Reuse" in `assets/AGENTS.md`). Exit 1 means the platform refused the credentials — show the engineer the message; exit 2 means `.env` is missing or incomplete — ask the engineer to fix the file.
+It reads `{use-case}/.env` (OAuth client credentials or username/password), writes `.auth.json` and prints one status line without any secret. **Never read `.env` yourself, never call `/oauth/token` or `/login` by hand, and never put a secret or token in a command** — make every call with `curl -K {use-case}/.auth.curl`, the curl config the helper writes, which sends the token in a header (see "Auth Reuse" in `assets/AGENTS.md`). Exit 1 means the platform refused the credentials — show the engineer the message; exit 2 means `.env` is missing or incomplete — ask the engineer to fix the file.
 
 ---
 
