@@ -84,18 +84,20 @@ builder-skills/
 
 **Setup sequence (working from a clone only — one-time per platform):**
 ```bash
-./scripts/platform_pull.py <platform-url> <client-id> <client-secret>
+./scripts/platform_pull.py <platform-url> <client-id>
 ```
 
 **Per use-case:**
 ```bash
-./scripts/use_case_init.py <use-case-name> <platform-url> <client-id> <client-secret>
+./scripts/use_case_init.py <use-case-name> <platform-url> <client-id>
 ```
 
 **Refresh platform data** (after platform upgrade or new adapters installed):
 ```bash
-./scripts/platform_pull.py --refresh <platform-url> <client-id> <client-secret>
+./scripts/platform_pull.py --refresh --env-file use-cases/<use-case-name>/.env
 ```
+
+The scripts take the client secret from `ITENTIAL_CLIENT_SECRET`, from `--env-file`, or from a hidden prompt — never as an argument, where it shows up in shell history and the process list. These are for the engineer to run in a terminal; an agent never types a secret into a command.
 
 **At the start of every session — read the memory file first:**
 ```bash
