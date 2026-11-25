@@ -131,32 +131,36 @@ It contains the platform URL, project ID, what's already built, decisions made, 
 
 ### Auth Reuse — Authenticate Once, Reuse Everywhere
 
-**Auth happens when first needed** — in `/explore` (explore path) or in `/solution-arch-agent` during Feasibility. The token is saved to `{use-case}/.auth.json`. Every subsequent skill should:
-1. Read `{use-case}/.auth.json` for the token
-2. Read `{use-case}/.env` for `PLATFORM_URL` and credentials
-3. Use the token for all API calls — Bearer header for OAuth, query parameter for local-dev `/login` tokens (see "Initial authentication" below for which)
-4. On auth error (401/403): re-authenticate silently — see procedure below
-5. **Never ask the user for credentials if `.env` exists**
+**Auth happens when first needed** — in `/explore` or in `/solution-arch-agent` during Feasibility — and **always through the auth helper, `helpers/auth.py`**. It reads `{use-case}/.env`, gets a token, writes it to `{use-case}/.auth.json` (readable only by the file's owner) and prints one status line. It never prints a password, client secret or token.
 
-This means the user authenticates once and every subsequent skill just works.
+```bash
+python3 helpers/auth.py {use-case}            # reuses a still-valid token, otherwise gets a new one
+python3 helpers/auth.py {use-case} --force    # after a 401 or 403
+```
 
-**Initial authentication — two modes, depending on environment.** Check for credentials in this order: `{use-case}/.auth.json` (already authenticated, reuse) → `{use-case}/.env` (saved during setup) → pre-configured environment files. If none found, ask the engineer for the platform URL and credentials, then use whichever mode matches:
+From a skill, run the copy bundled with it: `python3 <this skill's folder>/assets/helpers/auth.py {use-case}`.
 
-- **Local development (username/password):** `POST /login` with `Content-Type: application/json` and body `{"username": "...", "password": "..."}`. Returns a bare token string — used as a **query parameter** (`GET /endpoint?token=TOKEN`), not a Bearer header.
-- **Cloud / OAuth (client_credentials):** `POST /oauth/token` with `Content-Type: application/x-www-form-urlencoded` and body `grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}`. Returns `{"access_token": "..."}` — used as a **Bearer header**, per the reuse rules above.
+**Never read `.env` yourself.** Don't open, `cat`, `source`, `grep` or print it, and never put a password, client secret or token in a command, a file you write, or a message — a value you read or type stays in the conversation from then on. The helper reads `.env`; you only run it. To check which settings exist, list the key names only: `cut -d= -f1 {use-case}/.env`.
 
-Write whichever token you got, plus `auth_method` (`"local"` or `"oauth"`) so downstream skills know which transport to use, to `{use-case}/.auth.json`. **Never author this file via a shell heredoc** — see Rule 27.
+Every skill that calls the platform:
+1. Runs the helper before its first API call. Exit `0`: ready. Exit `1`: the platform refused the credentials — show the engineer the helper's message. Exit `2`: `.env` is missing or incomplete — ask the engineer to fix the file.
+2. Reads the token from `.auth.json` into a shell variable, so its value never appears in a command or in output, and sends it in a **header — never in the URL** (`?token=` ends up in server logs, shell history and proxies):
+   ```bash
+   BASE=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["platform_url"])' {use-case}/.auth.json)
+   TOKEN=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["token"])' {use-case}/.auth.json)
+   curl -s -H "Authorization: Bearer $TOKEN" "$BASE/health/status"   # auth_method "oauth"
+   curl -s -H "Cookie: token=$TOKEN" "$BASE/health/status"           # auth_method "local" (/login)
+   ```
+   `.auth.json` names the right one in its `header` field. Scripts read the token the same way.
+3. On a 401 or 403: runs the helper with `--force`, then retries the call once. It doesn't stop or ask the engineer for credentials while `.env` exists.
 
-**Token expiry — silent re-auth procedure (OAuth only; local-dev tokens don't expire the same way — re-run `/login` if one stops working):**
+**No `.env` yet:** ask the engineer to create `{use-case}/.env` from the matching template in `environments/` — `cloud-lab.env` for OAuth client credentials, `local-dev.env` for username and password — and to tell you when it's saved. The engineer types the secret into the file, not into the conversation. If they paste credentials into the conversation anyway, write them to `.env` once and don't repeat them.
 
-When any API call returns 401 or 403, do not stop and do not ask the user. Re-authenticate silently:
+**What the helper does** (for debugging; don't do these calls by hand):
+- **OAuth (`CLIENT_ID` + `CLIENT_SECRET`):** `POST /oauth/token`, `Content-Type: application/x-www-form-urlencoded`, body `grant_type=client_credentials&client_id=…&client_secret=…`. Returns `access_token`, sent as `Authorization: Bearer <token>`.
+- **Local (`USERNAME` + `PASSWORD`):** `POST /login`, `Content-Type: application/json`, body `{"username": "...", "password": "..."}`. Returns a token string, sent as the `token` cookie. The platform's OpenAPI spec also allows a `?token=` query parameter for this token — don't use it.
 
-1. Read credentials from `{use-case}/.env`
-2. Call: `POST {PLATFORM_URL}/oauth/token` with `Content-Type: application/x-www-form-urlencoded` and body `grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}`
-3. Write the new token back to `{use-case}/.auth.json`
-4. Retry the failed request with the new token
-
-If `.env` does not exist and re-auth is needed, then and only then ask the user for credentials.
+The helper writes `.auth.json` — never write it by hand.
 
 **"Ask the user" is not limited to missing credentials.** It also applies whenever the Repeat-Failure Circuit Breaker above triggers (the same class of error twice in a row) — surfacing the specific error and asking how to proceed is always preferable to a third silent guess.
 

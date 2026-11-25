@@ -73,7 +73,7 @@ directly. Meanwhile, build the delivery's other phases as designed.
 ```
 {use-case}/
   .auth.json              ← auth token
-  .env                    ← credentials (for re-auth if token expires)
+  .env                    ← credentials, read only by the auth helper — never open it
   openapi.json            ← API reference (pulled by solution-arch-agent or explore)
   tasks.json              ← task catalog (pulled by solution-arch-agent or explore)
   apps.json               ← app/adapter type names (pulled by solution-arch-agent or explore)
@@ -97,36 +97,27 @@ directly. Meanwhile, build the delivery's other phases as designed.
 
 **The builder NEVER re-pulls bootstrap or discovery data.** If `tasks.json`, `apps.json`, or `adapters.json` is missing, stop and tell the user — that's an upstream failure, not something to silently fix.
 
-**Exception — `.auth.json` bootstrap:** If `.auth.json` is missing but `.env` exists with `AUTH_METHOD=oauth`, `CLIENT_ID`, and `CLIENT_SECRET`, the builder MUST authenticate and create `.auth.json` before proceeding — do NOT stop and report an upstream failure. See the **Bootstrap Authentication** section below.
+**Exception — `.auth.json` bootstrap:** If `.auth.json` is missing but `.env` exists, the builder MUST create it with the auth helper before proceeding — do NOT stop and report an upstream failure. See **Bootstrap Authentication** below.
 
 **The only API calls the builder makes are:**
-- **Auth bootstrap** — POST /oauth/token when `.auth.json` is missing (see below)
+- **Auth bootstrap** — the auth helper, when `.auth.json` is missing (see below)
 - **Create** — POST workflows, templates, projects
 - **Update** — PUT to edit assets
 - **Test** — POST jobs/start, GET job status
 - **Schema fetch** — task schemas not yet in `task-schemas.json` (append to file after fetching)
-- **Re-auth** — if token expires, use `.env` to refresh `.auth.json`
+- **Re-auth** — on a 401 or 403, the auth helper with `--force`
 - **FlowAI agents** — create and update agents, read tools (`GET /tools/...`), start test sessions, and read sessions and their messages. Never complete a WorkCenter work item; that's the assigned person's job.
 
 ### Bootstrap Authentication
 
-When `.auth.json` is missing but `.env` has `AUTH_METHOD=oauth` with `CLIENT_ID` and `CLIENT_SECRET`, authenticate automatically before proceeding.
+When `.auth.json` is missing or a call returns 401/403, run the auth helper bundled with this skill:
 
-**The correct Itential SaaS/Cloud OAuth endpoint is:**
-```
-POST {PLATFORM_URL}/oauth/token
-Content-Type: application/x-www-form-urlencoded
-```
-
-**Body (form-encoded, NOT JSON — JSON returns 415):**
-```
-grant_type=client_credentials&client_id={CLIENT_ID}&client_secret={CLIENT_SECRET}
+```bash
+python3 <this skill's folder>/assets/helpers/auth.py {use-case}            # missing .auth.json
+python3 <this skill's folder>/assets/helpers/auth.py {use-case} --force    # after a 401 or 403
 ```
 
-**Critical:**
-- Content-Type MUST be `application/x-www-form-urlencoded` — NOT `application/json`. Sending JSON returns HTTP 415.
-- The `/login` endpoint does NOT support OAuth client credentials on SaaS instances — always use `/oauth/token`.
-- On success, write `.auth.json` with the token so all subsequent API calls just work.
+It reads `{use-case}/.env` (OAuth client credentials or username/password), writes `.auth.json` and prints one status line without any secret. **Never read `.env` yourself, never call `/oauth/token` or `/login` by hand, and never put a secret or token in a command** — read the token from `.auth.json` into a shell variable and send it in the header named by its `header` field (see "Auth Reuse" in `assets/AGENTS.md`). Exit 1 means the platform refused the credentials — show the engineer the message; exit 2 means `.env` is missing or incomplete — ask the engineer to fix the file.
 
 ---
 

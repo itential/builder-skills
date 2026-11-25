@@ -69,7 +69,7 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 ```
 {use-case}/
   .auth.json              ← auth token
-  .env                    ← credentials (for re-auth if token expires)
+  .env                    ← credentials, read only by the auth helper — never open it
   use-case-memory.md      ← living context: IDs, decisions, gotchas — READ THIS FIRST
   customer-spec.md        ← approved HLD — Section 9: Acceptance Criteria
   solution-design.md      ← approved LLD — Section D: Component Inventory (real IDs), Section F: Acceptance Criteria → Tests
@@ -81,7 +81,7 @@ As-Built is closeout documentation, backed by real test evidence instead of buil
 **The only API calls the QA agent makes are:**
 - **Static checks** — `POST /workflow_engine/workflows/validate` (6.5.2+ deep validation), `GET` the built workflow/template JSON to run local `jq` checks
 - **Acceptance checks** — `POST /operations-manager/jobs/start`, `GET /operations-manager/jobs/{jobId}` for status and output
-- **Re-auth** — if the token expires, refresh from `.env` exactly as builder-agent does
+- **Re-auth** — on a 401 or 403, run `python3 <this skill's folder>/assets/helpers/auth.py {use-case} --force` and retry; never read `.env` yourself ("Auth Reuse" in `assets/AGENTS.md`)
 - **FlowAI agents** — read agents and tools for static checks; start sessions and read sessions and their messages for the test cases in the approved test plan. No agent create or update, and never complete a WorkCenter work item.
 
 **Agents that call other agents:** read "Agents as tools" in `/flowagent`

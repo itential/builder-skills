@@ -89,7 +89,7 @@ mkdir -p {use-case}
 
 If `{use-case}/customer-spec.md` already exists, **reuse it** — do not overwrite.
 
-If the engineer provided credentials or a `.env` file exists in the working folder, save it to `{use-case}/.env` for later use during Feasibility. Do NOT authenticate yet.
+If a `.env` file exists in the working folder, copy it to `{use-case}/.env` (`cp`, without opening it) for later use during Feasibility. If there's none, ask the engineer to save one there from the matching template — `assets/environments/cloud-lab.env` for OAuth client credentials, `assets/environments/local-dev.env` for username and password — they type the secret into the file, not into the conversation. If they paste credentials into the conversation anyway, write them to `{use-case}/.env` once and don't repeat them. Do NOT authenticate yet.
 
 ---
 
