@@ -3,12 +3,15 @@
 Pull platform-wide data into platform/ directory.
 Run once per platform instance. Use --refresh to re-pull.
 
-Usage:
-    python scripts/platform_pull.py <platform-url> <client-id> <client-secret>
-    python scripts/platform_pull.py --refresh <platform-url> <client-id> <client-secret>
+Usage (the client secret comes from ITENTIAL_CLIENT_SECRET, --env-file, or a hidden prompt —
+never the command line, where it shows up in shell history and the process list):
+    python scripts/platform_pull.py <platform-url> <client-id>
+    python scripts/platform_pull.py --refresh --env-file use-cases/<name>/.env
 """
 
 import argparse
+import getpass
+import os
 import json
 import sys
 import urllib.parse
@@ -105,13 +108,52 @@ def generate_environment_summary(d: Path):
     (d / "environment.md").write_text("\n".join(lines) + "\n")
 
 
+
+def read_env_file(path):
+    """KEY=VALUE pairs from a .env file (comments and blank lines skipped, surrounding quotes removed)."""
+    values = {}
+    for line in Path(path).read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                value = value[1:-1]
+            values[key.strip()] = value
+    return values
+
+
+def resolve_credentials(args):
+    """Fill platform_url, client_id and client_secret without the secret ever being typed on the command line.
+
+    Secret, in order: the deprecated positional argument (with a warning), ITENTIAL_CLIENT_SECRET,
+    --env-file, then a hidden prompt when run in a terminal. URL and client ID fall back to --env-file.
+    """
+    env = read_env_file(args.env_file) if args.env_file else {}
+    args.platform_url = args.platform_url or env.get("PLATFORM_URL")
+    args.client_id = args.client_id or env.get("CLIENT_ID")
+    if not args.platform_url or not args.client_id:
+        sys.exit("ERROR: give the platform URL and client ID as arguments, or point --env-file at a .env that has them.")
+    if args.client_secret:
+        print("WARNING: a client secret on the command line shows up in your shell history and the process list. "
+              "Set ITENTIAL_CLIENT_SECRET, use --env-file, or leave it out to be prompted. "
+              "This argument will be removed in a future release.", file=sys.stderr)
+        return
+    args.client_secret = os.environ.get("ITENTIAL_CLIENT_SECRET") or env.get("CLIENT_SECRET")
+    if not args.client_secret and sys.stdin.isatty():
+        args.client_secret = getpass.getpass("Client secret (input hidden): ")
+    if not args.client_secret:
+        sys.exit("ERROR: no client secret. Set ITENTIAL_CLIENT_SECRET, use --env-file, or run in a terminal to be prompted.")
+
 def main():
     parser = argparse.ArgumentParser(description="Pull platform-wide data into platform/")
     parser.add_argument("--refresh", action="store_true", help="Re-pull even if data already exists")
-    parser.add_argument("platform_url", help="Platform base URL")
-    parser.add_argument("client_id", help="OAuth client ID")
-    parser.add_argument("client_secret", help="OAuth client secret")
+    parser.add_argument("platform_url", nargs="?", help="Platform base URL (or PLATFORM_URL in --env-file)")
+    parser.add_argument("client_id", nargs="?", help="OAuth client ID (or CLIENT_ID in --env-file)")
+    parser.add_argument("client_secret", nargs="?", help=argparse.SUPPRESS)  # deprecated: visible in shell history and ps
+    parser.add_argument("--env-file", help="read PLATFORM_URL, CLIENT_ID and CLIENT_SECRET from this .env file")
     args = parser.parse_args()
+    resolve_credentials(args)
 
     base = args.platform_url.rstrip("/")
 

@@ -16,7 +16,8 @@ Reads Gateway4's scripts, playbooks (with their schemas and source) and built-in
   conversion-report.md    what was converted automatically, and what a person must review
 
 Sources (pick one):
-  live   --gw4-url https://gw4:8083  with GW4_USERNAME / GW4_PASSWORD in the environment
+  live   --gw4-url https://gw4:8083  with GW4_USERNAME / GW4_PASSWORD in the environment or in the
+         file named by --env-file (never type the password on the command line)
          (read-only GETs: /scripts, /playbooks, /devices, /groups with detail=full)
   files  --from-dir DIR  containing scripts.json, playbooks.json, devices.json, groups.json saved
          from those same GETs
@@ -108,10 +109,24 @@ if __name__ == "__main__":
 
 # ---------------------------------------------------------------- sources
 
-def fetch_live(url, verify_tls):
-    user, password = os.environ.get("GW4_USERNAME"), os.environ.get("GW4_PASSWORD")
+def gw4_credentials(env_file):
+    """GW4_USERNAME / GW4_PASSWORD from the environment, else from KEY=VALUE lines in env_file."""
+    found = {k: os.environ.get(k) for k in ("GW4_USERNAME", "GW4_PASSWORD")}
+    if env_file and not all(found.values()):
+        for line in Path(env_file).read_text().splitlines():
+            key, _, value = line.strip().partition("=")
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                value = value[1:-1]
+            if key.strip() in found and not found[key.strip()]:
+                found[key.strip()] = value
+    return found["GW4_USERNAME"], found["GW4_PASSWORD"]
+
+
+def fetch_live(url, verify_tls, env_file=None):
+    user, password = gw4_credentials(env_file)
     if not user or not password:
-        sys.exit("Set GW4_USERNAME and GW4_PASSWORD for a live read of Gateway4.")
+        sys.exit("Set GW4_USERNAME and GW4_PASSWORD in the environment, or in the file named by --env-file.")
     base = url.rstrip("/") + "/api/v2.0"
     ctx = None if verify_tls else ssl._create_unverified_context()
 
@@ -445,7 +460,7 @@ def convert_inventory(devices, groups, args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     src = ap.add_mutually_exclusive_group(required=True)
-    src.add_argument("--gw4-url", help="Gateway4 base URL (read-only GETs; GW4_USERNAME/GW4_PASSWORD in env)")
+    src.add_argument("--gw4-url", help="Gateway4 base URL (read-only GETs; GW4_USERNAME/GW4_PASSWORD in env or --env-file)")
     src.add_argument("--from-dir", help="folder with scripts.json, playbooks.json, devices.json, groups.json")
     ap.add_argument("--out", required=True, help="output folder")
     ap.add_argument("--repo-name", default="gateway5-services", help="repository name in services.yaml")
@@ -455,9 +470,10 @@ def main():
     ap.add_argument("--inventory-name", default="gateway4-migrated")
     ap.add_argument("--secret-prefix", default="$SECRET.gateway4_migration")
     ap.add_argument("--insecure", action="store_true", help="skip TLS verification for --gw4-url")
+    ap.add_argument("--env-file", help="file with GW4_USERNAME and GW4_PASSWORD lines, read when they aren't in the environment")
     args = ap.parse_args()
 
-    data = fetch_live(args.gw4_url, not args.insecure) if args.gw4_url else load_files(args.from_dir)
+    data = fetch_live(args.gw4_url, not args.insecure, args.env_file) if args.gw4_url else load_files(args.from_dir)
     out = Path(args.out)
     repo = out / "repo"
     repo.mkdir(parents=True, exist_ok=True)

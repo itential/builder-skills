@@ -17,7 +17,9 @@ Wording: customer-facing documents say "Gateway4" / "Gateway5", like the readine
 side from Gateway4 itself — read-only against Gateway4, it only writes files:
 
 ```bash
-GW4_USERNAME=... GW4_PASSWORD=... python3 convert_gateway4.py --gw4-url https://gateway4:8083 \
+# GW4_USERNAME and GW4_PASSWORD come from a file (or the environment) — never type the password on the
+# command line, where it shows up in shell history and the process list
+python3 convert_gateway4.py --gw4-url https://gateway4:8083 --env-file gateway4.env \
   --out migration/ --repo-url <service repo URL> --cluster-id <Gateway5 cluster> --inventory-name <inventory>
 # or, from exported JSON (GET /api/v2.0/{scripts,playbooks}?detail=full, /devices, /groups):
 python3 convert_gateway4.py --from-dir exports/ --out migration/ ...
