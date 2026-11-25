@@ -1,6 +1,6 @@
 ---
 name: gateway4-to-gateway5
-description: Assess how ready an environment is to move from Itential Automation Gateway 4 (IAG4) to Gateway 5 (IAG5). Use for phrases like "am I ready to move to IAG5", "assess my IAG4 to IAG5 migration", "what do I need to change to switch off gateway 4", "scan my workflows for automation gateway usage", "which workflows use IAG4", "IAG4 readiness report", or "evaluate my gateway migration". Does NOT perform the migration — analyzes IAP assets (workflows, JSON forms) and IAG4 assets (scripts, playbooks, roles, inventory), then writes a deterministic markdown guideline of manual actions. Strictly READ-ONLY; its only write is the report. Can also run LOCAL-FILES-ONLY with no API access. Report uses "Itential Gateway4"/"Gateway5" terms (never "IAG"). To deliver the migration, use /spec-agent with the Gateway4 → Gateway5 migration spec; for a single IAG5 service, /iag.
+description: Assess how ready an environment is to move from Itential Automation Gateway 4 (IAG4) to Gateway 5 (IAG5). Use for phrases like "am I ready to move to IAG5", "assess my IAG4 to IAG5 migration", "what do I need to change to switch off gateway 4", "scan my workflows for automation gateway usage", "which workflows use IAG4", "IAG4 readiness report", or "evaluate my gateway migration". Does NOT perform the migration — analyzes IAP assets (workflows, JSON forms) and IAG4 assets (scripts, playbooks, roles, inventory), then writes a deterministic markdown guideline of manual actions. Strictly READ-ONLY; its only write is the report. Can also run LOCAL-FILES-ONLY with no API access. Report uses "Itential Gateway4"/"Gateway5" terms (never "IAG"). To deliver the migration, use /spec-agent with the Gateway4 → Gateway5 migration spec; for a single IAG5 service, /iag. Logs in with its bundled auth helper: never read `.env` yourself.
 argument-hint: "[working-directory]"
 ---
 
@@ -189,16 +189,15 @@ the auth method (mixing them up is the #1 cause of "malformed token" failures):
   param — it returns "malformed token".
 - **Local (`/login`, username + password):** `Cookie: token=<token>`.
 
-`tmp/.auth.json` names the right one in its `header` field.
+The helper also writes `tmp/.auth.curl`, a curl config that sends the right header — use `curl -K` with it for every call, so the token never appears in a command.
 
-**Pull** — read-only GETs only, saved into `tmp/` (validate each with `jq type`). Build the
-`$AUTH` header from `tmp/.auth.json` in the same command and reuse it for every call:
+**Pull** — read-only GETs only, saved into `tmp/` (validate each with `jq type`). Every call
+reads the token from `tmp/.auth.curl` with `curl -K`:
 ```bash
 mkdir -p <working-dir>/tmp
-AUTH=$(jq -r '.header + (if (.header|endswith("=")) then "" else " " end) + .token' <working-dir>/tmp/.auth.json)
-curl -s -H "$AUTH" "{BASE}/automation-studio/apps/list"   -o tmp/apps.json
-curl -s -H "$AUTH" "{BASE}/health/adapters"               -o tmp/adapters.json
-curl -s -H "$AUTH" "{BASE}/json-forms/forms"              -o tmp/json-forms.json
+curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/automation-studio/apps/list"   -o tmp/apps.json
+curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/health/adapters"               -o tmp/adapters.json
+curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/json-forms/forms"              -o tmp/json-forms.json
 ```
 
 **Projects — optional, defensive fallback only.** Project names now come from each workflow's own
@@ -208,10 +207,10 @@ rare workflow that lacks a namespace but whose name prefix still resolves to a l
 it if convenient (paginate the same 100/page cap; merge every page's `data[]` into one
 `{"data":[...]}`), but a missing/partial `projects.json` no longer causes `name unavailable`:
 ```bash
-total=$(curl -s -H "$AUTH" "{BASE}/automation-studio/projects?limit=1" | jq '.metadata.total')
+total=$(curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/automation-studio/projects?limit=1" | jq '.metadata.total')
 skip=0; echo '{"data":[]}' > tmp/projects.json
 while [ "$skip" -lt "${total:-0}" ]; do
-  curl -s -H "$AUTH" "{BASE}/automation-studio/projects?limit=100&skip=${skip}" \
+  curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/automation-studio/projects?limit=100&skip=${skip}" \
     | jq '{data:.data}' > tmp/projects.page.json
   jq -s '{data: (.[0].data + .[1].data)}' tmp/projects.json tmp/projects.page.json > tmp/projects.merged.json \
     && mv tmp/projects.merged.json tmp/projects.json
@@ -233,11 +232,11 @@ Configuration Manager devices are sourced from an IAG4 gateway adapter, pull the
 read query; body `{"options":{"start":0,"limit":100}}`, response shape `{total, list:[...]}` where
 each device carries `origins[]` (the source adapter instances). Paginate on `total`:
 ```bash
-total=$(curl -s -H "$AUTH" -H "Content-Type: application/json" \
+total=$(curl -s -K <working-dir>/tmp/.auth.curl -H "Content-Type: application/json" \
   "{BASE}/configuration_manager/devices" -d '{"options":{"start":0,"limit":1}}' | jq .total)
 start=0; echo '{"list":[]}' > tmp/devices.json
 while [ "$start" -lt "${total:-0}" ]; do
-  curl -s -H "$AUTH" -H "Content-Type: application/json" \
+  curl -s -K <working-dir>/tmp/.auth.curl -H "Content-Type: application/json" \
     "{BASE}/configuration_manager/devices" -d "{\"options\":{\"start\":${start},\"limit\":100}}" \
     | jq '{list:.list}' > tmp/devices.page.json
   jq -s '{list: (.[0].list + .[1].list)}' tmp/devices.json tmp/devices.page.json > tmp/devices.merged.json \
@@ -269,13 +268,13 @@ scoped run. How you pull depends on the Step-0 scope and data source:
 - **`--all` (live, NOT recommended — the only bulk mode):** paginate the full list (caps at 100/page;
   `?limit=500` silently returns only 100). Read `total`, loop `skip`, append each page's `items[]`:
   ```bash
-  total=$(curl -s -H "$AUTH" "{BASE}/automation-studio/workflows?limit=1" | jq .total)
+  total=$(curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/automation-studio/workflows?limit=1" | jq .total)
   # FAIL FAST: non-numeric total = auth failed (error body, not a workflows page). Do NOT proceed —
   # an empty pull yields a misleading all-zeros report. #1 cause: OAuth token sent as ?token= not header.
   case "$total" in ''|*[!0-9]*) echo "AUTH/PULL FAILED — workflows 'total' is not numeric ('$total'). Fix auth (OAuth token → Authorization: Bearer HEADER, not ?token=) and re-run." >&2; exit 1;; esac
   skip=0; : > tmp/wf_all.ndjson
   while [ "$skip" -lt "$total" ]; do
-    curl -s -H "$AUTH" "{BASE}/automation-studio/workflows?limit=100&skip=${skip}" | jq -c '.items[]' >> tmp/wf_all.ndjson
+    curl -s -K <working-dir>/tmp/.auth.curl "{BASE}/automation-studio/workflows?limit=100&skip=${skip}" | jq -c '.items[]' >> tmp/wf_all.ndjson
     skip=$((skip+100))
   done
   lines=$(wc -l < tmp/wf_all.ndjson)
@@ -640,7 +639,7 @@ volunteers it.
   elsewhere. Resolve via `apps.json`/`adapters.json`; recognize both so you don't miss tasks.
 - **The token goes in a header, never `?token=`.** OAuth: `Authorization: Bearer <token>` (as a
   query param it returns "malformed token" — the #1 auth failure here). Local `/login`:
-  `Cookie: token=<token>`. `tmp/.auth.json`'s `header` field says which.
+  `Cookie: token=<token>`. `tmp/.auth.curl` sends the right one.
 - **`--all` paginates; scoped pulls don't.** The `workflows` list caps at 100/page — only the
   `--all` bulk pull loops on `total`. Scoped runs pull via project export / by-name instead.
 - **Static dropdowns are not a concern.** Only `binding: true` REST-bound dropdowns can point at Gateway4.

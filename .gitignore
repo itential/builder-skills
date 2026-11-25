@@ -35,6 +35,7 @@ desktop.ini
 .env.*
 !.env.example
 .auth.json
+.auth.curl
 *.pem
 *.key
 *.p12

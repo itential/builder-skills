@@ -1,6 +1,6 @@
 ---
 name: explore
-description: Use this skill whenever someone wants to connect to an Itential platform and browse, inspect, or discover what's there — without starting a formal delivery. Trigger it for phrases like "connect to my platform", "show me what adapters are running", "authenticate and pull platform data", "I want to poke around before starting", "what workflows exist?", "give me an inventory of the platform", "browse capabilities freely", "check if adapter X is running", or "I just set up a new environment — show me what's there". Also use it for ad-hoc freestyle work where the user wants to build something directly without going through the full spec→design→build lifecycle.
+description: Use this skill whenever someone wants to connect to an Itential platform and browse, inspect, or discover what's there — without starting a formal delivery. Trigger it for phrases like "connect to my platform", "show me what adapters are running", "authenticate and pull platform data", "I want to poke around before starting", "what workflows exist?", "give me an inventory of the platform", "browse capabilities freely", "check if adapter X is running", or "I just set up a new environment — show me what's there". Also use it for ad-hoc freestyle work where the user wants to build something directly without going through the full spec→design→build lifecycle. Logs in with its bundled auth helper: never read `.env` yourself.
 ---
 
 # Explore
@@ -61,37 +61,30 @@ It reads `.env`, gets a token, writes `{use-case}/.auth.json` and prints one lin
 
 Run in two groups. Do not run all in one parallel batch — if one fails, parallel cancellation kills the others.
 
-Every call sends the token in a header, read from `.auth.json` inside the same shell command so its value never shows up in the command or its output. Never put it in the URL (`?token=`).
-
-```bash
-AUTH=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));h=d["header"];print(h+("" if h.endswith("=") else " ")+d["token"])' {use-case}/.auth.json)
-BASE=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["platform_url"])' {use-case}/.auth.json)
-```
-
-`AUTH` becomes `Authorization: Bearer …` for OAuth and `Cookie: token=…` for a local `/login` token. Start each command below with those two lines.
+Every call uses the curl config the helper wrote, `{use-case}/.auth.curl`, which sends the token in a header — so it never shows up in a command or its output, and never goes in the URL (`?token=`). `{BASE}` is the platform URL from the helper's status line.
 
 **Group 1 (core — run in parallel):**
 ```bash
-curl -s -H "$AUTH" "$BASE/help/openapi?url={ENCODED_BASE}" > {use-case}/openapi.json
-curl -s -H "$AUTH" "$BASE/workflow_builder/tasks/list"     > {use-case}/tasks.json
-curl -s -H "$AUTH" "$BASE/automation-studio/apps/list"    > {use-case}/apps.json
-curl -s -H "$AUTH" "$BASE/health/adapters"                > {use-case}/adapters.json
-curl -s -H "$AUTH" "$BASE/health/applications"            > {use-case}/applications.json
+curl -s -K {use-case}/.auth.curl "{BASE}/help/openapi?url={ENCODED_BASE}" > {use-case}/openapi.json
+curl -s -K {use-case}/.auth.curl "{BASE}/workflow_builder/tasks/list"     > {use-case}/tasks.json
+curl -s -K {use-case}/.auth.curl "{BASE}/automation-studio/apps/list"    > {use-case}/apps.json
+curl -s -K {use-case}/.auth.curl "{BASE}/health/adapters"                > {use-case}/adapters.json
+curl -s -K {use-case}/.auth.curl "{BASE}/health/applications"            > {use-case}/applications.json
 ```
 
 **Group 2 (environment-specific — run in parallel after Group 1):**
 
 Devices (note: POST, not GET):
 ```bash
-curl -s -w "\n%{http_code}" -X POST "$BASE/configuration_manager/devices" \
-  -H "$AUTH" -H "Content-Type: application/json" \
+curl -s -w "\n%{http_code}" -K {use-case}/.auth.curl -X POST "{BASE}/configuration_manager/devices" \
+  -H "Content-Type: application/json" \
   -d '{"options":{"start":0,"limit":1000,"sort":[{"name":1}],"order":"ascending"}}' \
   > {use-case}/devices.json
 ```
 
 Existing workflows:
 ```bash
-curl -s -H "$AUTH" "$BASE/automation-studio/workflows?limit=500" > {use-case}/workflows.json
+curl -s -K {use-case}/.auth.curl "{BASE}/automation-studio/workflows?limit=500" > {use-case}/workflows.json
 ```
 
 Before parsing any saved file, validate JSON:

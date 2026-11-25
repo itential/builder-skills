@@ -5,6 +5,8 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Changed the auth helper to also write a curl config, `.auth.curl` (mode 600), and the skills to make every call with `curl -K` instead of building the header from `.auth.json` in a shell one-liner: the token never appears in a command, and there's no one-liner for a smaller model to get wrong. The skills that log in now also say in their description not to read `.env`, since only the description is in context before a skill loads; in testing, a model opened `.env` before loading the skill. Matches admin-skills and operator-skills
+
 ## 2.4.0
 
 - Added an auth helper (`helpers/auth.py`, bundled with every skill that authenticates) and changed the skills to use it: it reads `.env`, gets a token, writes `.auth.json` (mode 600) and prints one status line, so the agent never reads `.env` or puts a secret in a command. Before, `AGENTS.md` told the agent to read `.env` and call `/oauth/token` itself; in a test on a live platform, one model read the file and pasted the client secret into a `curl` command, while two others didn't — so this is now enforced by the helper rather than left to the model

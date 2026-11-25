@@ -2,8 +2,11 @@
 """Get an Itential Platform token from a .env file without showing the agent any secret.
 
 Reads the credentials in <dir>/.env, exchanges them for a token, and writes the token to
-<dir>/.auth.json (mode 600). Prints one status line. It never prints a password, client
-secret or token, so the agent running it never has them in its context.
+<dir>/.auth.json and a curl config, <dir>/.auth.curl (both mode 600). Prints one status line.
+It never prints a password, client secret or token, so the agent running it never has them
+in its context. Calls then use the curl config, so the token never appears in a command:
+
+    curl -s -K <dir>/.auth.curl "<platform URL>/health/status"
 
     python3 auth.py <use-case-dir>            reuse a still-valid token, otherwise get a new one
     python3 auth.py <use-case-dir> --force    always get a new token (after a 401/403)
@@ -16,7 +19,8 @@ secret or token, so the agent running it never has them in its context.
     AUTH_METHOD=oauth|local           optional; picked from the keys present when missing
 
 .auth.json gets platform_url, auth_method, token (also as access_token, for older readers),
-header (the name and value prefix to send it with) and expires_at.
+header (the name and value prefix to send it with) and expires_at. .auth.curl holds the
+header line for curl -K: Authorization: Bearer for OAuth, the token cookie for /login.
 
 Exit codes: 0 ok, 1 authentication failed, 2 bad input (.env missing or incomplete).
 Standard library only.
@@ -66,6 +70,22 @@ def post(url, data, content_type):
         return resp.read().decode()
 
 
+def write_private(path, text):
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(text)
+    os.chmod(path, 0o600)
+
+
+def curl_config_path(out_path):
+    return os.path.join(os.path.dirname(out_path) or ".", ".auth.curl")
+
+
+def write_curl_config(out_path, header, token):
+    line = header + token if header.endswith("=") else f"{header} {token}"
+    write_private(curl_config_path(out_path), f'header = "{line}"\n')
+
+
 def main():
     ap = argparse.ArgumentParser(description="Get an Itential Platform token without showing any secret.")
     ap.add_argument("dir", help="use-case folder holding .env (and where .auth.json is written)")
@@ -102,7 +122,8 @@ def main():
             if (saved.get("platform_url", "").rstrip("/") == base and saved.get("auth_method") == method
                     and saved.get("token") and saved.get("expires_at", 0) - time.time() > REUSE_MARGIN):
                 left = int(saved["expires_at"] - time.time())
-                print(f"ok: {method} token for {base} still valid ({left}s left) in {out_path}")
+                write_curl_config(out_path, saved.get("header") or "Authorization: Bearer", saved["token"])
+                print(f"ok: {method} token for {base} still valid ({left}s left); call with: curl -s -K {curl_config_path(out_path)} \"{base}/...\"")
                 return
         except (ValueError, OSError):
             pass  # unreadable file: get a new token
@@ -133,11 +154,9 @@ def main():
 
     record = {"platform_url": base, "auth_method": method, "token": token, "access_token": token,
               "header": header, "expires_at": int(time.time()) + ttl}
-    fd = os.open(out_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump(record, f, indent=2)
-    os.chmod(out_path, 0o600)
-    print(f"ok: new {method} token for {base} saved to {out_path} (expires in {ttl}s)")
+    write_private(out_path, json.dumps(record, indent=2))
+    write_curl_config(out_path, header, token)
+    print(f"ok: new {method} token for {base} (expires in {ttl}s); call with: curl -s -K {curl_config_path(out_path)} \"{base}/...\"")
 
 
 if __name__ == "__main__":
