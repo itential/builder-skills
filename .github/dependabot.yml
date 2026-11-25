@@ -8,6 +8,11 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+    # Minor and patch updates only. A major version can change behavior that CI here
+    # doesn't exercise (Release Drafter only runs on main), so take those on purpose.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore"
     labels: ["chore", "skip-changelog"]
