@@ -479,34 +479,27 @@ The project file contains the actual LCM action workflows — read it to underst
 | `whoami-basic-auth.json` | WhoAmI endpoint spec with Basic Auth |
 | `whoami-client-creds.json` | WhoAmI endpoint spec with Client Credentials |
 
-### Assets Library — when a vendor or pattern isn't here
+### Assets Library — reference only
 
-The full asset library is **https://github.com/itential/assets** — about 180 Automation Studio projects, laid out as `<Vendor>/<Product>/Studio Projects/<name>.project.json` (a few vendors have no `<Product>` level). Read it **at a pinned commit**, never a branch: a branch can change under you, and the content you import into a platform should be exactly the content that was reviewed.
-
-**Pinned commit:** `66f4fbbcd2d4edf965c8cf938e059e8ccfbd52c2` (`main`, 2026-11-11). Moving the pin is a reviewed change to this file. An org that keeps its own copy of the library sets its repository and commit in `custom/org/` instead.
+The full asset library is **https://github.com/itential/assets** (branch `main`) — about 180 Automation Studio projects, laid out as `<Vendor>/<Product>/Studio Projects/<name>.project.json` (a few vendors have no `<Product>` level). **Use it as a reference only:** read a project to see how a vendor's tasks, variables and transitions are wired, then build your own. Never import a downloaded project into a platform — if the engineer wants one of these projects installed as it is, that's their decision, made separately.
 
 **When to check the repo:**
 - The use case involves a vendor not covered by the files above
 - You need a workflow pattern that isn't in the local helpers
 - The customer asks about supported integrations
 
-**How to pull a project from the repo:**
+**How to look at a project:**
 ```bash
-REF=66f4fbbcd2d4edf965c8cf938e059e8ccfbd52c2
-
-# 1. List the projects at the pinned commit (narrow with a vendor prefix, e.g. "Cisco/")
-gh api "repos/itential/assets/git/trees/$REF?recursive=1" \
+# List the projects (narrow with a vendor prefix, e.g. "Cisco/")
+gh api "repos/itential/assets/git/trees/main?recursive=1" \
   --jq '.tree[] | select(.path | test("\\.project\\.json$")) | .path'
 
-# 2. Download one at that commit (URL-encode the path: spaces become %20)
-curl -sL "https://raw.githubusercontent.com/itential/assets/$REF/<url-encoded path>" -o "helpers/assets/<local-name>.json"
-
-# 3. Check it is the exact file from that commit: git's blob hash must equal the tree entry's sha
-gh api "repos/itential/assets/git/trees/$REF?recursive=1" --jq '.tree[] | select(.path == "<path>") | .sha'
-git hash-object "helpers/assets/<local-name>.json"
+# Download one into the use case's reference folder (URL-encode the path: spaces become %20)
+mkdir -p {use-case}/reference
+curl -sL "https://raw.githubusercontent.com/itential/assets/main/<url-encoded path>" -o "{use-case}/reference/<name>.json"
 ```
 
-If the two hashes differ, delete the file and stop — don't import it. Before importing a downloaded project into a platform, show the engineer its name and what it contains (count of workflows, templates, forms and other components) and wait for a yes. Import it as a new project; never over an existing project (Rule 11c).
+Save downloads under `{use-case}/reference/`, not `helpers/assets/` — that folder is the curated library bundled into the skills.
 
 **`helpers/iag/`** — Automation Gateway service files
 
