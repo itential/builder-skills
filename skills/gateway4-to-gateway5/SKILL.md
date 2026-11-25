@@ -160,7 +160,8 @@ Then establish the data sources:
 
 4. **Never assume the source of assets.** Look for a `.env` in the working dir (the auth cache
    lives at `tmp/.auth.json`). A `.env` may carry **IAP** creds and/or **Gateway4** creds — check
-   which it has; if its purpose is unclear, ask the user.
+   which by listing its key names only (`cut -d= -f1 .env`), never its values; if its purpose is
+   unclear, ask the user.
    - Confirm, for IAP and for Gateway4 independently, whether the user has **live** access
      (credentials for read-only API calls) or **local files**, or neither.
 5. Establish each source (IAP, Gateway4) as `live` or `local`. **Local files take precedence** over
@@ -173,26 +174,28 @@ Prefer local files in the working dir. Otherwise pull live, reusing the `/explor
 **All pulled JSON and the auth cache go under `<working-dir>/tmp/`** — create it first
 (`mkdir -p <working-dir>/tmp`). Never write these to the working-dir root.
 
-**Auth.** Read `PLATFORM_URL`, `AUTH_METHOD`, and credentials from `<working-dir>/.env`. Reuse
-`tmp/.auth.json` if present; silent re-auth from `.env` on 401/403 (`assets/AGENTS.md` auth-reuse
-procedure). Never ask for credentials if `.env` exists. **The token transport depends on the
-auth method — do not mix them up (this is the #1 cause of "malformed token" failures):**
+**Auth.** Run the auth helper bundled with this skill, pointed at the working dir's `.env` and the
+`tmp/` auth cache:
+```bash
+python3 <this skill's folder>/assets/helpers/auth.py <working-dir> --env <working-dir>/.env --out <working-dir>/tmp/.auth.json
+```
+It reads `PLATFORM_URL` and the IAP credentials, writes `tmp/.auth.json` and prints one status line
+without any secret. **Never read `.env` yourself** — it may also hold Gateway4 credentials. On a
+401/403, re-run it with `--force` ("Auth Reuse" in `assets/AGENTS.md`). Never ask for credentials if
+`.env` exists. **The token always goes in a header — never `?token=`** — and the header depends on
+the auth method (mixing them up is the #1 cause of "malformed token" failures):
 
-- **OAuth / cloud (`AUTH_METHOD=oauth`):** `POST /oauth/token`
-  (`Content-Type: application/x-www-form-urlencoded`, body
-  `grant_type=client_credentials&client_id=...&client_secret=...`) → `access_token`. Send it on
-  **every** call as an `Authorization: Bearer <token>` **header**. `?token=` does NOT work for
-  OAuth tokens.
-- **Local (`AUTH_METHOD=password` / username+password):** `POST /login` (`application/json`,
-  `{"username":...,"password":...}`) → token string. Send it as a `?token=<token>` **query
-  param**.
+- **OAuth / cloud (client credentials):** `Authorization: Bearer <token>`. A `?token=` query param
+  returns "malformed token".
+- **Local (`/login`, username + password):** `Cookie: token=<token>`.
 
-**Pull** — read-only GETs only, saved into `tmp/` (validate each with `jq type`). OAuth example
-(reuse the `$AUTH` header var for every call — this is the pattern that actually works):
+`tmp/.auth.json` names the right one in its `header` field.
+
+**Pull** — read-only GETs only, saved into `tmp/` (validate each with `jq type`). Build the
+`$AUTH` header from `tmp/.auth.json` in the same command and reuse it for every call:
 ```bash
 mkdir -p <working-dir>/tmp
-TOKEN=$(jq -r .access_token <working-dir>/tmp/.auth.json)
-AUTH="Authorization: Bearer ${TOKEN}"
+AUTH=$(jq -r '.header + (if (.header|endswith("=")) then "" else " " end) + .token' <working-dir>/tmp/.auth.json)
 curl -s -H "$AUTH" "{BASE}/automation-studio/apps/list"   -o tmp/apps.json
 curl -s -H "$AUTH" "{BASE}/health/adapters"               -o tmp/adapters.json
 curl -s -H "$AUTH" "{BASE}/json-forms/forms"              -o tmp/json-forms.json
@@ -635,9 +638,9 @@ volunteers it.
   or the actual adapter name — this is what tells the user which Gateway5 cluster to map it to.
 - **Adapter type vs instance.** A task's `app` is the adapter *type*; the instance name lives
   elsewhere. Resolve via `apps.json`/`adapters.json`; recognize both so you don't miss tasks.
-- **OAuth token goes in the `Authorization: Bearer` header, NOT `?token=`.** `?token=` only
-  works for local `/login` tokens. Sending an OAuth token as a query param returns "malformed
-  token" — the #1 auth failure here.
+- **The token goes in a header, never `?token=`.** OAuth: `Authorization: Bearer <token>` (as a
+  query param it returns "malformed token" — the #1 auth failure here). Local `/login`:
+  `Cookie: token=<token>`. `tmp/.auth.json`'s `header` field says which.
 - **`--all` paginates; scoped pulls don't.** The `workflows` list caps at 100/page — only the
   `--all` bulk pull loops on `total`. Scoped runs pull via project export / by-name instead.
 - **Static dropdowns are not a concern.** Only `binding: true` REST-bound dropdowns can point at Gateway4.

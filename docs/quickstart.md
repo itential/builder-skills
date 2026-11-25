@@ -80,7 +80,7 @@ PASSWORD=your-password
 
 (Working from a clone? The same templates are in `environments/` — `cp environments/cloud-lab.env my-use-case/.env`.)
 
-> The agent reads `.env` automatically — you authenticate once and every skill reuses the token.
+> The skills' auth helper reads `.env` for the agent and saves a short-lived token to `.auth.json`, so the agent never sees your secret — you authenticate once and every skill reuses the token.
 
 ---
 

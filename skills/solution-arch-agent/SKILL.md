@@ -147,7 +147,7 @@ Go through the spec's Discovery Questions. Skip anything already answered by the
 
 ### Authenticate
 
-See `assets/AGENTS.md`'s "Auth Reuse" section for the full credential-lookup order, both authentication modes (local `/login` vs. cloud OAuth), and how to save the result to `{use-case}/.auth.json` — this is the canonical procedure, used identically by every skill. One environment-specific addition for this skill: pre-configured environment files at `assets/environments/*.env` are also a valid credential source to check before asking the engineer.
+Run the auth helper bundled with this skill — `python3 <this skill's folder>/assets/helpers/auth.py {use-case}`. It reads `{use-case}/.env`, writes `{use-case}/.auth.json` and prints one status line without any secret; never read `.env` yourself. The full procedure (exit codes, how to send the token, re-auth) is "Auth Reuse" in `assets/AGENTS.md`, used identically by every skill. `assets/environments/*.env` are templates with placeholder values: if there's no `.env`, show the engineer the matching one and ask them to save a filled-in copy as `{use-case}/.env`.
 
 ### Pull Platform Data
 
@@ -491,7 +491,7 @@ Hand off to `/builder-agent`. The workspace is complete.
 ```
 {use-case}/
   .auth.json              ← auth token
-  .env                    ← credentials (for re-auth)
+  .env                    ← credentials, read only by the auth helper — never open it
   use-case-memory.md      ← living context: platform refs, built assets, decisions, open items
   customer-spec.md        ← approved HLD
   feasibility.md          ← approved feasibility assessment
@@ -531,7 +531,7 @@ Entered from `/spec-agent` after the engineer approves `customer-spec.md`. At th
 ```
 {use-case}/
   customer-spec.md    ← approved HLD (Requirements complete)
-  .env                ← credentials
+  .env                ← credentials, read only by the auth helper
 ```
 
 ```
@@ -548,7 +548,7 @@ To revise design only: invoke `/solution-arch-agent design-only` → reads exist
 
 ## Gotchas
 
-- Tokens expire mid-session — on auth errors, re-authenticate silently from `.env` (see `assets/AGENTS.md` Auth Reuse)
+- Tokens expire mid-session — on a 401 or 403, run `assets/helpers/auth.py {use-case} --force` and retry; never read `.env` yourself (see `assets/AGENTS.md` Auth Reuse)
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list`
 - A system connected as an **integration** is absent from `/health/adapters` — check `integrations` in `platform-summary.json` before marking a required system not found
 - OpenAPI spec is ~1.5MB — search it locally with `jq`, never load into context

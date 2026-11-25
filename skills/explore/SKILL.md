@@ -43,43 +43,17 @@ Connects you to a platform, pulls everything needed to work freely, and routes y
 
 ## Step 1: Authenticate
 
-Check for credentials in this order:
-1. `{use-case}/.env` — use-case-specific
-2. A `.env` in the working folder — copy it into `{use-case}/.env`
+Credentials live in `{use-case}/.env`. If the working folder has a `.env` and the use case doesn't, copy the file across (`cp .env {use-case}/.env`) — don't open it.
 
-`assets/environments/*.env` are **templates** with placeholder values (`cloud-lab.env` for OAuth, `local-dev.env` for username/password) — never authenticate with them. Show the user the matching template to fill in instead.
+`assets/environments/*.env` are **templates** with placeholder values (`cloud-lab.env` for OAuth client credentials, `local-dev.env` for username and password) — never authenticate with them. If there's no `.env`, show the engineer the matching template and ask them to save a filled-in copy as `{use-case}/.env`. They type the secret into the file, not into the conversation.
 
-If found, authenticate automatically. If not, ask:
-1. Platform URL
-2. Credentials (username/password or client_id/secret)
+Then run the auth helper bundled with this skill:
 
-**Local Development (username/password):**
+```bash
+python3 <this skill's folder>/assets/helpers/auth.py {use-case}
 ```
-POST /login
-Content-Type: application/json
 
-{"username": "admin", "password": "admin"}
-```
-Returns a token string. Use as query parameter: `?token=TOKEN`
-
-**Cloud / OAuth:**
-```
-POST /oauth/token
-Content-Type: application/x-www-form-urlencoded
-
-client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET&grant_type=client_credentials
-```
-Returns `{"access_token": "..."}`. Use as Bearer header.
-
-Save to `.auth.json`:
-```json
-{
-  "platform_url": "https://...",
-  "auth_method": "oauth",
-  "token": "eyJhbG...",
-  "timestamp": "2026-03-25T10:00:00Z"
-}
-```
+It reads `.env`, gets a token, writes `{use-case}/.auth.json` and prints one line: `ok: …`, or `error: …` (exit 1: the platform refused the credentials; exit 2: `.env` is missing or incomplete). **Never read `.env` yourself** and never put a secret or token in a command — see "Auth Reuse" in `assets/AGENTS.md`.
 
 ---
 
@@ -87,28 +61,37 @@ Save to `.auth.json`:
 
 Run in two groups. Do not run all in one parallel batch — if one fails, parallel cancellation kills the others.
 
+Every call sends the token in a header, read from `.auth.json` inside the same shell command so its value never shows up in the command or its output. Never put it in the URL (`?token=`).
+
+```bash
+AUTH=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));h=d["header"];print(h+("" if h.endswith("=") else " ")+d["token"])' {use-case}/.auth.json)
+BASE=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["platform_url"])' {use-case}/.auth.json)
+```
+
+`AUTH` becomes `Authorization: Bearer …` for OAuth and `Cookie: token=…` for a local `/login` token. Start each command below with those two lines.
+
 **Group 1 (core — run in parallel):**
 ```bash
-curl -s "{BASE}/help/openapi?url={ENCODED_BASE}&token=TOKEN" > {use-case}/openapi.json
-curl -s "{BASE}/workflow_builder/tasks/list?token=TOKEN"     > {use-case}/tasks.json
-curl -s "{BASE}/automation-studio/apps/list?token=TOKEN"    > {use-case}/apps.json
-curl -s "{BASE}/health/adapters?token=TOKEN"                > {use-case}/adapters.json
-curl -s "{BASE}/health/applications?token=TOKEN"            > {use-case}/applications.json
+curl -s -H "$AUTH" "$BASE/help/openapi?url={ENCODED_BASE}" > {use-case}/openapi.json
+curl -s -H "$AUTH" "$BASE/workflow_builder/tasks/list"     > {use-case}/tasks.json
+curl -s -H "$AUTH" "$BASE/automation-studio/apps/list"    > {use-case}/apps.json
+curl -s -H "$AUTH" "$BASE/health/adapters"                > {use-case}/adapters.json
+curl -s -H "$AUTH" "$BASE/health/applications"            > {use-case}/applications.json
 ```
 
 **Group 2 (environment-specific — run in parallel after Group 1):**
 
 Devices (note: POST, not GET):
 ```bash
-curl -s -w "\n%{http_code}" -X POST "{BASE}/configuration_manager/devices?token=TOKEN" \
-  -H "Content-Type: application/json" \
+curl -s -w "\n%{http_code}" -X POST "$BASE/configuration_manager/devices" \
+  -H "$AUTH" -H "Content-Type: application/json" \
   -d '{"options":{"start":0,"limit":1000,"sort":[{"name":1}],"order":"ascending"}}' \
   > {use-case}/devices.json
 ```
 
 Existing workflows:
 ```bash
-curl -s "{BASE}/automation-studio/workflows?limit=500&token=TOKEN" > {use-case}/workflows.json
+curl -s -H "$AUTH" "$BASE/automation-studio/workflows?limit=500" > {use-case}/workflows.json
 ```
 
 Before parsing any saved file, validate JSON:
@@ -159,7 +142,7 @@ Point to the right skill for what the engineer wants to do:
 ## Gotchas
 
 - OAuth MUST use `Content-Type: application/x-www-form-urlencoded`, not JSON
-- Tokens expire mid-session — re-authenticate silently from `.env` on auth errors
+- Tokens expire mid-session — on a 401 or 403, run `assets/helpers/auth.py {use-case} --force` and retry; never read `.env` yourself
 - OpenAPI spec is ~1.5MB — search locally with `jq`, never load into context
 - `tasks/list` `app` field has WRONG casing for adapters — use `apps/list` for correct names
 - Devices endpoint is POST not GET — body required

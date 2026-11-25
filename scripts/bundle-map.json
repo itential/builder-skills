@@ -2,7 +2,38 @@
   "builder-agent": [
     "helpers/"
   ],
+  "documentation": [
+    "helpers/auth.py"
+  ],
+  "explore": [
+    "helpers/auth.py"
+  ],
+  "flowagent-skill-builder": [
+    "helpers/auth.py"
+  ],
+  "gateway4-to-gateway5": [
+    "helpers/auth.py"
+  ],
+  "iag": [
+    "helpers/auth.py"
+  ],
+  "itential-mop": [
+    "helpers/auth.py"
+  ],
+  "jst-to-code": [
+    "helpers/auth.py"
+  ],
+  "project-to-spec": [
+    "helpers/auth.py"
+  ],
+  "qa-agent": [
+    "helpers/auth.py"
+  ],
+  "solution-arch-agent": [
+    "helpers/auth.py"
+  ],
   "spec-agent": [
-    "spec-files/"
+    "spec-files/",
+    "helpers/auth.py"
   ]
 }

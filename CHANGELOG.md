@@ -5,6 +5,9 @@ release tag — what every tool's update installs.
 
 ## Unreleased
 
+- Added an auth helper (`helpers/auth.py`, bundled with every skill that authenticates) and changed the skills to use it: it reads `.env`, gets a token, writes `.auth.json` (mode 600) and prints one status line, so the agent never reads `.env` or puts a secret in a command. Before, `AGENTS.md` told the agent to read `.env` and call `/oauth/token` itself; in a test on a live platform, one model read the file and pasted the client secret into a `curl` command, while two others didn't — so this is now enforced by the helper rather than left to the model
+- Changed every example to send the token in a header instead of `?token=` in the URL, where it ends up in logs and shell history: `Authorization: Bearer` for OAuth, and the `token` cookie (which the platform's OpenAPI spec defines) for local `/login` tokens. Includes `explore`'s data pulls and `gateway4-to-gateway5`, which said local tokens go in `?token=`
+
 ## 2.3.0
 
 - Added the `flowagent-skill-builder` skill: writes, packages, imports and tests skills for FlowAgent agents. Skills follow the Agent Skills format in the itential/infra-agent-skills shape (one operation per skill, a short `SKILL.md` routing to per-vendor `procedure.md` and `endpoints.md`), so that library's skills import unchanged; it covers matching a skill to the agent's tools and approval steps, the undocumented preview and import request bodies, versions, and checking a test session for the built-in `loadSkill` and `loadSkillResource` calls. All checked on a live platform

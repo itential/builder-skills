@@ -205,10 +205,10 @@ Build the list of JSTs to convert, from either source (or a mix):
 - **Local:** `.jst.json` files the user has placed in the working directory (typically in a
   `jst/` folder there). Use the ones the user names; if they point at a folder, every
   `.jst.json` in it.
-- **Remote (OAuth):** one or more URLs/ids of transformations. Authenticate using the
-  `.auth.json` / `.env` reuse pattern in `assets/AGENTS.md` ("Auth Reuse") — read `.auth.json`
-  for a token, fall back to `.env` creds, silently re-auth on 401/403, never ask for
-  credentials if `.env` exists. **Read-only: reads only (see the Hard rule above).** Fetch each
+- **Remote (OAuth):** one or more URLs/ids of transformations. Authenticate with the
+  auth helper bundled with this skill — `python3 <this skill's folder>/assets/helpers/auth.py <folder with the .env>` (add
+  `--force` after a 401/403) — as in "Auth Reuse" in `assets/AGENTS.md`: never read `.env`
+  yourself, send the token in a header, never ask for credentials if `.env` exists. **Read-only: reads only (see the Hard rule above).** Fetch each
   transformation (confirm the endpoint and response shape against the working directory's
   `openapi.json` — do not guess paths; see `assets/AGENTS.md`, "Look Up Before You Act") and
   save it as a `.jst.json` in the working directory.
