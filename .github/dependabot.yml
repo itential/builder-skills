@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Keeps the commit-SHA pins on GitHub Actions current: one grouped PR a week.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore"
+    labels: ["chore", "skip-changelog"]

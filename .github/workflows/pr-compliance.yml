@@ -5,10 +5,14 @@ on:
     types: [opened, edited, reopened, synchronize]
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   branch-naming:
     name: Branch Naming
-    if: github.repository == 'itential/builder-skills'
+    # Dependabot names its own branches (dependabot/...)
+    if: github.repository == 'itential/builder-skills' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Validate branch name
@@ -33,7 +37,9 @@ jobs:
     if: github.repository == 'itential/builder-skills'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Skills follow the Agent Skills format, references resolve, bundled assets are current
         run: scripts/check-generated.sh
 
@@ -42,6 +48,8 @@ jobs:
     if: github.repository == 'itential/builder-skills'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - name: Check every plugin manifest carries the same version
         run: python3 scripts/bump_version.py --check

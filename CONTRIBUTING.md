@@ -277,6 +277,22 @@ After it merges, the draft release on GitHub is already named `v1.7.0` — revie
 
 When cutting a release, the maintainer renames `Unreleased` to the new version in the release PR and adds a new empty `Unreleased` heading above it (see [Releasing](#releasing)).
 
+## Security checks
+
+The skills are instructions an AI follows with your credentials on your platform, so most security problems here are in Markdown, not code. These run on every PR:
+
+| Check | What it catches |
+|---|---|
+| **Security Rules** (`scripts/check-security-rules.py`) | Skill text or scripts that do what the rules don't allow: a token in a URL (`?token=`), instructions that have the agent read `.env`, a secret taken as a command-line argument or typed in front of a command, `curl … \| sh`, `npx -y`, a command the agent builds with a secret in it, and Configuration Manager remediation tasks in workflow assets |
+| **Workflow Security** (zizmor) | Unsafe GitHub Actions workflows: unpinned actions, broad permissions, credentials left in checkouts, risky triggers |
+| **CodeQL** | Vulnerabilities in the Python scripts and the workflows |
+
+OpenSSF Scorecard grades the repo weekly (the badge in the README), and GitHub secret scanning blocks committed keys. Dependabot keeps the actions' commit-SHA pins current.
+
+Run the rules before pushing: `python3 scripts/check-security-rules.py` (`--list` shows every rule). A line that *explains* a rule ("never use `?token=`") passes; anything else that matches has to change. If a match is genuinely safe, put `security-rules: allow <rule-id>` on that line and say why in the PR.
+
+**When a security problem turns up that the rules missed, add a rule for it** in `scripts/check-security-rules.py` in the same PR as the fix, and check that it fails on the old code and passes on the new.
+
 ## Testing
 
 <!--

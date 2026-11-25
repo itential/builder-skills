@@ -1,6 +1,7 @@
 # Itential — Agentic Builder Skills
 
 [![License](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/itential/builder-skills/badge)](https://scorecard.dev/viewer/?uri=github.com/itential/builder-skills)
 
 AI agent skills for **building automations on the Itential Platform**, spec-driven from requirements to as-built: refine the use case, assess feasibility, design, build, test, and record what was delivered — plus skills for workflows, templates, MOP, golden config, Lifecycle Manager, IAG, FlowAgent and JSON forms. Works in Claude Code, Codex CLI, GitHub Copilot (CLI and VS Code) and Cursor.
 

@@ -24,6 +24,7 @@
 
 - [ ] PR title follows `<type>: <description>` (it becomes the commit on `main`)
 - [ ] `scripts/check-generated.sh` passes locally, and any `skills/*/assets` changes it made are committed
+- [ ] `python3 scripts/check-security-rules.py` passes (a new security fix comes with a rule)
 - [ ] Nothing added under `skills/*/custom/`, and no version changes (see CONTRIBUTING.md -> Releasing)
 - [ ] `CHANGELOG.md` has a bullet under `## Unreleased` if the change is user-facing
 - [ ] No secrets or credentials committed
