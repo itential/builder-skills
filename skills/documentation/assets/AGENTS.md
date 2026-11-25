@@ -481,24 +481,32 @@ The project file contains the actual LCM action workflows — read it to underst
 
 ### Assets Library — when a vendor or pattern isn't here
 
-The full asset library lives at **https://github.com/itential/assets** (branch: `devel`). Structure: `<Vendor>/<Product>/Projects/<name>.project.json`.
+The full asset library is **https://github.com/itential/assets** — about 180 Automation Studio projects, laid out as `<Vendor>/<Product>/Studio Projects/<name>.project.json` (a few vendors have no `<Product>` level). Read it **at a pinned commit**, never a branch: a branch can change under you, and the content you import into a platform should be exactly the content that was reviewed.
+
+**Pinned commit:** `66f4fbbcd2d4edf965c8cf938e059e8ccfbd52c2` (`main`, 2026-11-11). Moving the pin is a reviewed change to this file. An org that keeps its own copy of the library sets its repository and commit in `custom/org/` instead.
 
 **When to check the repo:**
-- The use case involves a vendor not covered by the files above (AWS, Arista, Juniper, F5, Palo Alto, Alkira, Kentik, etc.)
+- The use case involves a vendor not covered by the files above
 - You need a workflow pattern that isn't in the local helpers
 - The customer asks about supported integrations
 
 **How to pull a project from the repo:**
 ```bash
-# List available projects for a vendor
-gh api repos/itential/assets/contents/<Vendor>/<Product>/Projects --jq '.[].name'
+REF=66f4fbbcd2d4edf965c8cf938e059e8ccfbd52c2
 
-# Download it into helpers/assets/
-curl -sL "https://raw.githubusercontent.com/itential/assets/devel/<Vendor>/<Product>/Projects/<encoded-name>.project.json" \
-  -o "helpers/assets/<local-name>.json"
+# 1. List the projects at the pinned commit (narrow with a vendor prefix, e.g. "Cisco/")
+gh api "repos/itential/assets/git/trees/$REF?recursive=1" \
+  --jq '.tree[] | select(.path | test("\\.project\\.json$")) | .path'
+
+# 2. Download one at that commit (URL-encode the path: spaces become %20)
+curl -sL "https://raw.githubusercontent.com/itential/assets/$REF/<url-encoded path>" -o "helpers/assets/<local-name>.json"
+
+# 3. Check it is the exact file from that commit: git's blob hash must equal the tree entry's sha
+gh api "repos/itential/assets/git/trees/$REF?recursive=1" --jq '.tree[] | select(.path == "<path>") | .sha'
+git hash-object "helpers/assets/<local-name>.json"
 ```
 
-**Full vendor index (has Projects/):** Alkira, Apache/Kafka, Arista/EOS, Atlassian/Jira, AWS/EC2, Cisco/ASA, Cisco/IOS, Cisco/Meraki, Cisco/NSO, Cisco/NX-OS, F5/BIG-IP, F5/BIG-IQ, GitHub, GitLab, IP Fabric, Infoblox/NIOS DDI, Juniper/JUNOS, Kentik, Microsoft/Teams, NetBox, Palo Alto/Panorama, ServiceNow, Versa/Director
+If the two hashes differ, delete the file and stop — don't import it. Before importing a downloaded project into a platform, show the engineer its name and what it contains (count of workflows, templates, forms and other components) and wait for a yes. Import it as a new project; never over an existing project (Rule 11c).
 
 **`helpers/iag/`** — Automation Gateway service files
 
