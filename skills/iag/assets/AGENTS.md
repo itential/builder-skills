@@ -479,26 +479,27 @@ The project file contains the actual LCM action workflows — read it to underst
 | `whoami-basic-auth.json` | WhoAmI endpoint spec with Basic Auth |
 | `whoami-client-creds.json` | WhoAmI endpoint spec with Client Credentials |
 
-### Assets Library — when a vendor or pattern isn't here
+### Assets Library — reference only
 
-The full asset library lives at **https://github.com/itential/assets** (branch: `devel`). Structure: `<Vendor>/<Product>/Projects/<name>.project.json`.
+The full asset library is **https://github.com/itential/assets** (branch `main`) — about 180 Automation Studio projects, laid out as `<Vendor>/<Product>/Studio Projects/<name>.project.json` (a few vendors have no `<Product>` level). **Use it as a reference only:** read a project to see how a vendor's tasks, variables and transitions are wired, then build your own. Never import a downloaded project into a platform — if the engineer wants one of these projects installed as it is, that's their decision, made separately.
 
 **When to check the repo:**
-- The use case involves a vendor not covered by the files above (AWS, Arista, Juniper, F5, Palo Alto, Alkira, Kentik, etc.)
+- The use case involves a vendor not covered by the files above
 - You need a workflow pattern that isn't in the local helpers
 - The customer asks about supported integrations
 
-**How to pull a project from the repo:**
+**How to look at a project:**
 ```bash
-# List available projects for a vendor
-gh api repos/itential/assets/contents/<Vendor>/<Product>/Projects --jq '.[].name'
+# List the projects (narrow with a vendor prefix, e.g. "Cisco/")
+gh api "repos/itential/assets/git/trees/main?recursive=1" \
+  --jq '.tree[] | select(.path | test("\\.project\\.json$")) | .path'
 
-# Download it into helpers/assets/
-curl -sL "https://raw.githubusercontent.com/itential/assets/devel/<Vendor>/<Product>/Projects/<encoded-name>.project.json" \
-  -o "helpers/assets/<local-name>.json"
+# Download one into the use case's reference folder (URL-encode the path: spaces become %20)
+mkdir -p {use-case}/reference
+curl -sL "https://raw.githubusercontent.com/itential/assets/main/<url-encoded path>" -o "{use-case}/reference/<name>.json"
 ```
 
-**Full vendor index (has Projects/):** Alkira, Apache/Kafka, Arista/EOS, Atlassian/Jira, AWS/EC2, Cisco/ASA, Cisco/IOS, Cisco/Meraki, Cisco/NSO, Cisco/NX-OS, F5/BIG-IP, F5/BIG-IQ, GitHub, GitLab, IP Fabric, Infoblox/NIOS DDI, Juniper/JUNOS, Kentik, Microsoft/Teams, NetBox, Palo Alto/Panorama, ServiceNow, Versa/Director
+Save downloads under `{use-case}/reference/`, not `helpers/assets/` — that folder is the curated library bundled into the skills.
 
 **`helpers/iag/`** — Automation Gateway service files
 
