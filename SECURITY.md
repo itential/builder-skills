@@ -30,8 +30,12 @@ We will acknowledge your report within 48 hours and provide regular updates on o
 
 These skills drive an AI agent that calls your Itential Platform's API with your credentials. When using them:
 
-- **Credentials:** keep platform credentials in the `.env` of the folder you work in (the agent caches a token in `.auth.json` next to it). Never commit either file, and never put credentials in a skill's `custom/` rules.
+- **Credentials:** keep platform credentials in the `.env` of the folder you work in. The skills' auth helper reads it and caches a short-lived token in `.auth.json` next to it, so the agent never reads `.env` or sees your secret. Never commit either file, and never put credentials in a skill's `custom/` rules.
 - **Least privilege:** use a service account whose roles cover only what the work needs, rather than an administrator's login.
 - **Review before changes:** read what the agent plans to change on the platform before you approve it, and try new work on a non-production platform first.
 - **Treat `custom/` rules as code:** they are instructions the agent follows. Review changes to them like any other change to your automation.
 - **Report skill guidance that is unsafe** — for example, guidance that could expose credentials or bypass a skill's safety rules — the same way as any other vulnerability (above).
+
+## Automated Checks
+
+Every pull request is checked for things the skill instructions and scripts must not do (a token in a URL, instructions to read `.env`, secrets on the command line, and others), unsafe GitHub Actions workflows (zizmor) and code vulnerabilities (CodeQL). GitHub secret scanning blocks committed keys, and OpenSSF Scorecard grades the repository weekly. Details: [CONTRIBUTING.md → Security checks](CONTRIBUTING.md#security-checks).

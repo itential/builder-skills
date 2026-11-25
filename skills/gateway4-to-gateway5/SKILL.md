@@ -185,8 +185,8 @@ without any secret. **Never read `.env` yourself** — it may also hold Gateway4
 `.env` exists. **The token always goes in a header — never `?token=`** — and the header depends on
 the auth method (mixing them up is the #1 cause of "malformed token" failures):
 
-- **OAuth / cloud (client credentials):** `Authorization: Bearer <token>`. A `?token=` query param
-  returns "malformed token".
+- **OAuth / cloud (client credentials):** `Authorization: Bearer <token>`. Never a `?token=` query
+  param — it returns "malformed token".
 - **Local (`/login`, username + password):** `Cookie: token=<token>`.
 
 `tmp/.auth.json` names the right one in its `header` field.
