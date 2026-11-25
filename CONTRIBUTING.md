@@ -283,7 +283,7 @@ The skills are instructions an AI follows with your credentials on your platform
 
 | Check | What it catches |
 |---|---|
-| **Security Rules** (`scripts/check-security-rules.py`) | Skill text or scripts that do what the rules don't allow: a token in a URL (`?token=`), instructions that have the agent read `.env`, a secret taken as a command-line argument or typed in front of a command, `curl … \| sh`, `npx -y`, and Configuration Manager remediation tasks in workflow assets |
+| **Security Rules** (`scripts/check-security-rules.py`) | Skill text or scripts that do what the rules don't allow: a token in a URL (`?token=`), instructions that have the agent read `.env`, a secret taken as a command-line argument or typed in front of a command, `curl … \| sh`, `npx -y`, a command the agent builds with a secret in it, and Configuration Manager remediation tasks in workflow assets |
 | **Workflow Security** (zizmor) | Unsafe GitHub Actions workflows: unpinned actions, broad permissions, credentials left in checkouts, risky triggers |
 | **CodeQL** | Vulnerabilities in the Python scripts and the workflows |
 

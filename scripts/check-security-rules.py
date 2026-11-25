@@ -35,9 +35,14 @@ RULES = [
     ("agent-reads-env", (".md",), re.compile(
         r"\b(cat|source|less|more|head|tail)\s+[^\s|;&`]*\.env\b"
         r"|(?i:\bread\s+(credentials|[`'\"]?[\w{}./<>-]*\.env\b))"
+        r"|(?i:\bread\b[^.\n]{0,100}\bfrom\s+(the\s+)?[`'\"]?[\w{}./<>-]*\.env\b)"
         r"|\bset -a\b[^\n]*\.env\b"), True,
      "instructions that have the agent read .env put the secret in the model's context. "
      "Run helpers/auth.py instead (AGENTS.md -> Auth Reuse)."),
+    ("agent-sends-secret", (".md",), re.compile(
+        r"(?i)client_secret=[{<$]|\"password\"\s*:\s*\"?[{<$]|-u\s+[{<$]?\w*:[{<$]\w*(PASSWORD|SECRET)"), True,
+     "a command the agent builds with the secret in it puts the secret in the model's context and the transcript. "
+     "Have the agent run helpers/auth.py, which does the login itself."),
     ("secret-cli-arg", (".py",), re.compile(
         r"add_argument\(\s*[\"']-{0,2}[\w-]*(secret|password|passwd|token)(?![\w-]*(file|path|env|var|prefix|name))[\w-]*[\"']"
         r"(?![^\n]*SUPPRESS)", re.I), False,
@@ -53,6 +58,13 @@ RULES = [
     ("remediation-task", (".json",), re.compile(r"\"name\"\s*:\s*\"(" + REMEDIATION + r")\""), False,
      "Configuration Manager remediation tasks are banned in workflows (AGENTS.md rule 25)."),
 ]
+
+
+def sentence_around(line, start, end):
+    """The sentence of `line` that contains [start, end): a "never" in another sentence doesn't excuse a match."""
+    left = max(line.rfind(". ", 0, start), line.rfind("! ", 0, start), line.rfind("? ", 0, start))
+    rights = [i for i in (line.find(". ", end), line.find("! ", end), line.find("? ", end)) if i != -1]
+    return line[left + 1 if left != -1 else 0: min(rights) + 1 if rights else len(line)]
 
 
 def tracked_files():
@@ -73,9 +85,10 @@ def main():
             continue
         for n, line in enumerate(lines, 1):
             for rule_id, exts, pattern, explained_ok, message in RULES:
-                if not rel.endswith(exts) or not pattern.search(line):
+                m = pattern.search(line) if rel.endswith(exts) else None
+                if not m or f"security-rules: allow {rule_id}" in line:
                     continue
-                if f"security-rules: allow {rule_id}" in line or (explained_ok and EXPLAINS.search(line)):
+                if explained_ok and EXPLAINS.search(sentence_around(line, m.start(), m.end())):
                     continue
                 findings.append((rel, n, rule_id, message, line.strip()))
     in_actions = bool(__import__("os").environ.get("GITHUB_ACTIONS"))
