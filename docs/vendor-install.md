@@ -152,16 +152,17 @@ Skills land in the project's `.agents/skills/`, which Cursor reads.
 
 ---
 
-## One script for any tool
+## Any tool, with `gh skill install`
 
-`scripts/install-for-agent.sh` (from a clone of this repo) wraps `gh skill install` for any tool, so you don't have to remember per-tool commands. Needs GitHub CLI 2.90 or later.
+`gh skill install` (GitHub CLI 2.90 or later) installs the skills for any tool that reads Agent Skills — no clone needed. Run in a terminal without `--agent`, it asks which tool.
 
 ```bash
-scripts/install-for-agent.sh                                  # asks which tool
-scripts/install-for-agent.sh cursor                           # install into this project
-scripts/install-for-agent.sh cursor --update                  # update
-scripts/install-for-agent.sh cursor --version v2.3.0          # pin a release (tag or commit SHA)
-scripts/install-for-agent.sh cursor --repo acme/builder-skills # install from your org's copy
+gh skill install itential/builder-skills --all                               # asks which tool
+gh skill install itential/builder-skills --agent cursor --all                # into this project
+gh skill install itential/builder-skills --agent cursor --all --scope user   # for all your projects
+gh skill install itential/builder-skills --agent cursor --all --force        # update
+gh skill install itential/builder-skills --agent cursor --all --pin v2.3.0   # a specific release (tag or commit SHA)
+gh skill install acme/builder-skills --agent cursor --all                    # from your org's copy
 ```
 
 ---
