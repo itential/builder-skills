@@ -162,7 +162,10 @@ scripts/install-for-agent.sh cursor                           # install into thi
 scripts/install-for-agent.sh cursor --update                  # update
 scripts/install-for-agent.sh cursor --version v2.3.0          # pin a release (tag or commit SHA)
 scripts/install-for-agent.sh cursor --repo acme/builder-skills # install from your org's copy
+scripts/install-for-agent.sh cursor --require-pin --version v2.3.0  # refuse to run without a pinned version
 ```
+
+It checks a pinned version exists before installing, and finishes by printing the exact commit it installed. `--require-pin` (or `ITENTIAL_SKILLS_REQUIRE_PIN=true`) makes it refuse to run without `--version`; an org that installs only approved versions can turn that on in its copy — see [`customization.md`](customization.md).
 
 ---
 

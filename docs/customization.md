@@ -101,6 +101,8 @@ Team members follow [`vendor-install.md`](vendor-install.md) for their tool, usi
 
 The plugin keeps Itential's name (`itential-builder`), so commands and skill shortcuts are the same as in Itential's docs. Already installed Itential's version? See [Switching to your own copy](vendor-install.md#switching-to-your-own-copy).
 
+**Only install reviewed versions:** if your org approves a specific release before anyone uses it, make `scripts/install-for-agent.sh` in your copy refuse unpinned installs — set `REQUIRE_PIN="${ITENTIAL_SKILLS_REQUIRE_PIN:-true}"` near the top and `REPO` to your copy. Every install then needs `--version <tag or commit SHA>`, and the script prints the exact commit it installed so you can record it with the approval. The same check is available to anyone with `--require-pin` or `ITENTIAL_SKILLS_REQUIRE_PIN=true`.
+
 After a new rule is added, people pick it up with their tool's normal update (or `git pull` if they work from a clone). If a rule doesn't show up after updating, remove the plugin and install it again — some tools keep their installed copy until the version number changes.
 
 ---
